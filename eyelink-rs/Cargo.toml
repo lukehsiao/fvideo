@@ -1,16 +1,11 @@
 [package]
-name = "libeyelink-sys"
+name = "eyelink-rs"
 version = "0.1.0"
 authors = ["Luke Hsiao <lwhsiao@stanford.edu>"]
 edition = "2018"
-build = "build.rs"
-links = "eyelink"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libc = "0.2.72"
-
-[build-dependencies]
-cc = {version = "1.0.58", features = ["parallel"]}
-pkg-config = "0.3.18"
+libeyelink-sys = "0.1"
+thiserror = "1.0.20"

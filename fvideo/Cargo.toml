@@ -3,8 +3,15 @@ name = "fvideo"
 version = "0.1.0"
 authors = ["Luke Hsiao <lwhsiao@stanford.edu>"]
 edition = "2018"
+description = "Calibrate and record eye data while playing a video with mpv."
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libeyelink-sys = {path = "../libeyelink-sys"}
+eyelink-rs = {path = "../eyelink-rs"}
+structopt = "0.3.15"
+pretty_env_logger = "0.4.0"
+log = "0.4.11"
+thiserror = "1.0.20"
+anyhow = "1.0.31"
