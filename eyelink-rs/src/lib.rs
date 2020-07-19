@@ -81,7 +81,7 @@ pub fn eyecmd_printf(cmd: &str) -> Result<(), EyelinkError> {
     }
 }
 
-pub fn eyelink_get_tracker_version() -> Result<(i16, String), EyelinkError> {
+pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
     // Must be at least length 40 per eyelink api
     let mut version_str: [c_char; 40] = [0; 40];
     let version_str_ptr: *mut c_char = &mut version_str[0];
@@ -97,7 +97,19 @@ pub fn eyelink_get_tracker_version() -> Result<(i16, String), EyelinkError> {
         Err(e) => return Err(EyelinkError::IntoStringError(e)),
     };
 
-    Ok((version, sw_version))
+    // Parse major version from the form "EYELINK XX x.xx"
+    let major = sw_version
+        .as_str()
+        .split(' ')
+        .next_back()
+        .unwrap()
+        .split('.')
+        .next()
+        .expect("Unable to parse sw version")
+        .parse::<i16>()
+        .unwrap();
+
+    Ok((version, major))
 }
 
 #[cfg(test)]

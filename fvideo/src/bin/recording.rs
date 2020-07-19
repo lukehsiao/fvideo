@@ -46,57 +46,26 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
 
     let (version, sw_version) = eyelink_rs::eyelink_get_tracker_version()?;
 
-    unsafe {
-        // Must be at least length 40 per eyelink api
-        let mut version_str: [i8; 40] = [0; 40];
-        let version = libeyelink_sys::eyelink_get_tracker_version(version_str.as_mut_ptr());
-
-        match version {
-            0 => info!("Eyelink not connected."),
-            1 => {
-                info!("Settings for Eyelink I...");
-                let cmd = CString::new("saccade_velocity_threshold = 35").unwrap();
-                match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-                    0 => (),
-                    _ => return Err(anyhow!("Unable to set saccade_velocity_threshold.")),
-                }
-                let cmd = CString::new("saccade_acceleration_threshold = 9500").unwrap();
-                match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-                    0 => (),
-                    _ => return Err(anyhow!("Unable to set saccade_acceleration_threshold.")),
-                }
-            }
-            2 => {
-                // 0 = standard sensitivity
-                let cmd = CString::new("select_parser_configuration 0").unwrap();
-                match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-                    0 => (),
-                    _ => return Err(anyhow!("Unable to set select_parser_configuration.")),
-                }
-                let cmd = CString::new("scene_camera_gazemap = NO").unwrap();
-                match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-                    0 => (),
-                    _ => return Err(anyhow!("Unable to set scene_camera_gazemap.")),
-                }
-            }
-            _ => {
-                // 0 = standard sensitivity
-                let cmd = CString::new("select_parser_configuration 0").unwrap();
-                match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-                    0 => (),
-                    _ => return Err(anyhow!("Unable to set select_parser_configuration.")),
-                }
-            }
+    match version {
+        0 => info!("Eyelink not connected."),
+        1 => {
+            eyelink_rs::eyecmd_printf("saccade_velocity_threshold = 35")?;
+            eyelink_rs::eyecmd_printf("saccade_acceleration_threshold = 9500")?;
         }
-
-        let cmd =
-            CString::new("link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON,INPUT")
-                .unwrap();
-        match libeyelink_sys::eyecmd_printf(cmd.as_ptr()) {
-            0 => (),
-            _ => return Err(anyhow!("Unable to set select_parser_configuration.")),
+        2 => {
+            // 0 = standard sensitivity
+            eyelink_rs::eyecmd_printf("select_parser_configuration 0")?;
+            eyelink_rs::eyecmd_printf("scene_camera_gazemap = NO")?;
+        }
+        _ => {
+            // 0 = standard sensitivity
+            eyelink_rs::eyecmd_printf("select_parser_configuration 0")?;
         }
     }
+
+    eyelink_rs::eyecmd_printf(
+        "link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON,INPUT",
+    )?;
 
     Ok(())
 }
