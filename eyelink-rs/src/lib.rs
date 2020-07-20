@@ -146,6 +146,15 @@ pub fn break_pressed() -> Result<bool, EyelinkError> {
     }
 }
 
+// TODO(lukehsiao): Is this needed? Is this eyelink-specific, or can we just use Rust timing?
+pub fn msec_delay(n: u32) {
+    unsafe { libeyelink_sys::msec_delay(n) }
+}
+
+pub fn close_eyelink_connection() {
+    unsafe { libeyelink_sys::close_eyelink_connection() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
