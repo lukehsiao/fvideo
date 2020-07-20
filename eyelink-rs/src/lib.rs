@@ -17,8 +17,11 @@ pub enum EyelinkError {
     CStringError(#[from] std::ffi::NulError),
     #[error(transparent)]
     IntoStringError(#[from] std::ffi::IntoStringError),
-    #[error("eyelink-rs received an undocumented return value from libeyelink_sys")]
-    APIError,
+    #[error(
+        "eyelink-rs received an undocumented return value from libeyelink_sys: {}",
+        self
+    )]
+    APIError(i16),
 }
 
 #[derive(Debug, PartialEq)]
@@ -132,7 +135,7 @@ pub fn eyelink_is_connected() -> Result<ConnectionStatus, EyelinkError> {
         -1 => Ok(ConnectionStatus::Simulated),
         1 => Ok(ConnectionStatus::Normal),
         2 => Ok(ConnectionStatus::Broadcast),
-        _ => Err(EyelinkError::APIError),
+        e => Err(EyelinkError::APIError(e)),
     }
 }
 
@@ -142,7 +145,7 @@ pub fn break_pressed() -> Result<bool, EyelinkError> {
     match res {
         0 => Ok(false),
         1 => Ok(true),
-        _ => Err(EyelinkError::APIError),
+        e => Err(EyelinkError::APIError(e)),
     }
 }
 
