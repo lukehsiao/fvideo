@@ -3,6 +3,8 @@ use std::os::raw::c_char;
 
 use thiserror::Error;
 
+pub use libeyelink_sys;
+
 #[derive(Error, Debug)]
 pub enum EyelinkError {
     #[error("Invalid IP Address {}", self)]
