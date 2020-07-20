@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::process;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::{error, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -74,11 +74,18 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
         eyelink_rs::eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT")?;
     }
 
-    Ok(())
+    let conn_status = eyelink_rs::eyelink_is_connected()?;
+    if conn_status == eyelink_rs::ConnectionStatus::Closed || eyelink_rs::break_pressed()? {
+        Err(anyhow!("Eyelink is not connected."))
+    } else {
+        Ok(())
+    }
 }
 
 /// Run a 9-point eyelink calibration
-fn run_calibration() {}
+fn run_calibration() -> Result<()> {
+    Ok(())
+}
 
 fn main() {
     pretty_env_logger::init();
@@ -86,6 +93,11 @@ fn main() {
 
     if let Err(e) = initialize_eyelink(&opt) {
         error!("Failed Eyelink Initialization: {}", e);
+        process::exit(1);
+    }
+
+    if let Err(e) = run_calibration() {
+        error!("Failed Eyelink Calibration: {}", e);
         process::exit(1);
     }
 
