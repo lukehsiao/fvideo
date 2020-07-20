@@ -132,6 +132,16 @@ pub fn eyelink_is_connected() -> Result<ConnectionStatus, ()> {
     }
 }
 
+pub fn break_pressed() -> Result<bool, ()> {
+    let res = unsafe { libeyelink_sys::break_pressed() };
+
+    match res {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
