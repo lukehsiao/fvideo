@@ -158,6 +158,27 @@ pub fn close_eyelink_connection() {
     unsafe { libeyelink_sys::close_eyelink_connection() }
 }
 
+pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
+    let c_path = match CString::new(path) {
+        Ok(s) => s,
+        Err(e) => return Err(EyelinkError::CStringError(e)),
+    };
+    let ptr = c_path.into_raw();
+    let res = unsafe {
+        let res = libeyelink_sys::open_data_file(ptr);
+
+        // Retake pointer to free memory
+        let _ = CString::from_raw(ptr);
+
+        res
+    };
+
+    match res {
+        0 => Ok(()),
+        e => Err(EyelinkError::APIError(e)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
