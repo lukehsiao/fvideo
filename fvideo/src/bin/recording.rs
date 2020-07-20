@@ -1,10 +1,10 @@
 /// A binary for performing calibration, and then recording eye tracking data
 /// for the specified amount of time while a video is played.
-use std::ffi::CString;
 use std::path::PathBuf;
+use std::process;
 
-use anyhow::{anyhow, Result};
-use log::info;
+use anyhow::Result;
+use log::{error, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -66,6 +66,13 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
     eyelink_rs::eyecmd_printf(
         "link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON,INPUT",
     )?;
+    if sw_version >= 4 {
+        eyelink_rs::eyecmd_printf(
+            "link_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET,INPUT",
+        )?;
+    } else {
+        eyelink_rs::eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT")?;
+    }
 
     Ok(())
 }
@@ -77,7 +84,10 @@ fn main() {
     pretty_env_logger::init();
     let opt = Opt::from_args();
 
-    initialize_eyelink(&opt);
+    if let Err(e) = initialize_eyelink(&opt) {
+        error!("Failed Eyelink Initialization: {}", e);
+        process::exit(1);
+    }
 
     dbg!(opt);
 }

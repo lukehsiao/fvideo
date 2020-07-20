@@ -17,11 +17,19 @@ pub enum EyelinkError {
     IntoStringError(#[from] std::ffi::IntoStringError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OpenMode {
     Dummy,
     Real,
     NoConn,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ConnectionStatus {
+    Closed,
+    Simulated,
+    Normal,
+    Broadcast,
 }
 
 pub fn set_eyelink_address(addr: &str) -> Result<(), EyelinkError> {
@@ -112,6 +120,18 @@ pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
     Ok((version, major))
 }
 
+pub fn eyelink_is_connected() -> Result<ConnectionStatus, ()> {
+    let res = unsafe { libeyelink_sys::eyelink_is_connected() };
+
+    match res {
+        0 => Ok(ConnectionStatus::Closed),
+        -1 => Ok(ConnectionStatus::Simulated),
+        1 => Ok(ConnectionStatus::Normal),
+        2 => Ok(ConnectionStatus::Broadcast),
+        _ => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,5 +158,11 @@ mod tests {
         if let Err(_) = open_eyelink_connection(OpenMode::Dummy) {
             panic!("Should have passed.");
         }
+    }
+
+    #[test]
+    fn test_eyelink_is_connected() {
+        // Should report closed w/ no Eyelink connected
+        assert_eq!(ConnectionStatus::Closed, eyelink_is_connected().unwrap())
     }
 }
