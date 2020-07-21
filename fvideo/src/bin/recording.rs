@@ -28,6 +28,31 @@ struct Opt {
     video: PathBuf,
 }
 
+const MIN_DELAY_MS: u32 = 500;
+const EDF_FILE: &str = "recording.edf";
+
+fn end_expt(edf: &str) -> Result<()> {
+    // Close and transfer EDF file
+    eyelink_rs::set_offline_mode();
+    eyelink_rs::msec_delay(MIN_DELAY_MS);
+    eyelink_rs::eyecmd_printf("close_data_file")?;
+
+    // Don't save the file if we aborted the experiment
+    if eyelink_rs::break_pressed()? {
+        eyelink_rs::close_eyelink_connection();
+        return Ok(());
+    }
+
+    let conn_status = eyelink_rs::eyelink_is_connected()?;
+    if conn_status != eyelink_rs::ConnectionStatus::Closed {
+        let size = eyelink_rs::receive_data_file(edf)?;
+        info!("Transferred {} bytes.", size);
+    }
+
+    eyelink_rs::close_eyelink_connection();
+    Ok(())
+}
+
 fn initialize_eyelink(opt: &Opt) -> Result<()> {
     // Set the address of the tracker. This is hard-coded and cannot be changed.
     eyelink_rs::set_eyelink_address("100.1.1.1")?;
@@ -40,6 +65,16 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
 
     eyelink_rs::set_offline_mode();
     eyelink_rs::flush_getkey_queue();
+
+    match eyelink_rs::open_data_file(EDF_FILE) {
+        Ok(_) => (),
+        Err(e) => {
+            eyelink_rs::close_eyelink_connection();
+            error!("{}", e);
+            return Err(e.into());
+        }
+    }
+    eyelink_rs::eyecmd_printf("add_file_preamble_text 'RECORDED BY recording.rs'")?;
 
     // Set display resolution
     eyelink_rs::eyecmd_printf("screen_pixel_coords = 0 0 1920 1080")?;
@@ -63,6 +98,19 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
         }
     }
 
+    // Set EDF file contents
+    eyelink_rs::eyecmd_printf(
+        "file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT",
+    )?;
+    if sw_version >= 4 {
+        eyelink_rs::eyecmd_printf(
+            "file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET,INPUT",
+        )?;
+    } else {
+        eyelink_rs::eyecmd_printf("file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT")?;
+    }
+
+    // Set link data
     eyelink_rs::eyecmd_printf(
         "link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,BUTTON,INPUT",
     )?;
@@ -76,6 +124,7 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
 
     let conn_status = eyelink_rs::eyelink_is_connected()?;
     if conn_status == eyelink_rs::ConnectionStatus::Closed || eyelink_rs::break_pressed()? {
+        end_expt(EDF_FILE)?;
         Err(anyhow!("Eyelink is not connected."))
     } else {
         Ok(())
@@ -101,5 +150,8 @@ fn main() {
         process::exit(1);
     }
 
-    dbg!(opt);
+    if let Err(e) = end_expt(EDF_FILE) {
+        error!("Failed Eyelink end_expt: {}", e);
+        process::exit(1);
+    }
 }
