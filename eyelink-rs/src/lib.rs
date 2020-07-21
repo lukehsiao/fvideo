@@ -101,8 +101,7 @@ pub fn eyecmd_printf(cmd: &str) -> Result<(), EyelinkError> {
 pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
     // Must be at least length 40 per eyelink api
     let mut version_str: [c_char; 40] = [0; 40];
-    let version_str_ptr: *mut c_char = &mut version_str[0];
-    let version = unsafe { libeyelink_sys::eyelink_get_tracker_version(version_str_ptr) };
+    let version = unsafe { libeyelink_sys::eyelink_get_tracker_version(&mut version_str[0]) };
 
     let cstring = match CString::new(version_str.iter().map(|c| *c as u8).collect::<Vec<u8>>()) {
         Ok(s) => s,
@@ -222,9 +221,8 @@ pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
 }
 
 pub fn init_expt_graphics(info: &mut libeyelink_sys::DISPLAYINFO) -> Result<(), EyelinkError> {
-    let info_ptr: *mut libeyelink_sys::DISPLAYINFO = info;
     unsafe {
-        match libeyelink_sys::init_expt_graphics(std::ptr::null_mut(), info_ptr) {
+        match libeyelink_sys::init_expt_graphics(std::ptr::null_mut(), info) {
             0 => Ok(()),
             e => Err(EyelinkError::APIError(e)),
         }
