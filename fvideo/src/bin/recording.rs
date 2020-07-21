@@ -33,6 +33,11 @@ const MIN_DELAY_MS: u32 = 500;
 const EDF_FILE: &str = "recording.edf";
 
 fn end_expt(edf: &str) -> Result<()> {
+    // End recording
+    eyelink_rs::end_realtime_mode();
+    eyelink_rs::msec_delay(100);
+    eyelink_rs::stop_recording();
+
     // Close and transfer EDF file
     eyelink_rs::set_offline_mode();
     eyelink_rs::msec_delay(MIN_DELAY_MS);
@@ -40,6 +45,7 @@ fn end_expt(edf: &str) -> Result<()> {
 
     // Don't save the file if we aborted the experiment
     if eyelink_rs::break_pressed()? {
+        info!("Skipping EDF transfer due to abort.");
         eyelink_rs::close_eyelink_connection();
         return Ok(());
     }
@@ -178,7 +184,15 @@ fn start_recording() -> Result<(), i16> {
 
     // Record to EDF file and link
     eyelink_rs::start_recording(true, true, true, true)?;
+
+    // Start recording for a bit before displaying stimulus
+    eyelink_rs::begin_realtime_mode(100);
+
     Ok(())
+}
+
+fn play_video(_opt: &Opt) -> Result<()> {
+    todo!();
 }
 
 fn main() {
@@ -197,6 +211,11 @@ fn main() {
 
     if let Err(e) = start_recording() {
         error!("Failed starting recording: {}", e);
+        process::exit(1);
+    }
+
+    if let Err(e) = play_video(&opt) {
+        error!("Failed playing video: {}", e);
         process::exit(1);
     }
 
