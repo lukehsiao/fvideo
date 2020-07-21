@@ -265,6 +265,12 @@ pub fn set_calibration_colors(
     }
 }
 
+pub fn set_target_size(diameter: u16, holesize: u16) {
+    unsafe {
+        libeyelink_sys::set_target_size(diameter, holesize);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
