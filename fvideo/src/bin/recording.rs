@@ -161,15 +161,12 @@ fn run_calibration() -> Result<()> {
 
     eyelink_rs::do_tracker_setup();
 
-    // If ESC was pressed, repeat drift correction
-    loop {
-        // Create screen to bg color, draw target, clear again when done, and
-        // allow ESC to access setup menu before returning, rather than abort.
-        match eyelink_rs::do_drift_correct(1920 / 2, 1080 / 2, true, true) {
-            Err(eyelink_rs::EyelinkError::EscPressed) => continue,
-            _ => break,
-        }
-    }
+    // If ESC was pressed, repeat drift correction.
+    // Clear screen to bg color, draw target, clear again when done, and
+    // allow ESC to access setup menu before returning, rather than abort.
+    while let Err(eyelink_rs::EyelinkError::EscPressed) =
+        eyelink_rs::do_drift_correct(1920 / 2, 1080 / 2, true, true)
+    {}
 
     Ok(())
 }
