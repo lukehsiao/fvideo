@@ -302,6 +302,14 @@ pub fn start_recording(
     }
 }
 
+pub fn begin_realtime_mode(delay_ms: u32) {
+    unsafe { libeyelink_sys::begin_realtime_mode(delay_ms) }
+}
+
+pub fn end_realtime_mode() {
+    unsafe { libeyelink_sys::end_realtime_mode() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
