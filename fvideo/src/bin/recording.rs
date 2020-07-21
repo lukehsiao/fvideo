@@ -174,6 +174,16 @@ fn run_calibration() -> Result<()> {
     Ok(())
 }
 
+fn start_recording() -> Result<(), i16> {
+    // Give Eylink some time to switch modes in prep for recording
+    eyelink_rs::set_offline_mode();
+    eyelink_rs::msec_delay(50);
+
+    // Record to EDF file and link
+    eyelink_rs::start_recording(true, true, true, true)?;
+    Ok(())
+}
+
 fn main() {
     pretty_env_logger::init();
     let opt = Opt::from_args();
@@ -185,6 +195,11 @@ fn main() {
 
     if let Err(e) = run_calibration() {
         error!("Failed Eyelink Calibration: {}", e);
+        process::exit(1);
+    }
+
+    if let Err(e) = start_recording() {
+        error!("Failed starting recording: {}", e);
         process::exit(1);
     }
 
