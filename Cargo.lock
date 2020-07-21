@@ -136,11 +136,12 @@ checksum = "bd7d4bd64732af4bf3a67f367c27df8520ad7e230c5817b8ff485864d80242b9"
 
 [[package]]
 name = "libeyelink-sys"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0507c472bde17eb2a4951cc46ca4f4cbd01a4c3f340072ebde1eb30ade8aa5f8"
+checksum = "10e39e72dbaa152ec2f52212231adf2c1123237fcd51075a39ffbeaa99d4cf76"
 dependencies = [
  "libc",
+ "pkg-config",
 ]
 
 [[package]]
@@ -157,6 +158,12 @@ name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d36492546b6af1463394d46f0c834346f31548646f6ba10849802c9c9a27ac33"
 
 [[package]]
 name = "pretty_env_logger"
