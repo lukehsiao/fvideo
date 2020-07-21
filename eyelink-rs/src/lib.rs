@@ -302,6 +302,10 @@ pub fn start_recording(
     }
 }
 
+pub fn stop_recording() {
+    unsafe { libeyelink_sys::stop_recording() }
+}
+
 pub fn begin_realtime_mode(delay_ms: u32) {
     unsafe { libeyelink_sys::begin_realtime_mode(delay_ms) }
 }
