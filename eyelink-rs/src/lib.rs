@@ -260,7 +260,7 @@ mod tests {
         // Should fail w/o an eyelink installed.
         match receive_data_file("test.edf") {
             Err(e) => match e {
-                EyelinkError::DataError { code, msg } if code != 0 => {
+                EyelinkError::DataError { code, msg: _ } if code != 0 => {
                     panic!("Should have failed.");
                 }
                 _ => (),
