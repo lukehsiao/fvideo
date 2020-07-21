@@ -11,6 +11,8 @@ pub enum EyelinkError {
     InvalidIP(String),
     #[error("Unable to connect to Eyelink")]
     ConnectionError,
+    #[error("Esc was pressed during drift correction.")]
+    EscPressed,
     #[error("Failed Command: {}", self)]
     CommandError(String),
     #[error(transparent)]
@@ -268,6 +270,15 @@ pub fn set_calibration_colors(
 pub fn set_target_size(diameter: u16, holesize: u16) {
     unsafe {
         libeyelink_sys::set_target_size(diameter, holesize);
+    }
+}
+
+pub fn do_drift_correct(x: i16, y: i16, draw: bool, allow_setup: bool) -> Result<(), EyelinkError> {
+    let res = unsafe { libeyelink_sys::do_drift_correct(x, y, draw as i16, allow_setup as i16) };
+    match res {
+        0 => Ok(()),
+        27 => Err(EyelinkError::EscPressed),
+        n => Err(EyelinkError::APIError(n)),
     }
 }
 
