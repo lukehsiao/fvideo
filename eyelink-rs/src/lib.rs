@@ -221,6 +221,38 @@ pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
     }
 }
 
+pub fn init_expt_graphics(info: &mut libeyelink_sys::DISPLAYINFO) -> Result<(), EyelinkError> {
+    let info_ptr: *mut libeyelink_sys::DISPLAYINFO = info;
+    unsafe {
+        match libeyelink_sys::init_expt_graphics(std::ptr::null_mut(), info_ptr) {
+            0 => Ok(()),
+            e => Err(EyelinkError::APIError(e)),
+        }
+    }
+}
+
+pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
+    let mut info: libeyelink_sys::DISPLAYINFO = libeyelink_sys::DISPLAYINFO {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 0,
+        height: 0,
+        bits: 0,
+        palsize: 0,
+        palrsvd: 0,
+        pages: 0,
+        refresh: 0.0,
+        winnt: 0,
+    };
+    let info_ptr: *mut libeyelink_sys::DISPLAYINFO = &mut info;
+    unsafe {
+        libeyelink_sys::get_display_information(info_ptr);
+    }
+    info
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,5 +299,14 @@ mod tests {
             },
             _ => (),
         }
+    }
+
+    #[test]
+    fn test_get_display_information() {
+        let info = get_display_information();
+        assert_eq!(info.left, 0);
+        assert_eq!(info.right, 1920);
+        assert_eq!(info.top, 0);
+        assert_eq!(info.bottom, 1080);
     }
 }
