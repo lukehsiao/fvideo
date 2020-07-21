@@ -244,11 +244,25 @@ pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
         refresh: 0.0,
         winnt: 0,
     };
-    let info_ptr: *mut libeyelink_sys::DISPLAYINFO = &mut info;
     unsafe {
-        libeyelink_sys::get_display_information(info_ptr);
+        libeyelink_sys::get_display_information(&mut info);
     }
     info
+}
+
+pub fn do_tracker_setup() {
+    unsafe {
+        libeyelink_sys::do_tracker_setup();
+    }
+}
+
+pub fn set_calibration_colors(
+    fg: &mut libeyelink_sys::SDL_Color,
+    bg: &mut libeyelink_sys::SDL_Color,
+) {
+    unsafe {
+        libeyelink_sys::set_calibration_colors(fg, bg);
+    }
 }
 
 #[cfg(test)]
