@@ -282,6 +282,26 @@ pub fn do_drift_correct(x: i16, y: i16, draw: bool, allow_setup: bool) -> Result
     }
 }
 
+pub fn start_recording(
+    file_samples: bool,
+    file_events: bool,
+    link_samples: bool,
+    link_events: bool,
+) -> Result<(), i16> {
+    let res = unsafe {
+        libeyelink_sys::start_recording(
+            file_samples as i16,
+            file_events as i16,
+            link_samples as i16,
+            link_events as i16,
+        )
+    };
+    match res {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
