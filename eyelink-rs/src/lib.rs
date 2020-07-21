@@ -22,6 +22,8 @@ pub enum EyelinkError {
         self
     )]
     APIError(i16),
+    #[error("Data File Error {code}: {msg}")]
+    DataError { code: i32, msg: String },
 }
 
 #[derive(Debug, PartialEq)]
@@ -179,6 +181,46 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
     }
 }
 
+pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
+    let c_src = match CString::new(src) {
+        Ok(s) => s,
+        Err(e) => return Err(EyelinkError::CStringError(e)),
+    };
+    let src_ptr = c_src.into_raw();
+
+    let c_dst = match CString::new("") {
+        Ok(s) => s,
+        Err(e) => return Err(EyelinkError::CStringError(e)),
+    };
+    let dst_ptr = c_dst.into_raw();
+
+    let res = unsafe {
+        let res = libeyelink_sys::receive_data_file(src_ptr, dst_ptr, 0);
+
+        // Retake pointer to free memory
+        let _ = CString::from_raw(src_ptr);
+        let _ = CString::from_raw(dst_ptr);
+
+        res
+    };
+
+    match res {
+        0 => Err(EyelinkError::DataError {
+            code: 0,
+            msg: "File transfer was cancelled.".to_string(),
+        }),
+        libeyelink_sys::FILE_CANT_OPEN => Err(EyelinkError::DataError {
+            code: libeyelink_sys::FILE_CANT_OPEN,
+            msg: "Cannot open file.".to_string(),
+        }),
+        libeyelink_sys::FILE_XFER_ABORTED => Err(EyelinkError::DataError {
+            code: libeyelink_sys::FILE_XFER_ABORTED,
+            msg: "Data error. Aborted.".to_string(),
+        }),
+        n => Ok(n),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,5 +253,19 @@ mod tests {
     fn test_eyelink_is_connected() {
         // Should report closed w/ no Eyelink connected
         assert_eq!(ConnectionStatus::Closed, eyelink_is_connected().unwrap())
+    }
+
+    #[test]
+    fn test_eyelink_receive_data_file() {
+        // Should fail w/o an eyelink installed.
+        match receive_data_file("test.edf") {
+            Err(e) => match e {
+                EyelinkError::DataError { code, msg } if code != 0 => {
+                    panic!("Should have failed.");
+                }
+                _ => (),
+            },
+            _ => (),
+        }
     }
 }
