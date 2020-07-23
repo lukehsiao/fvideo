@@ -1,4 +1,5 @@
 use std::ffi::CString;
+use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 
 use c_fixed_string::CFixedStr;
@@ -208,24 +209,11 @@ pub fn init_expt_graphics(info: &mut libeyelink_sys::DISPLAYINFO) -> Result<(), 
 }
 
 pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
-    let mut info: libeyelink_sys::DISPLAYINFO = libeyelink_sys::DISPLAYINFO {
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: 0,
-        height: 0,
-        bits: 0,
-        palsize: 0,
-        palrsvd: 0,
-        pages: 0,
-        refresh: 0.0,
-        winnt: 0,
-    };
     unsafe {
-        libeyelink_sys::get_display_information(&mut info);
+        let mut info: MaybeUninit<libeyelink_sys::DISPLAYINFO> = MaybeUninit::uninit();
+        libeyelink_sys::get_display_information(info.as_mut_ptr());
+        info.assume_init()
     }
-    info
 }
 
 pub fn do_tracker_setup() {
@@ -300,7 +288,7 @@ mod tests {
             panic!("Should have failed.");
         }
 
-        if let Err(_) = set_eyelink_address("100.0.1.1") {
+        if let Err(_) = set_eyelink_address("100.1.1.1") {
             panic!("Should have passed.");
         }
     }
@@ -317,7 +305,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_open_eyelink_connection_real() {
-        set_eyelink_address("100.0.1.1");
+        set_eyelink_address("100.1.1.1");
         if let Err(_) = open_eyelink_connection(OpenMode::Real) {
             panic!("Should have passed.");
         }
@@ -347,7 +335,7 @@ mod tests {
     #[test]
     #[ignore] // Only might if connected to eyelink
     fn test_eyelink_get_tracker_version() {
-        set_eyelink_address("100.0.1.1");
+        set_eyelink_address("100.1.1.1");
         open_eyelink_connection(OpenMode::Real).unwrap();
 
         let (version, sw_version) = eyelink_get_tracker_version().unwrap();
