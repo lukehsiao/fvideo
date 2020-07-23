@@ -72,6 +72,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "c_fixed_string"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe6833b1e1b632d1a4c167aa8dc2a78a774bd78e14bc14579505d209327b47cf"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -135,6 +144,7 @@ dependencies = [
 name = "eyelink-rs"
 version = "0.1.0"
 dependencies = [
+ "c_fixed_string",
  "libeyelink-sys",
  "thiserror",
 ]
