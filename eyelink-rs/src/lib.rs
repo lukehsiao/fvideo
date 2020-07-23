@@ -162,10 +162,7 @@ pub fn close_eyelink_connection() {
 }
 
 pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
-    let c_path = match CString::new(path) {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::CStringError(e)),
-    };
+    let c_path = CString::new(path).map_err(|e| EyelinkError::CStringError(e))?;
     let ptr = c_path.into_raw();
     let res = unsafe {
         let res = libeyelink_sys::open_data_file(ptr);
@@ -366,8 +363,8 @@ mod tests {
     fn test_get_display_information() {
         let info = get_display_information();
         assert_eq!(info.left, 0);
-        assert_eq!(info.right, 1920);
+        assert_eq!(info.right, 1919);
         assert_eq!(info.top, 0);
-        assert_eq!(info.bottom, 1080);
+        assert_eq!(info.bottom, 1079);
     }
 }
