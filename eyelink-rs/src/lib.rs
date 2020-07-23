@@ -160,15 +160,8 @@ pub fn close_eyelink_connection() {
 
 pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
     let c_path = CString::new(path).map_err(|e| EyelinkError::CStringError(e))?;
-    let ptr = c_path.into_raw();
-    let res = unsafe {
-        let res = libeyelink_sys::open_data_file(ptr);
 
-        // Retake pointer to free memory
-        let _ = CString::from_raw(ptr);
-
-        res
-    };
+    let res = unsafe { libeyelink_sys::open_data_file(c_path.as_ptr() as *mut c_char) };
 
     match res {
         0 => Ok(()),
@@ -178,19 +171,14 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
 
 pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
     let c_src = CString::new(src).map_err(|e| EyelinkError::CStringError(e))?;
-    let src_ptr = c_src.into_raw();
-
     let c_dst = CString::new("").map_err(|e| EyelinkError::CStringError(e))?;
-    let dst_ptr = c_dst.into_raw();
 
     let res = unsafe {
-        let res = libeyelink_sys::receive_data_file(src_ptr, dst_ptr, 0);
-
-        // Retake pointer to free memory
-        let _ = CString::from_raw(src_ptr);
-        let _ = CString::from_raw(dst_ptr);
-
-        res
+        libeyelink_sys::receive_data_file(
+            c_src.as_ptr() as *mut c_char,
+            c_dst.as_ptr() as *mut c_char,
+            0,
+        )
     };
 
     match res {
