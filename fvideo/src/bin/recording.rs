@@ -318,9 +318,11 @@ fn main() {
         process::exit(1);
     }
 
-    if let Err(e) = run_calibration() {
-        error!("Failed Eyelink Calibration: {}", e);
-        process::exit(1);
+    if opt.calibrate {
+        if let Err(e) = run_calibration() {
+            error!("Failed Eyelink Calibration: {}", e);
+            process::exit(1);
+        }
     }
 
     if let Err(e) = start_recording() {
