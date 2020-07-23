@@ -1,6 +1,7 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_char;
 
+use c_fixed_string::CFixedStr;
 use thiserror::Error;
 
 pub use libeyelink_sys;
@@ -19,8 +20,6 @@ pub enum EyelinkError {
     CStringError(#[from] std::ffi::NulError),
     #[error(transparent)]
     IntoStringError(#[from] std::ffi::IntoStringError),
-    #[error(transparent)]
-    FromBytesWithNulError(#[from] std::ffi::FromBytesWithNulError),
     #[error(transparent)]
     Utf8Error(#[from] std::str::Utf8Error),
     #[error(
@@ -49,16 +48,11 @@ pub enum ConnectionStatus {
 
 pub fn set_eyelink_address(addr: &str) -> Result<(), EyelinkError> {
     let c_addr = CString::new(addr).map_err(|e| EyelinkError::CStringError(e))?;
-
-    let ptr = c_addr.into_raw();
     unsafe {
-        let res = match libeyelink_sys::set_eyelink_address(ptr) {
+        let res = match libeyelink_sys::set_eyelink_address(c_addr.as_ptr() as *mut c_char) {
             0 => Ok(()),
             _ => Err(EyelinkError::InvalidIP(addr.into())),
         };
-
-        // Retake pointer to free memory
-        let _ = CString::from_raw(ptr);
 
         res
     }
@@ -103,7 +97,7 @@ pub fn eyecmd_printf(cmd: &str) -> Result<(), EyelinkError> {
 
 fn parse_sw_version(version: &str) -> Result<i16, ()> {
     // Parse major version from the form "EYELINK XX x.xx"
-    let mut parts = version.split(' ');
+    let mut parts = version.trim().split(' ');
     match parts
         .next_back()
         .unwrap()
@@ -123,10 +117,9 @@ pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
     let version =
         unsafe { libeyelink_sys::eyelink_get_tracker_version(buffer.as_mut_ptr() as *mut c_char) };
 
-    let cstr =
-        CStr::from_bytes_with_nul(&buffer).map_err(|e| EyelinkError::FromBytesWithNulError(e))?;
-
-    let sw_version = cstr.to_str().map_err(|e| EyelinkError::Utf8Error(e))?;
+    let sw_version = CFixedStr::from_bytes(&buffer)
+        .to_str()
+        .map_err(|e| EyelinkError::Utf8Error(e))?;
 
     // Parse major version from the form "EYELINK XX x.xx"
     let major = parse_sw_version(sw_version).map_err(|_| EyelinkError::APIError(0))?;
@@ -371,6 +364,8 @@ mod tests {
 
         let (version, sw_version) = eyelink_get_tracker_version().unwrap();
 
+        close_eyelink_connection();
+
         // TODO(lukehsiao): populate with real values
         assert_eq!(version, 10);
         assert_eq!(sw_version, 10);
@@ -379,7 +374,8 @@ mod tests {
     #[test]
     fn test_parse_sw_version() {
         assert_eq!(parse_sw_version("Eyelink II 4.14").unwrap(), 4);
-        assert_eq!(parse_sw_version("Eyelink I 5.0").unwrap(), 5);
+        assert_eq!(parse_sw_version("  Eyelink I 5.0").unwrap(), 5);
+        assert_eq!(parse_sw_version("Eyelink CL 4.51  ").unwrap(), 4);
     }
 
     #[test]
