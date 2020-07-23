@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use thiserror::Error;
@@ -19,6 +19,10 @@ pub enum EyelinkError {
     CStringError(#[from] std::ffi::NulError),
     #[error(transparent)]
     IntoStringError(#[from] std::ffi::IntoStringError),
+    #[error(transparent)]
+    FromBytesWithNulError(#[from] std::ffi::FromBytesWithNulError),
+    #[error(transparent)]
+    Utf8Error(#[from] std::str::Utf8Error),
     #[error(
         "eyelink-rs received an undocumented return value from libeyelink_sys: {}",
         self
@@ -44,10 +48,7 @@ pub enum ConnectionStatus {
 }
 
 pub fn set_eyelink_address(addr: &str) -> Result<(), EyelinkError> {
-    let c_addr = match CString::new(addr) {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::CStringError(e)),
-    };
+    let c_addr = CString::new(addr).map_err(|e| EyelinkError::CStringError(e))?;
 
     let ptr = c_addr.into_raw();
     unsafe {
@@ -100,32 +101,35 @@ pub fn eyecmd_printf(cmd: &str) -> Result<(), EyelinkError> {
     }
 }
 
-pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
-    // Must be at least length 40 per eyelink api
-    let mut version_str: [c_char; 40] = [0; 40];
-    let version = unsafe { libeyelink_sys::eyelink_get_tracker_version(&mut version_str[0]) };
-
-    let cstring = match CString::new(version_str.iter().map(|c| *c as u8).collect::<Vec<u8>>()) {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::CStringError(e)),
-    };
-
-    let sw_version = match cstring.into_string() {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::IntoStringError(e)),
-    };
-
+fn parse_sw_version(version: &str) -> Result<i16, ()> {
     // Parse major version from the form "EYELINK XX x.xx"
-    let major = sw_version
-        .as_str()
-        .split(' ')
+    let mut parts = version.split(' ');
+    match parts
         .next_back()
         .unwrap()
         .split('.')
         .next()
-        .expect("Unable to parse sw version")
+        .unwrap()
         .parse::<i16>()
-        .unwrap();
+    {
+        Ok(n) => Ok(n),
+        Err(_) => Err(()),
+    }
+}
+
+pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
+    // Must be at least length 40 per the eyelink api
+    let mut buffer: [u8; 256] = [0; 256];
+    let version =
+        unsafe { libeyelink_sys::eyelink_get_tracker_version(buffer.as_mut_ptr() as *mut c_char) };
+
+    let cstr =
+        CStr::from_bytes_with_nul(&buffer).map_err(|e| EyelinkError::FromBytesWithNulError(e))?;
+
+    let sw_version = cstr.to_str().map_err(|e| EyelinkError::Utf8Error(e))?;
+
+    // Parse major version from the form "EYELINK XX x.xx"
+    let major = parse_sw_version(sw_version).map_err(|_| EyelinkError::APIError(0))?;
 
     Ok((version, major))
 }
@@ -180,16 +184,10 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
 }
 
 pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
-    let c_src = match CString::new(src) {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::CStringError(e)),
-    };
+    let c_src = CString::new(src).map_err(|e| EyelinkError::CStringError(e))?;
     let src_ptr = c_src.into_raw();
 
-    let c_dst = match CString::new("") {
-        Ok(s) => s,
-        Err(e) => return Err(EyelinkError::CStringError(e)),
-    };
+    let c_dst = CString::new("").map_err(|e| EyelinkError::CStringError(e))?;
     let dst_ptr = c_dst.into_raw();
 
     let res = unsafe {
@@ -327,16 +325,22 @@ mod tests {
     }
 
     #[test]
-    fn test_open_eyelink_connection() {
-        // Should fail w/o an eyelink installed.
-        if let Ok(_) = open_eyelink_connection(OpenMode::Real) {
-            panic!("Should have failed.");
-        }
-
+    fn test_open_eyelink_connection_dummy() {
         // Should be fine in dummy mode.
         if let Err(_) = open_eyelink_connection(OpenMode::Dummy) {
             panic!("Should have passed.");
         }
+        close_eyelink_connection();
+    }
+
+    #[test]
+    #[ignore]
+    fn test_open_eyelink_connection_real() {
+        set_eyelink_address("100.0.1.1");
+        if let Err(_) = open_eyelink_connection(OpenMode::Real) {
+            panic!("Should have passed.");
+        }
+        close_eyelink_connection();
     }
 
     #[test]
@@ -360,6 +364,26 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Only might if connected to eyelink
+    fn test_eyelink_get_tracker_version() {
+        set_eyelink_address("100.0.1.1");
+        open_eyelink_connection(OpenMode::Real).unwrap();
+
+        let (version, sw_version) = eyelink_get_tracker_version().unwrap();
+
+        // TODO(lukehsiao): populate with real values
+        assert_eq!(version, 10);
+        assert_eq!(sw_version, 10);
+    }
+
+    #[test]
+    fn test_parse_sw_version() {
+        assert_eq!(parse_sw_version("Eyelink II 4.14").unwrap(), 4);
+        assert_eq!(parse_sw_version("Eyelink I 5.0").unwrap(), 5);
+    }
+
+    #[test]
+    #[ignore] // Ignore because it fails unless connected with a display
     fn test_get_display_information() {
         let info = get_display_information();
         assert_eq!(info.left, 0);
