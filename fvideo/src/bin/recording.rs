@@ -14,7 +14,8 @@ use structopt::StructOpt;
 
 use ffmpeg_next::format::{input, Pixel};
 use ffmpeg_next::media::Type;
-use ffmpeg_next::software::scaling::{context::Context as Scaler, flag::Flags};
+use ffmpeg_next::software::scaling::context::Context;
+use ffmpeg_next::software::scaling::flag::Flags;
 use ffmpeg_next::util::frame::video::Video;
 use num_rational::Rational64;
 
@@ -212,11 +213,13 @@ fn play_video(opt: &Opt) -> Result<()> {
 
     let mut video_decoder = in_stream.codec().decoder().video()?;
 
-    let mut scaler = Scaler::get(
-        video_decoder.format(),
+    info!(
+        "W: {}, H: {}",
         video_decoder.width(),
-        video_decoder.height(),
-        Pixel::YUV420P,
+        video_decoder.height()
+    );
+
+    let mut context = video_decoder.scaler(
         video_decoder.width(),
         video_decoder.height(),
         Flags::BILINEAR,
@@ -259,9 +262,10 @@ fn play_video(opt: &Opt) -> Result<()> {
             Some(codec) if codec.is_video() => {
                 let mut frame = Video::empty();
                 match video_decoder.decode(&packet, &mut frame) {
-                    Ok(_) => {
+                    // If the frame is finished
+                    Ok(true) => {
                         let mut yuv_frame = Video::empty();
-                        scaler.run(&frame, &mut yuv_frame)?;
+                        context.run(&frame, &mut yuv_frame)?;
 
                         let rect = Rect::new(0, 0, yuv_frame.width(), yuv_frame.height());
                         info!("rendering frame {}", i);
@@ -298,7 +302,8 @@ fn play_video(opt: &Opt) -> Result<()> {
                         now = time::Instant::now();
                         prev_pts = Some(pts);
                     }
-                    _ => {
+                    Ok(false) => (),
+                    Err(_) => {
                         error!("Error occurred while decoding packet.");
                     }
                 }
