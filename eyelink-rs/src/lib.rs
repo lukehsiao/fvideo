@@ -82,6 +82,20 @@ pub fn flush_getkey_queue() {
     unsafe { libeyelink_sys::flush_getkey_queue() }
 }
 
+pub fn eyemsg_printf(msg: &str) -> Result<(), EyelinkError> {
+    let c_msg = match CString::new(msg) {
+        Ok(s) => s,
+        Err(e) => return Err(EyelinkError::CStringError(e)),
+    };
+
+    unsafe {
+        match libeyelink_sys::eyemsg_printf(c_msg.as_ptr()) {
+            0 => Ok(()),
+            n => Err(EyelinkError::APIError(n)),
+        }
+    }
+}
+
 pub fn eyecmd_printf(cmd: &str) -> Result<(), EyelinkError> {
     let c_cmd = match CString::new(cmd) {
         Ok(s) => s,
