@@ -48,14 +48,12 @@ pub enum ConnectionStatus {
 }
 
 pub fn set_eyelink_address(addr: &str) -> Result<(), EyelinkError> {
-    let c_addr = CString::new(addr).map_err(|e| EyelinkError::CStringError(e))?;
+    let c_addr = CString::new(addr).map_err(EyelinkError::CStringError)?;
     unsafe {
-        let res = match libeyelink_sys::set_eyelink_address(c_addr.as_ptr() as *mut c_char) {
+        match libeyelink_sys::set_eyelink_address(c_addr.as_ptr() as *mut c_char) {
             0 => Ok(()),
             _ => Err(EyelinkError::InvalidIP(addr.into())),
-        };
-
-        res
+        }
     }
 }
 
@@ -134,7 +132,7 @@ pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
 
     let sw_version = CFixedStr::from_bytes(&buffer)
         .to_str()
-        .map_err(|e| EyelinkError::Utf8Error(e))?;
+        .map_err(EyelinkError::Utf8Error)?;
 
     // Parse major version from the form "EYELINK XX x.xx"
     let major = parse_sw_version(sw_version).map_err(|_| EyelinkError::APIError(0))?;
@@ -174,7 +172,7 @@ pub fn close_eyelink_connection() {
 }
 
 pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
-    let c_path = CString::new(path).map_err(|e| EyelinkError::CStringError(e))?;
+    let c_path = CString::new(path).map_err(EyelinkError::CStringError)?;
 
     let res = unsafe { libeyelink_sys::open_data_file(c_path.as_ptr() as *mut c_char) };
 
@@ -185,8 +183,8 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
 }
 
 pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
-    let c_src = CString::new(src).map_err(|e| EyelinkError::CStringError(e))?;
-    let c_dst = CString::new("").map_err(|e| EyelinkError::CStringError(e))?;
+    let c_src = CString::new(src).map_err(EyelinkError::CStringError)?;
+    let c_dst = CString::new("").map_err(EyelinkError::CStringError)?;
 
     let res = unsafe {
         libeyelink_sys::receive_data_file(
