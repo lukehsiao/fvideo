@@ -222,6 +222,10 @@ pub fn init_expt_graphics(info: &mut libeyelink_sys::DISPLAYINFO) -> Result<(), 
     }
 }
 
+pub fn close_expt_graphics() {
+    unsafe { libeyelink_sys::close_expt_graphics() }
+}
+
 pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
     unsafe {
         let mut info: MaybeUninit<libeyelink_sys::DISPLAYINFO> = MaybeUninit::uninit();
