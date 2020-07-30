@@ -297,6 +297,7 @@ pub fn end_realtime_mode() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_set_eyelink_address() {
@@ -319,9 +320,10 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[ignore]
     fn test_open_eyelink_connection_real() {
-        set_eyelink_address("100.1.1.1");
+        set_eyelink_address("100.1.1.1").unwrap();
         if let Err(_) = open_eyelink_connection(OpenMode::Real) {
             panic!("Should have passed.");
         }
@@ -349,18 +351,18 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Only might if connected to eyelink
+    #[serial]
+    #[ignore] // Only run by itself if connected to eyelink
     fn test_eyelink_get_tracker_version() {
-        set_eyelink_address("100.1.1.1");
+        set_eyelink_address("100.1.1.1").unwrap();
         open_eyelink_connection(OpenMode::Real).unwrap();
 
         let (version, sw_version) = eyelink_get_tracker_version().unwrap();
 
         close_eyelink_connection();
 
-        // TODO(lukehsiao): populate with real values
-        assert_eq!(version, 10);
-        assert_eq!(sw_version, 10);
+        assert_eq!(version, 3);
+        assert_eq!(sw_version, 4);
     }
 
     #[test]
@@ -378,5 +380,42 @@ mod tests {
         assert_eq!(info.right, 1919);
         assert_eq!(info.top, 0);
         assert_eq!(info.bottom, 1079);
+        assert_eq!(info.width, 1920);
+        assert_eq!(info.height, 1080);
+        assert_eq!(info.bits, 32);
+        assert_eq!(info.palsize, 0);
+        assert_eq!(info.palrsvd, 0);
+        assert_eq!(info.pages, 1);
+        assert_eq!(info.refresh, 60.0);
+        assert_eq!(info.winnt, -1);
+    }
+
+    #[test]
+    #[serial]
+    #[ignore] // Ignore because it fails unless connected with a display
+    fn test_init_expt_graphics() {
+        set_eyelink_address("100.1.1.1").unwrap();
+        open_eyelink_connection(OpenMode::Real).unwrap();
+        set_offline_mode();
+        flush_getkey_queue();
+
+        let mut disp = libeyelink_sys::DISPLAYINFO {
+            left: 0,
+            right: 1919,
+            top: 0,
+            bottom: 1079,
+            width: 1920,
+            height: 1080,
+            bits: 32,
+            palsize: 0,
+            palrsvd: 0,
+            pages: 1,
+            refresh: 60.0,
+            winnt: -1,
+        };
+        init_expt_graphics(&mut disp).unwrap();
+
+        close_expt_graphics();
+        close_eyelink_connection();
     }
 }
