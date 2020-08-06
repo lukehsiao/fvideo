@@ -40,7 +40,7 @@ struct Opt {
 }
 
 const MIN_DELAY_MS: u32 = 500;
-const EDF_FILE: &str = "recording.edf";
+const EDF_FILE: &str = "test.edf";
 
 fn end_expt(edf: &str) -> Result<()> {
     // End recording
