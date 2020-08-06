@@ -311,7 +311,14 @@ mod tests {
     }
 
     #[test]
-    fn test_open_eyelink_connection_dummy() {
+    #[serial]
+    fn test_open_eyelink_connection() {
+        set_eyelink_address("100.1.1.1").unwrap();
+        if let Err(_) = open_eyelink_connection(OpenMode::Real) {
+            panic!("Should have passed.");
+        }
+        close_eyelink_connection();
+
         // Should be fine in dummy mode.
         if let Err(_) = open_eyelink_connection(OpenMode::Dummy) {
             panic!("Should have passed.");
@@ -321,18 +328,6 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore]
-    fn test_open_eyelink_connection_real() {
-        set_eyelink_address("100.1.1.1").unwrap();
-        if let Err(_) = open_eyelink_connection(OpenMode::Real) {
-            panic!("Should have passed.");
-        }
-        close_eyelink_connection();
-    }
-
-    #[test]
-    #[serial]
-    #[ignore]
     fn test_open_and_recv_data_file_connected() {
         let edf_file = "test.edf";
         set_eyelink_address("100.1.1.1").unwrap();
@@ -362,9 +357,19 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_eyelink_is_connected() {
+        set_eyelink_address("100.1.1.1").unwrap();
+        if let Err(_) = open_eyelink_connection(OpenMode::Real) {
+            panic!("Should have passed.");
+        }
         // Should report closed w/ no Eyelink connected
-        assert_eq!(ConnectionStatus::Closed, eyelink_is_connected().unwrap())
+        assert_eq!(ConnectionStatus::Normal, eyelink_is_connected().unwrap());
+
+        close_eyelink_connection();
+
+        // Should report closed w/ no Eyelink connected
+        assert_eq!(ConnectionStatus::Closed, eyelink_is_connected().unwrap());
     }
 
     #[test]
@@ -383,7 +388,6 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore] // Only run by itself if connected to eyelink
     fn test_eyelink_get_tracker_version() {
         set_eyelink_address("100.1.1.1").unwrap();
         open_eyelink_connection(OpenMode::Real).unwrap();
