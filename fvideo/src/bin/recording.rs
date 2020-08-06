@@ -62,7 +62,7 @@ fn end_expt(edf: &str) -> Result<()> {
 
     let conn_status = eyelink_rs::eyelink_is_connected()?;
     if conn_status != eyelink_rs::ConnectionStatus::Closed {
-        let size = eyelink_rs::receive_data_file(edf)?;
+        let size = eyelink_rs::receive_data_file(edf, edf)?;
         info!("Transferred {} bytes.", size);
     }
 
