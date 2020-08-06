@@ -182,9 +182,9 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
     }
 }
 
-pub fn receive_data_file(src: &str) -> Result<i32, EyelinkError> {
+pub fn receive_data_file(src: &str, dst: &str) -> Result<i32, EyelinkError> {
     let c_src = CString::new(src).map_err(EyelinkError::CStringError)?;
-    let c_dst = CString::new("").map_err(EyelinkError::CStringError)?;
+    let c_dst = CString::new(dst).map_err(EyelinkError::CStringError)?;
 
     let res = unsafe {
         libeyelink_sys::receive_data_file(
@@ -349,7 +349,7 @@ mod tests {
         eyecmd_printf("close_data_file").unwrap();
         let conn_status = eyelink_is_connected().unwrap();
         if conn_status != ConnectionStatus::Closed {
-            let size = receive_data_file(edf_file).unwrap();
+            let size = receive_data_file(edf_file, "/tmp/test.edf").unwrap();
             assert!(size > 0, "size = {}", size);
         }
 
@@ -375,7 +375,7 @@ mod tests {
     #[test]
     fn test_eyelink_receive_data_file_disconnected() {
         // Should fail w/o an eyelink installed.
-        match receive_data_file("test.edf") {
+        match receive_data_file("test.edf", "") {
             Err(e) => match e {
                 EyelinkError::DataError { code, msg: _ } if code != 0 => {
                     panic!("Should have failed.");
