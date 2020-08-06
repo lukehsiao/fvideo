@@ -331,13 +331,44 @@ mod tests {
     }
 
     #[test]
+    #[serial]
+    #[ignore]
+    fn test_open_and_recv_data_file_connected() {
+        let edf_file = "test.edf";
+        set_eyelink_address("100.1.1.1").unwrap();
+        if let Err(_) = open_eyelink_connection(OpenMode::Real) {
+            panic!("Should have passed.");
+        }
+        set_offline_mode();
+        flush_getkey_queue();
+
+        match open_data_file(edf_file) {
+            Ok(_) => (),
+            Err(e) => {
+                close_eyelink_connection();
+                panic!("{}", e);
+            }
+        }
+
+        // Close and transfer EDF file
+        eyecmd_printf("close_data_file").unwrap();
+        let conn_status = eyelink_is_connected().unwrap();
+        if conn_status != ConnectionStatus::Closed {
+            let size = receive_data_file(edf_file).unwrap();
+            assert!(size > 0, "size = {}", size);
+        }
+
+        close_eyelink_connection();
+    }
+
+    #[test]
     fn test_eyelink_is_connected() {
         // Should report closed w/ no Eyelink connected
         assert_eq!(ConnectionStatus::Closed, eyelink_is_connected().unwrap())
     }
 
     #[test]
-    fn test_eyelink_receive_data_file() {
+    fn test_eyelink_receive_data_file_disconnected() {
         // Should fail w/o an eyelink installed.
         match receive_data_file("test.edf") {
             Err(e) => match e {
