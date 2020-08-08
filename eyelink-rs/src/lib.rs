@@ -184,6 +184,45 @@ pub fn sdl_init(flags: u32) -> Result<(), EyelinkError> {
     }
 }
 
+pub fn sdl_get_video_surface() -> Result<Box<libeyelink_sys::SDL_Surface>, EyelinkError> {
+    let res = unsafe { libeyelink_sys::SDL_GetVideoSurface() };
+    if res.is_null() {
+        Err(EyelinkError::SDLError {
+            code: -1,
+            msg: {
+                let c_ptr = unsafe { libeyelink_sys::SDL_GetError() };
+                let c_str = unsafe { CStr::from_ptr(c_ptr) };
+                c_str.to_str().map(|s| s.to_owned())?
+            },
+        })
+    } else {
+        let x = unsafe { Box::from_raw(res) };
+        Ok(x)
+    }
+}
+
+pub fn sdl_set_video_mode(
+    width: i32,
+    height: i32,
+    bpp: i32,
+    flags: u32,
+) -> Result<Box<libeyelink_sys::SDL_Surface>, EyelinkError> {
+    let res = unsafe { libeyelink_sys::SDL_SetVideoMode(width, height, bpp, flags) };
+    if res.is_null() {
+        Err(EyelinkError::SDLError {
+            code: -1,
+            msg: {
+                let c_ptr = unsafe { libeyelink_sys::SDL_GetError() };
+                let c_str = unsafe { CStr::from_ptr(c_ptr) };
+                c_str.to_str().map(|s| s.to_owned())?
+            },
+        })
+    } else {
+        let x = unsafe { Box::from_raw(res) };
+        Ok(x)
+    }
+}
+
 pub fn close_eyelink_connection() {
     unsafe { libeyelink_sys::close_eyelink_connection() }
 }
