@@ -228,9 +228,20 @@ pub fn receive_data_file(src: &str, dst: &str) -> Result<i32, EyelinkError> {
     }
 }
 
-pub fn init_expt_graphics(info: &mut libeyelink_sys::DISPLAYINFO) -> Result<(), EyelinkError> {
+pub fn init_expt_graphics(
+    hwnd: Option<&mut libeyelink_sys::SDL_Surface>,
+    info: Option<&mut libeyelink_sys::DISPLAYINFO>,
+) -> Result<(), EyelinkError> {
+    let hwnd = match hwnd {
+        Some(s) => s,
+        None => std::ptr::null_mut(),
+    };
+    let info = match info {
+        Some(s) => s,
+        None => std::ptr::null_mut(),
+    };
     unsafe {
-        match libeyelink_sys::init_expt_graphics(std::ptr::null_mut(), info) {
+        match libeyelink_sys::init_expt_graphics(hwnd, info) {
             0 => Ok(()),
             e => Err(EyelinkError::APIError(e)),
         }
@@ -465,7 +476,7 @@ mod tests {
             refresh: 60.0,
             winnt: -1,
         };
-        init_expt_graphics(&mut disp).unwrap();
+        init_expt_graphics(None, Some(&mut disp)).unwrap();
 
         close_expt_graphics();
         close_eyelink_connection();
