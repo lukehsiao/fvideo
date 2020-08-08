@@ -28,7 +28,7 @@ use num_rational::Rational64;
 struct Opt {
     /// Whether to run eyelink calibration or not.
     #[structopt(short, long)]
-    calibrate: bool,
+    skip_cal: bool,
 
     /// Run in debug mode if no Eyelink is connected.
     #[structopt(short, long)]
@@ -94,8 +94,12 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
     eyelink_rs::eyecmd_printf("add_file_preamble_text 'RECORDED BY recording.rs'")?;
 
     // Initialize SDL-based graphics
+    match sdl::init(&[sdl::sdl::InitFlag::Video]) {
+        true => (),
+        false => return Err(anyhow!("Failed to initialize sdl.")),
+    }
     let mut disp = eyelink_rs::get_display_information();
-    eyelink_rs::init_expt_graphics(&mut disp)?;
+    eyelink_rs::init_expt_graphics(None, Some(&mut disp))?;
 
     // Set display resolution
     eyelink_rs::eyecmd_printf(
@@ -323,22 +327,28 @@ fn main() {
         process::exit(1);
     }
 
-    if opt.calibrate {
+    if opt.skip_cal {
+        info!("Skipping calibration.");
+    } else {
         if let Err(e) = run_calibration() {
             error!("Failed Eyelink Calibration: {}", e);
             process::exit(1);
         }
     }
 
+    // Close graphics so we can play video
+    eyelink_rs::close_expt_graphics();
+
     if let Err(e) = start_recording() {
         error!("Failed starting recording: {}", e);
         process::exit(1);
     }
+    std::thread::sleep(std::time::Duration::from_millis(25000));
 
-    if let Err(e) = play_video(&opt) {
-        error!("Failed playing video: {}", e);
-        process::exit(1);
-    }
+    // if let Err(e) = play_video(&opt) {
+    //     error!("Failed playing video: {}", e);
+    //     process::exit(1);
+    // }
 
     if let Err(e) = end_expt(EDF_FILE) {
         error!("Failed Eyelink end_expt: {}", e);
