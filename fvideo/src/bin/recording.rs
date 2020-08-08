@@ -2,6 +2,7 @@
 /// for the specified amount of time while a video is played.
 use std::path::PathBuf;
 use std::process;
+use std::process::Command;
 use std::time;
 
 use anyhow::{anyhow, Result};
@@ -93,23 +94,6 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
     }
     eyelink_rs::eyecmd_printf("add_file_preamble_text 'RECORDED BY recording.rs'")?;
 
-    // Initialize SDL-based graphics
-    match sdl::init(&[sdl::sdl::InitFlag::Video]) {
-        true => (),
-        false => return Err(anyhow!("Failed to initialize sdl.")),
-    }
-    let mut disp = eyelink_rs::get_display_information();
-    eyelink_rs::init_expt_graphics(None, Some(&mut disp))?;
-
-    // Set display resolution
-    eyelink_rs::eyecmd_printf(
-        format!(
-            "screen_pixel_coords = {} {} {} {}",
-            disp.left, disp.top, disp.right, disp.bottom
-        )
-        .as_str(),
-    )?;
-
     let (version, sw_version) = eyelink_rs::eyelink_get_tracker_version()?;
 
     match version {
@@ -164,6 +148,22 @@ fn initialize_eyelink(opt: &Opt) -> Result<()> {
 
 /// Run a 9-point eyelink calibration
 fn run_calibration() -> Result<()> {
+    // Initialize SDL-based graphics
+    match sdl::init(&[sdl::sdl::InitFlag::Video]) {
+        true => (),
+        false => return Err(anyhow!("Failed to initialize sdl.")),
+    }
+    let mut disp = eyelink_rs::get_display_information();
+    eyelink_rs::init_expt_graphics(None, Some(&mut disp))?;
+
+    // Set display resolution
+    eyelink_rs::eyecmd_printf(
+        format!(
+            "screen_pixel_coords = {} {} {} {}",
+            disp.left, disp.top, disp.right, disp.bottom
+        )
+        .as_str(),
+    )?;
     let mut target_fg_color: libeyelink_sys::SDL_Color = libeyelink_sys::SDL_Color {
         r: 0,
         g: 0,
@@ -187,6 +187,9 @@ fn run_calibration() -> Result<()> {
     while let Err(eyelink_rs::EyelinkError::EscPressed) =
         eyelink_rs::do_drift_correct(1920 / 2, 1080 / 2, true, true)
     {}
+
+    // Close graphics once we're done w/ calibration
+    eyelink_rs::close_expt_graphics();
 
     Ok(())
 }
@@ -336,19 +339,16 @@ fn main() {
         }
     }
 
-    // Close graphics so we can play video
-    eyelink_rs::close_expt_graphics();
-
     if let Err(e) = start_recording() {
         error!("Failed starting recording: {}", e);
         process::exit(1);
     }
-    std::thread::sleep(std::time::Duration::from_millis(25000));
 
-    // if let Err(e) = play_video(&opt) {
-    //     error!("Failed playing video: {}", e);
-    //     process::exit(1);
-    // }
+    // Play the video clip in mpv
+    if let Err(e) = Command::new("mpv").arg("-fs").arg(&opt.video).status() {
+        error!("Failed playing video: {}", e);
+        process::exit(1);
+    }
 
     if let Err(e) = end_expt(EDF_FILE) {
         error!("Failed Eyelink end_expt: {}", e);
