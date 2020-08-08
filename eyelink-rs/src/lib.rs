@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 
@@ -30,6 +30,8 @@ pub enum EyelinkError {
     APIError(i16),
     #[error("Data File Error {code}: {msg}")]
     DataError { code: i32, msg: String },
+    #[error("SDL Error: [{code}] {msg}")]
+    SDLError { code: i32, msg: String },
 }
 
 #[derive(Debug, PartialEq)]
@@ -165,6 +167,21 @@ pub fn break_pressed() -> Result<bool, EyelinkError> {
 // TODO(lukehsiao): Is this needed? Is this eyelink-specific, or can we just use Rust timing?
 pub fn msec_delay(n: u32) {
     unsafe { libeyelink_sys::msec_delay(n) }
+}
+
+pub fn sdl_init(flags: u32) -> Result<(), EyelinkError> {
+    let res = unsafe { libeyelink_sys::SDL_Init(flags) };
+    match res {
+        0 => Ok(()),
+        n => Err(EyelinkError::SDLError {
+            code: n,
+            msg: {
+                let c_ptr = unsafe { libeyelink_sys::SDL_GetError() };
+                let c_str = unsafe { CStr::from_ptr(c_ptr) };
+                c_str.to_str().map(|s| s.to_owned())?
+            },
+        }),
+    }
 }
 
 pub fn close_eyelink_connection() {
