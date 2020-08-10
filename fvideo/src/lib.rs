@@ -3,6 +3,8 @@
 
 //! Convenient helper functions for running common Eyelink operations.
 
+pub mod ascparser;
+
 use eyelink_rs::{libeyelink_sys, EyelinkError};
 use log::{error, info};
 use thiserror::Error;
