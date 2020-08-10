@@ -1,4 +1,6 @@
-use std::ffi::{CStr, CString};
+//! Thin, safe wrappers around libeyelink-sys.
+
+use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 
@@ -8,6 +10,7 @@ use thiserror::Error;
 pub use libeyelink_sys;
 
 #[derive(Error, Debug)]
+/// Wrapper for all errors working with libeyelink-sys.
 pub enum EyelinkError {
     #[error("Invalid IP Address {}", self)]
     InvalidIP(String),
@@ -169,21 +172,6 @@ pub fn msec_delay(n: u32) {
     unsafe { libeyelink_sys::msec_delay(n) }
 }
 
-pub fn sdl_init(flags: u32) -> Result<(), EyelinkError> {
-    let res = unsafe { libeyelink_sys::SDL_Init(flags) };
-    match res {
-        0 => Ok(()),
-        n => Err(EyelinkError::SDLError {
-            code: n,
-            msg: {
-                let c_ptr = unsafe { libeyelink_sys::SDL_GetError() };
-                let c_str = unsafe { CStr::from_ptr(c_ptr) };
-                c_str.to_str().map(|s| s.to_owned())?
-            },
-        }),
-    }
-}
-
 pub fn close_eyelink_connection() {
     unsafe { libeyelink_sys::close_eyelink_connection() }
 }
@@ -295,7 +283,7 @@ pub fn start_recording(
     file_events: bool,
     link_samples: bool,
     link_events: bool,
-) -> Result<(), i16> {
+) -> Result<(), EyelinkError> {
     let res = unsafe {
         libeyelink_sys::start_recording(
             file_samples as i16,
@@ -306,7 +294,7 @@ pub fn start_recording(
     };
     match res {
         0 => Ok(()),
-        n => Err(n),
+        n => Err(EyelinkError::APIError(n)),
     }
 }
 

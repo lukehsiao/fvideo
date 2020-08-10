@@ -2,7 +2,6 @@
 /// for the specified amount of time while a video is played.
 use std::path::PathBuf;
 use std::process;
-use std::process::Command;
 use std::time;
 
 use anyhow::{anyhow, Result};
@@ -12,9 +11,8 @@ use sdl2::rect::Rect;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use ffmpeg_next::format::{input, Pixel};
+use ffmpeg_next::format::input;
 use ffmpeg_next::media::Type;
-use ffmpeg_next::software::scaling::context::Context;
 use ffmpeg_next::software::scaling::flag::Flags;
 use ffmpeg_next::util::frame::video::Video;
 use num_rational::Rational64;
