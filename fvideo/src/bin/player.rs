@@ -29,7 +29,7 @@ use num_rational::Rational64;
     setting(AppSettings::ColorAuto)
 )]
 struct Opt {
-    /// The video to play with mpv
+    /// The input to encode and display
     #[structopt(name = "VIDEO", parse(from_os_str))]
     video: PathBuf,
 }

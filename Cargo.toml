@@ -1,5 +1,7 @@
 [workspace]
 members = [
-    "fvideo",
     "eyelink-rs",
+    "fvideo",
+    "x264-rs",
+    "x264-rs/x264-sys",
 ]
