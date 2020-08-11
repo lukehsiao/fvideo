@@ -1,5 +1,10 @@
-/// A binary for performing calibration, and then recording eye tracking data
-/// for the specified amount of time while a video is played.
+//! A placeholder binary for testing x264 integration with video playing in
+//! Rust. The input must be a Y4M, which will be processed by x264.
+//!
+//! # Usage
+//! ```
+//! $ cargo run --release --bin=player -- video.y4m
+//! ```
 use std::path::PathBuf;
 use std::process;
 use std::time;

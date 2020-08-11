@@ -1,5 +1,14 @@
-/// A binary for performing calibration, and then recording eye tracking data
-/// for the specified amount of time while a video is played.
+//! A binary for performing calibration, and then recording eye tracking data
+//! for the specified amount of time while a video is played.
+//!
+//! Opens a connection to the Eyelink, sets up calibration, starts recording an
+//! eye trace, plays the provided video file via `mpv`, and then transfers the
+//! eye trace file from the Eyelink to the local machine.
+//!
+//! # Usage
+//! ```
+//! $ cargo run --release --bin=recording -- VIDEO
+//! ```
 use std::path::PathBuf;
 use std::process;
 use std::process::Command;
