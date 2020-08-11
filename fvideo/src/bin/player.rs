@@ -16,7 +16,7 @@ use sdl2::rect::Rect;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use ffmpeg_next::format::input;
+use ffmpeg_next::format;
 use ffmpeg_next::media::Type;
 use ffmpeg_next::software::scaling::flag::Flags;
 use ffmpeg_next::util::frame::video::Video;
@@ -38,7 +38,7 @@ fn play_video(opt: &Opt) -> Result<()> {
     // Use ffmpeg to decode
     ffmpeg_next::init()?;
 
-    let mut ictx = input(&opt.video)?;
+    let mut ictx = format::input(&opt.video)?;
     let in_stream = ictx
         .streams()
         .best(Type::Video)
