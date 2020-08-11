@@ -161,9 +161,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-next"
-version = "4.3.4"
+version = "4.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4ab595c5d8c0b119b2ef5c98c5eb0c47671cc79d264af77838fdba60ed75d6e"
+checksum = "f1cb4d576ffb961d240b23fe2d49234d3e481a4c60b6480f32b9d20576b2d161"
 dependencies = [
  "bitflags",
  "ffmpeg-sys-next",
@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-sys-next"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0f343de3e46fbf5fb95a1a35600eab07adc7f41456c5018bca248c90b0f8345"
+checksum = "d14f7da18f1a826e9622f318191c1912257381a84c614b232a33d3c002738f77"
 dependencies = [
  "bindgen",
  "cc",

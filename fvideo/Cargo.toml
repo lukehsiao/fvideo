@@ -17,7 +17,7 @@ name = "player"
 [dependencies]
 anyhow = "1.0.32"
 eyelink-rs = {path = "../eyelink-rs"}
-ffmpeg-next = "4.3.4"
+ffmpeg-next = "4.3.5"
 log = "0.4.11"
 num-rational = "0.3.0"
 pretty_env_logger = "0.4.0"
