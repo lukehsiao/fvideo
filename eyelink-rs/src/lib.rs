@@ -216,6 +216,18 @@ pub fn receive_data_file(src: &str, dst: &str) -> Result<i32, EyelinkError> {
     }
 }
 
+/// Initialize Eyelink's SDL-based experimental graphics.
+///
+/// **Warning**: In our experience, calling this function can cause a segfault
+/// from the underlying eyelink libraries. To avoid this, you should initialize
+/// SDL yourself first.
+/// ```
+/// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
+///     true => (),
+///     false => return Err(()),
+/// }
+/// eyelink_rs::init_expt_graphics(None, None)?;
+/// ```
 pub fn init_expt_graphics(
     hwnd: Option<&mut libeyelink_sys::SDL_Surface>,
     info: Option<&mut libeyelink_sys::DISPLAYINFO>,
@@ -240,6 +252,18 @@ pub fn close_expt_graphics() {
     unsafe { libeyelink_sys::close_expt_graphics() }
 }
 
+/// Get display information using Eyelink's SDL-based library.
+///
+/// **Warning**: In our experience, calling this function can cause a segfault
+/// from the underlying eyelink libraries. To avoid this, you should initialize
+/// SDL yourself first.
+/// ```
+/// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
+///     true => (),
+///     false => return Err(()),
+/// }
+/// let disp = eyelink_rs::get_display_information();
+/// ```
 pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
     unsafe {
         let mut info: MaybeUninit<libeyelink_sys::DISPLAYINFO> = MaybeUninit::uninit();
