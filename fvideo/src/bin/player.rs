@@ -1,4 +1,4 @@
-//! A placeholder binary for testing x264 integration with video playing in
+//! A placeholder binary for testing x264 integration a custom video player in
 //! Rust. The input must be a Y4M, which will be processed by x264.
 //!
 //! # Usage
@@ -7,20 +7,19 @@
 //! ```
 use std::path::PathBuf;
 use std::process;
-use std::time;
+use std::time::Instant;
 
 use anyhow::{anyhow, Result};
-use log::{error, info};
-use sdl2::pixels::PixelFormatEnum;
-use sdl2::rect::Rect;
-use structopt::clap::AppSettings;
-use structopt::StructOpt;
-
 use ffmpeg_next::format;
 use ffmpeg_next::media::Type;
 use ffmpeg_next::software::scaling::flag::Flags;
 use ffmpeg_next::util::frame::video::Video;
+use log::{error, info};
 use num_rational::Rational64;
+use sdl2::pixels::PixelFormatEnum;
+use sdl2::rect::Rect;
+use structopt::clap::AppSettings;
+use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -84,8 +83,9 @@ fn play_video(opt: &Opt) -> Result<()> {
         video_decoder.height(),
     )?;
 
-    let mut prev_pts = None;
-    let mut now = std::time::Instant::now();
+    // let mut prev_pts = None;
+    let mut now = Instant::now();
+    let mut total_frames = 0;
     for (i, (stream, packet)) in ictx.packets().enumerate() {
         match stream.codec().codec() {
             Some(codec) if codec.is_video() => {
@@ -97,7 +97,7 @@ fn play_video(opt: &Opt) -> Result<()> {
                         context.run(&frame, &mut yuv_frame)?;
 
                         let rect = Rect::new(0, 0, yuv_frame.width(), yuv_frame.height());
-                        info!("rendering frame {}", i);
+                        // info!("rendering frame {}", i);
                         let _ = texture.update_yuv(
                             rect,
                             yuv_frame.data(0),
@@ -112,28 +112,30 @@ fn play_video(opt: &Opt) -> Result<()> {
                         let _ = canvas.copy(&texture, None, None); //copy texture to our canvas
                         canvas.present();
 
-                        let pts = (Rational64::from(packet.pts().unwrap() * 1_000_000_000)
-                            * Rational64::new(
-                                stream.time_base().numerator() as i64,
-                                stream.time_base().denominator() as i64,
-                            ))
-                        .to_integer();
-                        // TODO(lukehsiao): This sleep seems wrong, it is too
-                        // slow and causes the video to look like it's playing
-                        // in slow motion.
-                        if let Some(prev) = prev_pts {
-                            let elapsed = now.elapsed();
-                            if pts > prev {
-                                let sleep = time::Duration::new(0, (pts - prev) as u32);
-                                if elapsed < sleep {
-                                    info!("Sleep for {} - {:?}", pts - prev, sleep - elapsed);
-                                    std::thread::sleep(sleep - elapsed);
-                                }
-                            }
-                        }
+                        total_frames += 1;
 
-                        now = time::Instant::now();
-                        prev_pts = Some(pts);
+                        // let pts = (Rational64::from(packet.pts().unwrap() * 1_000_000_000)
+                        //     * Rational64::new(
+                        //         stream.time_base().numerator() as i64,
+                        //         stream.time_base().denominator() as i64,
+                        //     ))
+                        // .to_integer();
+                        // // TODO(lukehsiao): This sleep seems wrong, it is too
+                        // // slow and causes the video to look like it's playing
+                        // // in slow motion.
+                        // if let Some(prev) = prev_pts {
+                        //     let elapsed = now.elapsed();
+                        //     if pts > prev {
+                        //         let sleep = time::Duration::new(0, (pts - prev) as u32);
+                        //         if elapsed < sleep {
+                        //             info!("Sleep for {} - {:?}", pts - prev, sleep - elapsed);
+                        //             // std::thread::sleep(sleep - elapsed);
+                        //         }
+                        //     }
+                        // }
+                        //
+                        // now = time::Instant::now();
+                        // prev_pts = Some(pts);
                     }
                     Ok(false) => (),
                     Err(_) => {
@@ -144,6 +146,15 @@ fn play_video(opt: &Opt) -> Result<()> {
             _ => {}
         }
     }
+    let elapsed = now.elapsed();
+
+    info!(
+        "FPS: {}/{} = {}",
+        total_frames,
+        elapsed.as_secs_f64(),
+        total_frames as f64 / elapsed.as_secs_f64()
+    );
+
     Ok(())
 }
 

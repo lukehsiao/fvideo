@@ -200,10 +200,12 @@ dependencies = [
  "log",
  "num-rational 0.3.0",
  "pretty_env_logger",
+ "regex",
  "sdl",
  "sdl2",
  "structopt",
  "thiserror",
+ "x264",
 ]
 
 [[package]]
