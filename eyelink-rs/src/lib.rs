@@ -221,7 +221,7 @@ pub fn receive_data_file(src: &str, dst: &str) -> Result<i32, EyelinkError> {
 /// **Warning**: In our experience, calling this function can cause a segfault
 /// from the underlying eyelink libraries. To avoid this, you should initialize
 /// SDL yourself first.
-/// ```
+/// ```ignore
 /// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
 ///     true => (),
 ///     false => return Err(()),
@@ -257,7 +257,7 @@ pub fn close_expt_graphics() {
 /// **Warning**: In our experience, calling this function can cause a segfault
 /// from the underlying eyelink libraries. To avoid this, you should initialize
 /// SDL yourself first.
-/// ```
+/// ```ignore
 /// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
 ///     true => (),
 ///     false => return Err(()),
@@ -352,6 +352,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore] // Ignore because it fails unless connected with eyelink
     fn test_open_eyelink_connection() {
         set_eyelink_address("100.1.1.1").unwrap();
         if let Err(_) = open_eyelink_connection(OpenMode::Real) {
@@ -368,6 +369,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore] // Ignore because it fails unless connected with eyelink
     fn test_open_and_recv_data_file_connected() {
         let edf_file = "test.edf";
         set_eyelink_address("100.1.1.1").unwrap();
@@ -398,6 +400,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore] // Ignore because it fails unless connected with eyelink
     fn test_eyelink_is_connected() {
         set_eyelink_address("100.1.1.1").unwrap();
         if let Err(_) = open_eyelink_connection(OpenMode::Real) {
@@ -428,6 +431,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore] // Ignore because it fails unless connected with eyelink
     fn test_eyelink_get_tracker_version() {
         set_eyelink_address("100.1.1.1").unwrap();
         open_eyelink_connection(OpenMode::Real).unwrap();
