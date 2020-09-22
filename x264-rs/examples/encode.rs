@@ -1,13 +1,12 @@
 extern crate regex;
 extern crate x264;
 
-use x264::{Encoder, Param, Picture};
-
-use regex::Regex;
-
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+
+use regex::Regex;
+use x264::{Encoder, Param, Picture};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,12 +21,14 @@ fn main() {
     let w: usize = caps[1].parse().unwrap();
     let h: usize = caps[2].parse().unwrap();
 
-    let mut par = Param::default_preset("medium", None).unwrap();
+    dbg!("{}x{}", w, h);
 
-    par = par.set_dimension(w, h);
-    par = par.param_parse("repeat_headers", "1").unwrap();
-    par = par.param_parse("annexb", "1").unwrap();
-    par = par.apply_profile("high").unwrap();
+    let mut par = Param::default_preset("baseline", None).unwrap();
+
+    par = par.set_dimension(h, w);
+    // par = par.param_parse("repeat_headers", "1").unwrap();
+    // par = par.param_parse("annexb", "1").unwrap();
+    // par = par.apply_profile("high").unwrap();
 
     let mut pic = Picture::from_param(&par).unwrap();
 

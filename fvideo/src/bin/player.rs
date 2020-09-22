@@ -61,7 +61,7 @@ fn play_video(opt: &Opt) -> Result<()> {
     let video_subsystem = sdl_context.video().map_err(|e| anyhow!(e))?;
 
     let window = video_subsystem
-        .window("player.rs", video_decoder.width(), video_decoder.height())
+        .window("player.rs", 960, 540)
         .position_centered()
         .build()?;
 
@@ -73,7 +73,7 @@ fn play_video(opt: &Opt) -> Result<()> {
         .build()?;
 
     video_subsystem
-        .gl_set_swap_interval(1)
+        .gl_set_swap_interval(0)
         .map_err(|e| anyhow!("Failed setting swap: {}", e))?;
 
     let texture_creator = canvas.texture_creator();

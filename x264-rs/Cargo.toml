@@ -7,8 +7,10 @@ description = "x264 bindings"
 repository = "https://github.com/rust-av/x264-rs"
 readme = "README.md"
 keywords = ["x264","h264"]
+edition = "2018"
 
 [dependencies]
+thiserror = "1.0.20"
 x264-sys = { version = "0.2.0", path = "x264-sys" }
 
 [[example]]
@@ -16,4 +18,4 @@ name = "encode"
 path = "examples/encode.rs"
 
 [dev-dependencies]
-regex ="1.3"
+regex = "1.3.9"

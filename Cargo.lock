@@ -641,9 +641,9 @@ dependencies = [
 
 [[package]]
 name = "sdl2-sys"
-version = "0.34.2"
+version = "0.34.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ed17d6d46b62b7df12134513bcc4f071268963e8c9bc8bf7ad983fbfb2bc3cc"
+checksum = "28d81feded049b9c14eceb4a4f6d596a98cebbd59abdba949c5552a015466d33"
 dependencies = [
  "cfg-if",
  "libc 0.2.75",
@@ -907,6 +907,7 @@ name = "x264"
 version = "0.1.0"
 dependencies = [
  "regex",
+ "thiserror",
  "x264-sys",
 ]
 
