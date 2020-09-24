@@ -3,7 +3,7 @@ name = "fvideo"
 version = "0.1.0"
 authors = ["Luke Hsiao <lwhsiao@stanford.edu>"]
 edition = "2018"
-description = "Calibrate and record eye data while playing a video with mpv."
+description = "A collection of binaries for foveated video encoding."
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,7 +12,7 @@ publish = false
 name = "recording"
 
 [[bin]]
-name = "player"
+name = "fvideo"
 
 [dependencies]
 anyhow = "1.0.32"
@@ -24,7 +24,7 @@ num-rational = "0.3.0"
 pretty_env_logger = "0.4.0"
 regex = "1.3.9"
 sdl = "0.3.6"
-sdl2 = "0.34.2"
-structopt = "0.3.16"
+sdl2 = "0.34.3"
+structopt = "0.3.18"
 thiserror = "1.0.20"
 x264 = {path = "../x264-rs"}

@@ -11,22 +11,40 @@ use ffmpeg::{codec, decoder, Packet};
 use log::{error, info};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use structopt::clap::AppSettings;
+use structopt::clap::{arg_enum, AppSettings};
 use structopt::StructOpt;
 use x264::{Encoder, NalData, Param, Picture};
 
+arg_enum! {
+    #[derive(Debug)]
+    enum FoveationAlg {
+        SquareStep,
+        Gaussian
+    }
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(
-    about,
+    about("A tool for foveated encoding an input Y4M and decoding/displaying the results."),
     setting(AppSettings::ColoredHelp),
     setting(AppSettings::ColorAuto)
 )]
 struct Opt {
-    /// The parameter for the size of the foveal region.
+    /// The parameter for the size of the foveal region (0 = disable foveation).
+    ///
+    /// The meaning of this value depends on the Foveation Algorithm.
     #[structopt(short, long, default_value = "0")]
     fovea: i32,
 
-    /// The video to encode and play.
+    /// The parameter for the size of the foveal region.
+    #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
+    alg: FoveationAlg,
+
+    /// The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
+    #[structopt(short, long, default_value = "35.0")]
+    qo_max: f32,
+
+    /// The video to encode and display.
     #[structopt(name = "VIDEO", parse(from_os_str))]
     video: PathBuf,
 }
@@ -75,7 +93,7 @@ fn main() -> Result<()> {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let window = video_subsystem
-        .window("test.rs", WIDTH as u32, HEIGHT as u32)
+        .window("fvideo.rs", WIDTH as u32, HEIGHT as u32)
         .fullscreen_desktop()
         // .position_centered()
         .build()
@@ -139,15 +157,18 @@ fn main() -> Result<()> {
     let mut m_x = mb_x / 2;
     let mut m_y = mb_y / 2;
 
-    let frame_dur = Duration::from_secs_f64(1.0 / 24.0);
-
     let now = Instant::now();
 
     let mut inner_loop_time: f32 = 0.0;
 
-    // First, skip header data of the Y4M
+    // First, skip header data of the Y4M.
+    // See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for format details.
     let mut hdr = vec![];
     f.read_until(0x0A, &mut hdr).unwrap();
+
+    // Assumes input video is 24 FPS. Could read this from the Y4M Header.
+    let frame_dur = Duration::from_secs_f64(1.0 / 24.0);
+
     'out: loop {
         let frame_time = Instant::now();
         // Skip header data of the frame
@@ -170,22 +191,6 @@ fn main() -> Result<()> {
         while frame_time.elapsed() < (frame_dur - buffer_time) {
             let inner_time = Instant::now();
 
-            // Get current mouse position
-            match event_pump.poll_iter().last() {
-                Some(_) => {
-                    let mut p_x = event_pump.mouse_state().x() as usize;
-                    let mut p_y = event_pump.mouse_state().y() as usize;
-
-                    // Scale from display to video resolution
-                    p_x = (p_x as f64 * (WIDTH as f64 / disp_x as f64)) as usize;
-                    p_y = (p_y as f64 * (HEIGHT as f64 / disp_y as f64)) as usize;
-
-                    m_x = p_x / 16;
-                    m_y = p_y / 16;
-                }
-                None => (),
-            }
-
             // TODO(lukehsiao): 5x5px white square where mouse cursor is.
             // Note that 235 = white for luma
             // Also note that trying to iterate over the whole image here was too slow.
@@ -198,6 +203,22 @@ fn main() -> Result<()> {
             // }
 
             if opt.fovea > 0 {
+                // Get current mouse position
+                match event_pump.poll_iter().last() {
+                    Some(_) => {
+                        let mut p_x = event_pump.mouse_state().x() as usize;
+                        let mut p_y = event_pump.mouse_state().y() as usize;
+
+                        // Scale from display to video resolution
+                        p_x = (p_x as f64 * (WIDTH as f64 / disp_x as f64)) as usize;
+                        p_y = (p_y as f64 * (HEIGHT as f64 / disp_y as f64)) as usize;
+
+                        m_x = p_x / 16;
+                        m_y = p_y / 16;
+                    }
+                    None => (),
+                }
+
                 let mut qp_offsets = vec![0.0; mb_x * mb_y];
                 // pic.prop.quant_offsets = (float*)malloc( sizeof( float ) * mb_x * mb_y );
 
@@ -228,6 +249,8 @@ fn main() -> Result<()> {
                 }
                 pic.pic.prop.quant_offsets = qp_offsets.as_mut_ptr();
 
+                // EWMA as a heuristic of how long this takes to try and stay
+                // more on time.
                 inner_loop_time =
                     (0.99 * inner_time.elapsed().as_secs_f32()) + (0.01 * inner_loop_time);
             }
