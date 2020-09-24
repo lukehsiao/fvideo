@@ -28,3 +28,6 @@ sdl2 = "0.34.3"
 structopt = "0.3.18"
 thiserror = "1.0.20"
 x264 = {path = "../x264-rs"}
+
+[profile.release]
+debug = true

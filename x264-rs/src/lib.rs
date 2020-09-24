@@ -236,9 +236,9 @@ impl Param {
         self
     }
 
-    pub fn set_min_keyint(mut self, min_keyint: usize) -> Param {
+    pub fn set_min_keyint(mut self, min_keyint: i32) -> Param {
         self.par.i_keyint_max = min_keyint as c_int;
-        self.par.i_keyint_min = (min_keyint / 2) as c_int;
+        self.par.i_keyint_min = min_keyint as c_int;
 
         self
     }

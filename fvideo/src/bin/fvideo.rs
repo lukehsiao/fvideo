@@ -9,7 +9,9 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, Result};
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
+use lazy_static::lazy_static;
 use log::{error, info};
+use regex::Regex;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use structopt::clap::{arg_enum, AppSettings};
@@ -31,6 +33,42 @@ fn parse_qo_max(src: &str) -> Result<f32> {
     } else {
         Ok(qo_max)
     }
+}
+
+/// Parse the width, height, and frame rate from the Y4M header.
+///
+/// See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for details.
+fn parse_y4m_header(src: &str) -> Result<(usize, usize, f64)> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(
+            r"(?x)
+            ^YUV4MPEG2\s
+            W(?P<width>[0-9]+)\s
+            H(?P<height>[0-9]+)\s
+            F(?P<frame>[0-9:]+).*
+        "
+        )
+        .unwrap();
+    }
+
+    let caps = match RE.captures(src) {
+        None => return Err(anyhow!("Invalid Y4M Header.")),
+        Some(caps) => caps,
+    };
+
+    let width: usize = caps["width"].parse()?;
+    let height: usize = caps["height"].parse()?;
+
+    let fps = match &caps["frame"] {
+        "30:1" => 30.0,
+        "25:1" => 25.0,
+        "24:1" => 24.0,
+        "30000:1001" => 29.97,
+        "24000:1001" => 23.976,
+        _ => return Err(anyhow!("Invalid framerate.")),
+    };
+
+    Ok((width, height, fps))
 }
 
 #[derive(StructOpt, Debug)]
@@ -59,12 +97,7 @@ struct Opt {
     video: PathBuf,
 }
 
-const WIDTH: usize = 3840;
-const HEIGHT: usize = 2160;
-// The maximum quantization offset. QP can range from 0-81.
-const QO_MAX: f32 = 35.0;
-
-fn setup_x264_params(opt: &Opt) -> Result<Param> {
+fn setup_x264_params(fovea: i32, width: usize, height: usize) -> Result<Param> {
     let mut par = match Param::default_preset("fast", "zerolatency") {
         Ok(p) => p,
         Err(s) => return Err(anyhow!("{}", s)),
@@ -72,9 +105,9 @@ fn setup_x264_params(opt: &Opt) -> Result<Param> {
 
     // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
     par = par.set_x264_defaults();
-    par = par.set_dimension(WIDTH, HEIGHT);
-    par = par.set_fovea(opt.fovea);
-    par = par.set_min_keyint(50000);
+    par = par.set_dimension(width, height);
+    par = par.set_fovea(fovea);
+    par = par.set_min_keyint(i32::MAX);
     par = par.set_no_scenecut();
 
     Ok(par)
@@ -85,12 +118,18 @@ fn main() -> Result<()> {
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
 
-    let mut par = setup_x264_params(&opt)?;
-    let mut pic = Picture::from_param(&par).unwrap();
-    let mut enc = Encoder::open(&mut par).unwrap();
     let input = File::open(opt.video)?;
     let mut f = BufReader::new(input);
     let mut timestamp = 0;
+
+    // First, read dimensions/FPS from Y4M header.
+    let mut hdr = String::new();
+    f.read_line(&mut hdr).unwrap();
+    let (width, height, fps) = parse_y4m_header(&hdr)?;
+
+    let mut par = setup_x264_params(opt.fovea, width, height)?;
+    let mut pic = Picture::from_param(&par).unwrap();
+    let mut enc = Encoder::open(&mut par).unwrap();
 
     let mut decoder = decoder::new()
         .open_as(decoder::find(codec::Id::H264))
@@ -103,7 +142,7 @@ fn main() -> Result<()> {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let window = video_subsystem
-        .window("fvideo.rs", WIDTH as u32, HEIGHT as u32)
+        .window("fvideo.rs", 0, 0)
         .fullscreen_desktop()
         // .position_centered()
         .build()
@@ -127,7 +166,7 @@ fn main() -> Result<()> {
 
     let texture_creator = canvas.texture_creator();
     let mut texture = texture_creator
-        .create_texture_streaming(PixelFormatEnum::YV12, WIDTH as u32, HEIGHT as u32)
+        .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
         .unwrap();
 
     let mut frame_index = 0;
@@ -162,8 +201,8 @@ fn main() -> Result<()> {
     };
 
     // The frame dimensions in terms of macroblocks
-    let mb_x = WIDTH / 16;
-    let mb_y = HEIGHT / 16;
+    let mb_x = width / 16;
+    let mb_y = height / 16;
     let mut m_x = mb_x / 2;
     let mut m_y = mb_y / 2;
 
@@ -171,18 +210,13 @@ fn main() -> Result<()> {
 
     let mut inner_loop_time: f32 = 0.0;
 
-    // First, skip header data of the Y4M.
-    // See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for format details.
-    let mut hdr = vec![];
-    f.read_until(0x0A, &mut hdr).unwrap();
-
     // Assumes input video is 24 FPS. Could read this from the Y4M Header.
-    let frame_dur = Duration::from_secs_f64(1.0 / 24.0);
+    let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
     'out: loop {
         let frame_time = Instant::now();
         // Skip header data of the frame
-        if f.read_until(0x0A, &mut hdr).is_err() {
+        if f.read_line(&mut hdr).is_err() {
             break 'out;
         }
 
@@ -220,8 +254,8 @@ fn main() -> Result<()> {
                         let mut p_y = event_pump.mouse_state().y() as usize;
 
                         // Scale from display to video resolution
-                        p_x = (p_x as f64 * (WIDTH as f64 / disp_x as f64)) as usize;
-                        p_y = (p_y as f64 * (HEIGHT as f64 / disp_y as f64)) as usize;
+                        p_x = (p_x as f64 * (width as f64 / disp_x as f64)) as usize;
+                        p_y = (p_y as f64 * (height as f64 / disp_y as f64)) as usize;
 
                         m_x = p_x / 16;
                         m_y = p_y / 16;
@@ -237,8 +271,8 @@ fn main() -> Result<()> {
                         for j in 0..mb_y {
                             for i in 0..mb_x {
                                 // Below is the 2d gaussian used by Illahi et al.
-                                qp_offsets[(mb_x * j) + i] = QO_MAX
-                                    - (QO_MAX
+                                qp_offsets[(mb_x * j) + i] = opt.qo_max
+                                    - (opt.qo_max
                                         * (-1.0
                                             * (((i as i32 - m_x as i32).pow(2)
                                                 + (j as i32 - m_y as i32).pow(2))
@@ -259,7 +293,7 @@ fn main() -> Result<()> {
                                 {
                                     0.0
                                 } else {
-                                    QO_MAX as f32
+                                    opt.qo_max
                                 };
                             }
                         }
@@ -301,4 +335,19 @@ fn main() -> Result<()> {
     decoder.flush();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_y4m_header() {
+        let hdr = "YUV4MPEG2 W3840 H2160 F24:1 Ip A0:0 C420jpeg\n";
+
+        let (width, height, fps) = parse_y4m_header(&hdr).unwrap();
+        assert_eq!(width, 3840);
+        assert_eq!(height, 2160);
+        assert_eq!(fps, 24.0);
+    }
 }
