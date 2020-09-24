@@ -3,6 +3,7 @@ extern crate ffmpeg_next as ffmpeg;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
@@ -20,6 +21,15 @@ arg_enum! {
     enum FoveationAlg {
         SquareStep,
         Gaussian
+    }
+}
+
+fn parse_qo_max(src: &str) -> Result<f32> {
+    let qo_max = f32::from_str(src)?;
+    if qo_max < 0.0 || qo_max > 81.0 {
+        Err(anyhow!("QO max offset not in valid range [0, 81]."))
+    } else {
+        Ok(qo_max)
     }
 }
 
@@ -41,7 +51,7 @@ struct Opt {
     alg: FoveationAlg,
 
     /// The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
-    #[structopt(short, long, default_value = "35.0")]
+    #[structopt(short, long, default_value = "35.0", parse(try_from_str = parse_qo_max))]
     qo_max: f32,
 
     /// The video to encode and display.
@@ -220,33 +230,43 @@ fn main() -> Result<()> {
                 }
 
                 let mut qp_offsets = vec![0.0; mb_x * mb_y];
-                // pic.prop.quant_offsets = (float*)malloc( sizeof( float ) * mb_x * mb_y );
 
-                // Calculate offsets
-                //
-                // We just use a step function outside `dim` macroblocks
-                for j in 0..mb_y {
-                    for i in 0..mb_x {
-                        // Keeps (2(dim) - 1)^2 macroblocks in HQ
-                        // qp_offsets[(mb_x * j) + i] = if (m_x as i32 - i as i32).abs() < opt.fovea
-                        //     && (m_y as i32 - j as i32).abs() < opt.fovea
-                        // {
-                        //     0.0
-                        // } else {
-                        //     QO_MAX as f32
-                        // };
-
-                        // Below is the 2d gaussian used by Illahi et al.
-                        qp_offsets[(mb_x * j) + i] = QO_MAX
-                            - (QO_MAX
-                                * (-1.0
-                                    * (((i as i32 - m_x as i32).pow(2)
-                                        + (j as i32 - m_y as i32).pow(2))
-                                        as f32
-                                        / (2.0 * (mb_x as f32 / opt.fovea as f32).powi(2))))
-                                .exp());
+                // Calculate Offsets based on Foveation Alg
+                match opt.alg {
+                    FoveationAlg::Gaussian => {
+                        for j in 0..mb_y {
+                            for i in 0..mb_x {
+                                // Below is the 2d gaussian used by Illahi et al.
+                                qp_offsets[(mb_x * j) + i] = QO_MAX
+                                    - (QO_MAX
+                                        * (-1.0
+                                            * (((i as i32 - m_x as i32).pow(2)
+                                                + (j as i32 - m_y as i32).pow(2))
+                                                as f32
+                                                / (2.0
+                                                    * (mb_x as f32 / opt.fovea as f32).powi(2))))
+                                        .exp());
+                            }
+                        }
+                    }
+                    FoveationAlg::SquareStep => {
+                        for j in 0..mb_y {
+                            for i in 0..mb_x {
+                                // Keeps (2(dim) - 1)^2 macroblocks in HQ
+                                qp_offsets[(mb_x * j) + i] = if (m_x as i32 - i as i32).abs()
+                                    < opt.fovea
+                                    && (m_y as i32 - j as i32).abs() < opt.fovea
+                                {
+                                    0.0
+                                } else {
+                                    QO_MAX as f32
+                                };
+                            }
+                        }
                     }
                 }
+
+                // Calculate offsets
                 pic.pic.prop.quant_offsets = qp_offsets.as_mut_ptr();
 
                 // EWMA as a heuristic of how long this takes to try and stay
