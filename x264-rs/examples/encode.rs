@@ -23,7 +23,7 @@ fn main() {
 
     dbg!("{}x{}", w, h);
 
-    let mut par = Param::default_preset("baseline", None).unwrap();
+    let mut par = Param::default_preset("baseline", "zerolatency").unwrap();
 
     par = par.set_dimension(h, w);
     // par = par.param_parse("repeat_headers", "1").unwrap();
