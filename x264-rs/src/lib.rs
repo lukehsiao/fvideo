@@ -146,9 +146,8 @@ impl Picture {
         }
     }
 
-    pub fn set_timestamp(mut self, pts: i64) -> Picture {
+    pub fn set_timestamp(&mut self, pts: i64) {
         self.pic.i_pts = pts;
-        self
     }
 }
 
@@ -222,7 +221,7 @@ impl Param {
     }
 
     /// Set the dimensions for the input video.
-    pub fn set_dimension(mut self, width: usize, height: usize) -> Param {
+    pub fn set_dimension(mut self, width: i32, height: i32) -> Param {
         self.par.i_height = height as c_int;
         self.par.i_width = width as c_int;
 
