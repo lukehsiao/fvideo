@@ -17,6 +17,8 @@ use log::{error, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
+use fvideo::eyelink;
+
 #[derive(StructOpt, Debug)]
 #[structopt(
     about,
@@ -50,19 +52,19 @@ fn main() {
         false => eyelink_rs::OpenMode::Real,
     };
 
-    if let Err(e) = fvideo::initialize_eyelink(mode) {
+    if let Err(e) = eyelink::initialize_eyelink(mode) {
         error!("Failed Eyelink Initialization: {}", e);
         process::exit(1);
     }
 
     if opt.skip_cal {
         info!("Skipping calibration.");
-    } else if let Err(e) = fvideo::run_calibration() {
+    } else if let Err(e) = eyelink::run_calibration() {
         error!("Failed Eyelink Calibration: {}", e);
         process::exit(1);
     }
 
-    if let Err(e) = fvideo::start_recording(EDF_FILE) {
+    if let Err(e) = eyelink::start_recording(EDF_FILE) {
         error!("Failed starting recording: {}", e);
         process::exit(1);
     }
@@ -73,7 +75,7 @@ fn main() {
         process::exit(1);
     }
 
-    if let Err(e) = fvideo::stop_recording(EDF_FILE) {
+    if let Err(e) = eyelink::stop_recording(EDF_FILE) {
         error!("Failed stopping recording: {}", e);
         process::exit(1);
     }
