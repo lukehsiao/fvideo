@@ -1,2 +1,7 @@
 /target
 /.gdb_history
+**/*.svg
+**/*.h264
+**/*.mp4
+**/*.y4m
+**/*.rs.bk

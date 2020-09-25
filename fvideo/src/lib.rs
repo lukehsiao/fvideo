@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![forbid(warnings)]
 
-//! Convenient helper functions for running common Eyelink operations.
+//! Convenient helper functions for running common operations.
 
 use eyelink_rs::{libeyelink_sys, EyelinkError};
 use log::{error, info};
