@@ -171,8 +171,9 @@ fn main() -> Result<()> {
 
     let mut frame_index = 0;
     let mut frame = Video::empty();
-    let mut process_nal_unit = |nal: &NalData| {
+    let mut process_nal_unit = |nal: &NalData, total_bytes: &mut usize| {
         let packet = Packet::copy(nal.as_bytes());
+        *total_bytes += packet.size();
         match decoder.decode(&packet, &mut frame) {
             Ok(true) => {
                 let rect = Rect::new(0, 0, frame.width(), frame.height());
@@ -205,6 +206,8 @@ fn main() -> Result<()> {
     let mb_y = height / 16;
     let mut m_x = mb_x / 2;
     let mut m_y = mb_y / 2;
+
+    let mut total_bytes = 0;
 
     let now = Instant::now();
 
@@ -313,14 +316,14 @@ fn main() -> Result<()> {
 
             timestamp += 1;
             if let Some((nal, _, _)) = enc.encode(&pic).unwrap() {
-                process_nal_unit(&nal);
+                process_nal_unit(&nal, &mut total_bytes);
             }
         }
     }
 
     while enc.delayed_frames() {
         if let Some((nal, _, _)) = enc.encode(None).unwrap() {
-            process_nal_unit(&nal);
+            process_nal_unit(&nal, &mut total_bytes);
         }
     }
 
@@ -331,6 +334,7 @@ fn main() -> Result<()> {
         elapsed.as_secs_f64(),
         frame_index as f64 / elapsed.as_secs_f64()
     );
+    info!("Total Encoded Size: {} bytes", total_bytes);
 
     decoder.flush();
 
