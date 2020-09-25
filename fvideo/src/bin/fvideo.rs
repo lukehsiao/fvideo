@@ -9,7 +9,7 @@ use log::info;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::client::FvideoClient;
+use fvideo::client::{FvideoClient, GazeSource};
 use fvideo::server::{FoveationAlg, FvideoServer};
 
 /// Make sure the qp offset option is in a valid range.
@@ -39,6 +39,10 @@ struct Opt {
     #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
     alg: FoveationAlg,
 
+    /// Source for gaze data.
+    #[structopt(short, long, default_value = "Mouse", possible_values = &GazeSource::variants(), case_insensitive=true)]
+    gaze_source: GazeSource,
+
     /// The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
     #[structopt(short, long, default_value = "35.0", parse(try_from_str = parse_qo_max))]
     qo_max: f32,
@@ -55,7 +59,7 @@ fn main() -> Result<()> {
 
     let mut server = FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video)?;
 
-    let mut client = FvideoClient::new(server.width(), server.height());
+    let mut client = FvideoClient::new(server.width(), server.height(), opt.gaze_source);
 
     let now = Instant::now();
     loop {

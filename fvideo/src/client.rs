@@ -17,10 +17,19 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
+use structopt::clap::arg_enum;
 use thiserror::Error;
 use x264::NalData;
 
 use crate::GazeSample;
+
+arg_enum! {
+    #[derive(Debug)]
+    pub enum GazeSource {
+        Mouse,
+        Eyelink,
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum FvideoClientError {
@@ -42,6 +51,7 @@ pub struct FvideoClient {
     disp_height: u32,
     total_bytes: u64,
     frame_idx: u64,
+    gaze_source: GazeSource,
     last_gaze_sample: GazeSample,
 }
 
@@ -53,7 +63,7 @@ impl Drop for FvideoClient {
 }
 
 impl FvideoClient {
-    pub fn new(vid_width: u32, vid_height: u32) -> FvideoClient {
+    pub fn new(vid_width: u32, vid_height: u32, gaze_source: GazeSource) -> FvideoClient {
         let decoder = decoder::new()
             .open_as(decoder::find(codec::Id::H264))
             .unwrap()
@@ -112,6 +122,7 @@ impl FvideoClient {
             disp_height,
             total_bytes: 0,
             frame_idx: 0,
+            gaze_source,
             last_gaze_sample,
         }
     }
@@ -120,25 +131,27 @@ impl FvideoClient {
     ///
     /// Note: This currently uses mouse position as a substitute for Eyelink data.
     pub fn gaze_sample(&mut self) -> GazeSample {
-        // TODO(lukehsiao): Switch this to get the latest Eyelink Sample.
-        // Or, better yet, keep this as a debugging mode.
+        match self.gaze_source {
+            GazeSource::Mouse => {
+                // Grab mouse position using SDL2.
+                if self.event_pump.poll_iter().last().is_some() {
+                    let mut p_x = self.event_pump.mouse_state().x() as u32;
+                    let mut p_y = self.event_pump.mouse_state().y() as u32;
 
-        // Grab mouse position using SDL2.
-        if self.event_pump.poll_iter().last().is_some() {
-            let mut p_x = self.event_pump.mouse_state().x() as u32;
-            let mut p_y = self.event_pump.mouse_state().y() as u32;
+                    // Scale from display to video resolution
+                    p_x = (p_x as f64 * (self.vid_width as f64 / self.disp_width as f64)) as u32;
+                    p_y = (p_y as f64 * (self.vid_height as f64 / self.disp_height as f64)) as u32;
 
-            // Scale from display to video resolution
-            p_x = (p_x as f64 * (self.vid_width as f64 / self.disp_width as f64)) as u32;
-            p_y = (p_y as f64 * (self.vid_height as f64 / self.disp_height as f64)) as u32;
-
-            self.last_gaze_sample = GazeSample {
-                time: Instant::now(),
-                p_x,
-                p_y,
-                m_x: p_x / 16,
-                m_y: p_y / 16,
-            };
+                    self.last_gaze_sample = GazeSample {
+                        time: Instant::now(),
+                        p_x,
+                        p_y,
+                        m_x: p_x / 16,
+                        m_y: p_y / 16,
+                    };
+                }
+            }
+            GazeSource::Eyelink => todo!(),
         }
 
         self.last_gaze_sample
