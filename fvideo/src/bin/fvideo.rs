@@ -61,6 +61,10 @@ struct Opt {
     /// The trace file to use, if a trace file is the gaze source.
     #[structopt(short, long, parse(from_os_str))]
     trace: Option<PathBuf>,
+
+    /// Whether to run eyelink calibration or not.
+    #[structopt(short, long)]
+    skip_cal: bool,
 }
 
 fn main() -> Result<()> {
@@ -70,7 +74,12 @@ fn main() -> Result<()> {
 
     let mut server = FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video)?;
 
-    let mut client = FvideoClient::new(server.width(), server.height(), opt.gaze_source);
+    let mut client = FvideoClient::new(
+        server.width(),
+        server.height(),
+        opt.gaze_source,
+        opt.skip_cal,
+    );
 
     let now = Instant::now();
     loop {

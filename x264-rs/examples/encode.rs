@@ -18,8 +18,8 @@ fn main() {
         );
     }
     let caps = re.captures(args[1].as_str()).unwrap();
-    let w: usize = caps[1].parse().unwrap();
-    let h: usize = caps[2].parse().unwrap();
+    let w: i32 = caps[1].parse().unwrap();
+    let h: i32 = caps[2].parse().unwrap();
 
     dbg!("{}x{}", w, h);
 
@@ -46,7 +46,7 @@ fn main() {
             }
         }
 
-        pic = pic.set_timestamp(timestamp);
+        pic.set_timestamp(timestamp);
         timestamp += 1;
         if let Some((nal, _, _)) = enc.encode(&pic).unwrap() {
             let buf = nal.as_bytes();

@@ -538,7 +538,7 @@ mod tests {
         println!("Headers len {}", headers.as_bytes().len());
 
         for pts in 0..5 {
-            pic = pic.set_timestamp(pts as i64);
+            pic.set_timestamp(pts as i64);
             let ret = enc.encode(&pic).unwrap();
             match ret {
                 Some((_, pts, dts)) => println!("Frame pts {}, dts {}", pts, dts),

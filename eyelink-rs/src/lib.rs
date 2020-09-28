@@ -20,6 +20,14 @@ pub enum EyelinkError {
     ConnectionError,
     #[error("Esc was pressed during drift correction.")]
     EscPressed,
+    #[error("Time expired without any data of masked types available.")]
+    BlockStartError,
+    #[error("No eye data is available.")]
+    EyeDataError,
+    #[error("No eye tracking samples available.")]
+    NoSampleError,
+    #[error("No new eye tracking samples available.")]
+    NoNewSampleError,
     #[error("Failed Command: {}", self)]
     CommandError(String),
     #[error(transparent)]
@@ -44,6 +52,13 @@ pub enum OpenMode {
     Dummy,
     Real,
     NoConn,
+}
+
+#[derive(Debug)]
+pub enum EyeData {
+    Left = 0,
+    Right = 1,
+    Binocular = 2,
 }
 
 #[derive(Debug, PartialEq)]
@@ -301,6 +316,60 @@ pub fn do_drift_correct(x: i16, y: i16, draw: bool, allow_setup: bool) -> Result
         0 => Ok(()),
         27 => Err(EyelinkError::EscPressed),
         n => Err(EyelinkError::APIError(n)),
+    }
+}
+
+pub fn eyelink_flush_keybuttons(enable_buttons: i16) -> Result<(), EyelinkError> {
+    let res = unsafe { libeyelink_sys::eyelink_flush_keybuttons(enable_buttons) };
+
+    match res {
+        0 => Ok(()),
+        n => Err(EyelinkError::APIError(n)),
+    }
+}
+
+pub fn eyelink_newest_float_sample(buf: &mut libeyelink_sys::FSAMPLE) -> Result<(), EyelinkError> {
+    // According to the eylink docs, this is the typical call pattern (check
+    // with NULL first, then call again to get the sample.
+    let res = unsafe { libeyelink_sys::eyelink_newest_float_sample(std::ptr::null_mut()) };
+    match res {
+        -1 => return Err(EyelinkError::NoSampleError),
+        0 => return Err(EyelinkError::NoNewSampleError),
+        1 => (),
+        n => return Err(EyelinkError::APIError(n)),
+    }
+
+    let res =
+        unsafe { libeyelink_sys::eyelink_newest_float_sample(buf as *mut _ as *mut libc::c_void) };
+    match res {
+        -1 => Err(EyelinkError::NoSampleError),
+        0 => Err(EyelinkError::NoNewSampleError),
+        1 => Ok(()),
+        n => Err(EyelinkError::APIError(n)),
+    }
+}
+
+pub fn eyelink_eye_available() -> Result<EyeData, EyelinkError> {
+    let res = unsafe { libeyelink_sys::eyelink_eye_available() };
+
+    match res {
+        a if a == libeyelink_sys::RIGHT_EYE as i16 => Ok(EyeData::Right),
+        a if a == libeyelink_sys::LEFT_EYE as i16 => Ok(EyeData::Left),
+        a if a == libeyelink_sys::BINOCULAR as i16 => Ok(EyeData::Binocular),
+        -1 => Err(EyelinkError::EyeDataError),
+        n => Err(EyelinkError::APIError(n)),
+    }
+}
+
+pub fn eyelink_wait_for_block_start(
+    maxwait_ms: u32,
+    samples: i16,
+    events: i16,
+) -> Result<(), EyelinkError> {
+    let res = unsafe { libeyelink_sys::eyelink_wait_for_block_start(maxwait_ms, samples, events) };
+    match res {
+        0 => Err(EyelinkError::BlockStartError),
+        _ => Ok(()),
     }
 }
 

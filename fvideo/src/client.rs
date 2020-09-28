@@ -5,12 +5,12 @@
 
 extern crate ffmpeg_next as ffmpeg;
 
-use std::num;
 use std::time::Instant;
+use std::{num, process};
 
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
-use log::error;
+use log::{error, info};
 use sdl2::event::EventType;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
@@ -19,9 +19,15 @@ use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 use structopt::clap::arg_enum;
 use thiserror::Error;
+
+use crate::{eyelink, GazeSample};
+use eyelink_rs::libeyelink_sys::{FSAMPLE, MISSING_DATA};
+use eyelink_rs::{self, EyeData, OpenMode};
 use x264::NalData;
 
-use crate::GazeSample;
+// TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
+// other filenames (like "recording.edf"). Not sure why.
+const EDF_FILE: &str = "test.edf";
 
 arg_enum! {
     #[derive(Debug)]
@@ -38,6 +44,8 @@ pub enum FvideoClientError {
     ParseIntError(#[from] num::ParseIntError),
     #[error(transparent)]
     ParseFloatError(#[from] num::ParseFloatError),
+    #[error(transparent)]
+    EyelinkError(#[from] eyelink_rs::EyelinkError),
 }
 
 pub struct FvideoClient {
@@ -54,6 +62,7 @@ pub struct FvideoClient {
     frame_idx: u64,
     gaze_source: GazeSource,
     last_gaze_sample: GazeSample,
+    eye_used: Option<EyeData>,
 }
 
 impl Drop for FvideoClient {
@@ -64,7 +73,57 @@ impl Drop for FvideoClient {
 }
 
 impl FvideoClient {
-    pub fn new(vid_width: u32, vid_height: u32, gaze_source: GazeSource) -> FvideoClient {
+    pub fn new(
+        vid_width: u32,
+        vid_height: u32,
+        gaze_source: GazeSource,
+        skip_cal: bool,
+    ) -> FvideoClient {
+        let mut eye_used = None;
+        match gaze_source {
+            GazeSource::Eyelink => {
+                if let Err(e) = eyelink::initialize_eyelink(OpenMode::Real) {
+                    error!("Failed Eyelink Initialization: {}", e);
+                    process::exit(1);
+                }
+
+                if skip_cal {
+                    info!("Skipping calibration.");
+                } else if let Err(e) = eyelink::run_calibration() {
+                    error!("Failed Eyelink Calibration: {}", e);
+                    process::exit(1);
+                }
+
+                if let Err(e) = eyelink::start_recording(EDF_FILE) {
+                    error!("Failed starting recording: {}", e);
+                    process::exit(1);
+                }
+
+                if let Err(e) = eyelink_rs::eyelink_wait_for_block_start(100, 1, 0) {
+                    error!("No link samples received: {}", e);
+                    process::exit(1);
+                }
+
+                eye_used = match eyelink_rs::eyelink_eye_available() {
+                    Ok(e) => {
+                        info!("Eye data from: {:?}", e);
+                        Some(e)
+                    }
+                    Err(e) => {
+                        error!("No eye data available: {}", e);
+                        process::exit(1);
+                    }
+                };
+
+                // Flush and only look at the most recent button press
+                if let Err(e) = eyelink_rs::eyelink_flush_keybuttons(0) {
+                    error!("Unable to flush buttons: {}", e);
+                    process::exit(1);
+                }
+            }
+            GazeSource::Mouse => (),
+            GazeSource::TraceFile => todo!(),
+        }
         let decoder = decoder::new()
             .open_as(decoder::find(codec::Id::H264))
             .unwrap()
@@ -125,6 +184,7 @@ impl FvideoClient {
             frame_idx: 0,
             gaze_source,
             last_gaze_sample,
+            eye_used,
         }
     }
 
@@ -152,7 +212,36 @@ impl FvideoClient {
                     };
                 }
             }
-            GazeSource::Eyelink => todo!(),
+            GazeSource::Eyelink => {
+                let mut evt: FSAMPLE = FSAMPLE::default();
+
+                if let Ok(_) = eyelink_rs::eyelink_newest_float_sample(&mut evt) {
+                    let idx = match self.eye_used.as_ref() {
+                        Some(EyeData::Left) => 0,
+                        Some(EyeData::Right) => 1,
+                        Some(EyeData::Binocular) => 0, // if both eyes used, still just use left
+                        None => {
+                            error!("No eye data was found.");
+                            process::exit(1);
+                        }
+                    };
+
+                    let p_x = evt.gx[idx];
+                    let p_y = evt.gy[idx];
+                    let pa = evt.pa[idx];
+
+                    // Make sure pupil is present
+                    if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
+                        self.last_gaze_sample = GazeSample {
+                            time: Instant::now(),
+                            p_x: p_x.round() as u32,
+                            p_y: p_y.round() as u32,
+                            m_x: (p_x / 16.0).round() as u32,
+                            m_y: (p_y / 16.0).round() as u32,
+                        }
+                    }
+                };
+            }
             GazeSource::TraceFile => todo!(),
         }
 
