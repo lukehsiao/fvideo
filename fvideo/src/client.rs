@@ -28,6 +28,7 @@ arg_enum! {
     pub enum GazeSource {
         Mouse,
         Eyelink,
+        TraceFile,
     }
 }
 
@@ -152,6 +153,7 @@ impl FvideoClient {
                 }
             }
             GazeSource::Eyelink => todo!(),
+            GazeSource::TraceFile => todo!(),
         }
 
         self.last_gaze_sample

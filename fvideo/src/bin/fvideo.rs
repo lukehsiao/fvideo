@@ -35,12 +35,19 @@ struct Opt {
     #[structopt(short, long, default_value = "0")]
     fovea: u32,
 
-    /// The parameter for the size of the foveal region.
+    /// The method used to calculate QP offsets for foveation.
     #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
     alg: FoveationAlg,
 
     /// Source for gaze data.
-    #[structopt(short, long, default_value = "Mouse", possible_values = &GazeSource::variants(), case_insensitive=true)]
+    #[structopt(
+        short,
+        long,
+        default_value = "Mouse",
+        possible_values = &GazeSource::variants(),
+        case_insensitive=true,
+        requires_ifs(&[("tracefile", "trace"), ("TraceFile", "trace")])
+    )]
     gaze_source: GazeSource,
 
     /// The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
@@ -50,6 +57,10 @@ struct Opt {
     /// The video to encode and display.
     #[structopt(name = "VIDEO", parse(from_os_str))]
     video: PathBuf,
+
+    /// The trace file to use, if a trace file is the gaze source.
+    #[structopt(short, long, parse(from_os_str))]
+    trace: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
