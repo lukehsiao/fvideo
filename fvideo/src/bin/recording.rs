@@ -17,7 +17,7 @@ use log::{error, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::eyelink;
+use eyelink_rs::eyelink;
 
 #[derive(StructOpt, Debug)]
 #[structopt(

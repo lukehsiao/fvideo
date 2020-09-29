@@ -10,6 +10,7 @@ use thiserror::Error;
 pub use libeyelink_sys;
 
 pub mod ascparser;
+pub mod eyelink;
 
 #[derive(Error, Debug)]
 /// Wrapper for all errors working with libeyelink-sys.

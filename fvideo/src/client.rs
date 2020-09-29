@@ -22,10 +22,10 @@ use sdl2::EventPump;
 use structopt::clap::arg_enum;
 use thiserror::Error;
 
-use crate::{eyelink, GazeSample};
+use crate::GazeSample;
 use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::{FSAMPLE, MISSING_DATA};
-use eyelink_rs::{self, EyeData, OpenMode};
+use eyelink_rs::{self, eyelink, EyeData, OpenMode};
 use x264::NalData;
 
 // TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for

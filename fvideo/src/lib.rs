@@ -4,7 +4,6 @@
 use std::time::Instant;
 
 pub mod client;
-pub mod eyelink;
 pub mod server;
 
 /// Structure of a single gaze sample.

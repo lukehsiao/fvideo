@@ -190,7 +190,9 @@ dependencies = [
  "lazy_static",
  "libc 0.2.77",
  "libeyelink-sys",
+ "log",
  "regex",
+ "sdl",
  "serial_test",
  "thiserror",
 ]
@@ -262,7 +264,6 @@ dependencies = [
  "num-rational 0.3.0",
  "pretty_env_logger",
  "regex",
- "sdl",
  "sdl2",
  "structopt",
  "thiserror",
