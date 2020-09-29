@@ -79,6 +79,7 @@ fn main() -> Result<()> {
         server.height(),
         opt.gaze_source,
         opt.skip_cal,
+        opt.trace,
     );
 
     let now = Instant::now();

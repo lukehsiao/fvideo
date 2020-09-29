@@ -68,6 +68,7 @@ impl FromStr for EyeSample {
     }
 }
 
+/// Parse an input ASC file into a vector of EyeSamples.
 pub fn parse_asc(f: PathBuf) -> Result<Vec<EyeSample>, AscParserError> {
     let f = File::open(f)?;
     let buffered = BufReader::new(f);
