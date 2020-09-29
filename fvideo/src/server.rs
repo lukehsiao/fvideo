@@ -157,7 +157,7 @@ impl FvideoServer {
         //     }
         // }
 
-        if self.fovea > 0 {
+        if self.fovea > 0 && self.timestamp > 0 {
             // Calculate offsets based on Foveation Alg
             match self.alg {
                 FoveationAlg::Gaussian => {
@@ -198,6 +198,7 @@ impl FvideoServer {
         }
 
         self.pic.set_timestamp(self.timestamp);
+        self.timestamp += 1;
 
         let mut nals = vec![];
         if let Some((nal, _, _)) = self.encoder.encode(&self.pic).unwrap() {
