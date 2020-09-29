@@ -11,6 +11,7 @@ use std::io::{self, BufRead, BufReader, Read};
 use std::num;
 use std::path::PathBuf;
 use std::time::Duration;
+use std::time::Instant;
 
 use lazy_static::lazy_static;
 use log::error;
@@ -59,7 +60,8 @@ pub struct FvideoServer {
     height: u32,
     mb_x: u32,
     mb_y: u32,
-    _frame_dur: Duration,
+    frame_dur: Duration,
+    frame_time: Instant,
     qp_offsets: Vec<f32>,
     hdr: String,
     timestamp: i64,
@@ -80,7 +82,7 @@ impl FvideoServer {
         video_in.read_line(&mut hdr).unwrap();
         let (width, height, fps) = parse_y4m_header(&hdr)?;
 
-        let _frame_dur = Duration::from_secs_f64(1.0 / fps);
+        let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
         let mut par = setup_x264_params(fovea, width, height)?;
         let pic = Picture::from_param(&par)?;
@@ -103,7 +105,8 @@ impl FvideoServer {
             height,
             mb_x,
             mb_y,
-            _frame_dur,
+            frame_dur,
+            frame_time: Instant::now(),
             qp_offsets,
             hdr: String::new(),
             timestamp: 0,
@@ -123,14 +126,16 @@ impl FvideoServer {
         //
         // Perhaps a separate thread that is just handling advancing self.pic at
         // the right time?
+        if self.frame_time.elapsed() >= self.frame_dur {
+            // Skip header data of the frame
+            self.video_in.read_line(&mut self.hdr)?;
 
-        // Skip header data of the frame
-        self.video_in.read_line(&mut self.hdr)?;
-
-        // Read the input YUV frame
-        for plane in 0..3 {
-            let mut buf = self.pic.as_mut_slice(plane).unwrap();
-            self.video_in.read_exact(&mut buf)?;
+            // Read the input YUV frame
+            for plane in 0..3 {
+                let mut buf = self.pic.as_mut_slice(plane).unwrap();
+                self.video_in.read_exact(&mut buf)?;
+            }
+            self.frame_time = Instant::now();
         }
 
         Ok(())
