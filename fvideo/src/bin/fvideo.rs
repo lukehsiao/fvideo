@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::time::Instant;
 
 use anyhow::{anyhow, Result};
-use log::info;
+use log::{debug, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -85,13 +85,19 @@ fn main() -> Result<()> {
     let now = Instant::now();
     loop {
         let current_gaze = client.gaze_sample();
+
+        let time = Instant::now();
         let nals = match server.encode_frame(current_gaze) {
             Ok(n) => n,
             Err(_) => break,
         };
+        debug!("encode_frame: {:?} ms", time.elapsed().as_millis());
+
+        let time = Instant::now();
         for nal in nals {
             client.display_frame(nal);
         }
+        debug!("display_frame: {:?} ms", time.elapsed().as_millis());
     }
 
     let elapsed = now.elapsed();
