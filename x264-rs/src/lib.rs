@@ -268,12 +268,10 @@ impl Param {
         self.par.b_deterministic = 1;
         self.par.b_cpu_independent = 0;
         self.par.i_sync_lookahead = 0;
-        self.par.i_width = 3840;
-        self.par.i_height = 2160;
         self.par.i_csp = 2;
 
-        self.par.vui.i_sar_height = 1;
-        self.par.vui.i_sar_width = 1;
+        self.par.vui.i_sar_height = 0;
+        self.par.vui.i_sar_width = 0;
         self.par.vui.i_overscan = 0;
         self.par.vui.i_vidformat = 5;
         self.par.vui.b_fullrange = 0;
@@ -282,10 +280,8 @@ impl Param {
         self.par.vui.i_colmatrix = -1;
         self.par.vui.i_chroma_loc = 0;
 
-        self.par.i_frame_reference = 2;
+        self.par.i_frame_reference = 1;
         self.par.i_dpb_size = 1;
-        self.par.i_keyint_max = 50000;
-        self.par.i_keyint_min = 25001;
         self.par.i_scenecut_threshold = 0;
         self.par.b_intra_refresh = 0;
         self.par.i_bframe = 0;
@@ -304,22 +300,23 @@ impl Param {
         self.par.b_interlaced = 0;
         self.par.b_constrained_intra = 0;
         self.par.i_cqm_preset = 0;
+        self.par.b_full_recon = 0;
 
         self.par.analyse.intra = 3;
-        self.par.analyse.inter = 275;
+        self.par.analyse.inter = 3;
         self.par.analyse.b_transform_8x8 = 1;
         self.par.analyse.i_weighted_pred = 1;
         self.par.analyse.b_weighted_bipred = 0;
         self.par.analyse.i_direct_mv_pred = 0;
-        self.par.analyse.i_chroma_qp_offset = -2;
-        self.par.analyse.i_me_method = 1;
+        self.par.analyse.i_chroma_qp_offset = 0;
+        self.par.analyse.i_me_method = 0;
         self.par.analyse.i_me_range = 16;
         self.par.analyse.i_mv_range = 512;
         self.par.analyse.i_mv_range_thread = -1;
-        self.par.analyse.i_subpel_refine = 6;
+        self.par.analyse.i_subpel_refine = 1;
         self.par.analyse.b_chroma_me = 1;
-        self.par.analyse.b_mixed_references = 1;
-        self.par.analyse.i_trellis = 1;
+        self.par.analyse.b_mixed_references = 0;
+        self.par.analyse.i_trellis = 0;
         self.par.analyse.b_fast_pskip = 1;
         self.par.analyse.b_dct_decimate = 1;
         self.par.analyse.i_noise_reduction = 0;
@@ -365,10 +362,10 @@ impl Param {
         self.par.i_sps_id = 0;
         self.par.b_vfr_input = 0;
         self.par.b_pulldown = 0;
-        self.par.i_fps_num = 30000;
-        self.par.i_fps_den = 1001;
-        self.par.i_timebase_num = 1001;
-        self.par.i_timebase_den = 30000;
+        self.par.i_fps_num = 24;
+        self.par.i_fps_den = 1;
+        self.par.i_timebase_num = 1;
+        self.par.i_timebase_den = 24;
         self.par.b_tff = 1;
         self.par.b_pic_struct = 0;
         self.par.b_fake_interlaced = 0;

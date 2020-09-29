@@ -215,7 +215,7 @@ impl FvideoServer {
 }
 
 fn setup_x264_params(fovea: i32, width: u32, height: u32) -> Result<Param, FvideoServerError> {
-    let mut par = Param::default_preset("fast", "zerolatency")
+    let mut par = Param::default_preset("superfast", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
     // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
