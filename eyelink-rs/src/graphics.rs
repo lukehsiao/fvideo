@@ -57,17 +57,31 @@ unsafe extern "C" fn erase_cal_target(user_data: *mut c_void) -> INT16 {
 #[no_mangle]
 unsafe extern "C" fn draw_cal_target(user_data: *mut c_void, x: f32, y: f32) -> INT16 {
     // Calibration target size in px.
-    const TARGET_SIZE: u32 = 11;
+    const TARGET_SIZE: u32 = 12;
+    const INNER_SIZE: u32 = 4;
     let canvas = match (user_data as *mut Canvas<Window>).as_mut() {
         Some(c) => c,
         None => return 1,
     };
 
     canvas.set_draw_color(Color::RGB(0, 0, 0));
-    match canvas.draw_rect(Rect::from_center(
+    match canvas.fill_rect(Rect::from_center(
         Point::new(x.round() as i32, y.round() as i32),
         TARGET_SIZE,
         TARGET_SIZE,
+    )) {
+        Err(e) => {
+            error!("Failed drawing rectangle: {}.", e);
+            return 1;
+        }
+        Ok(_) => (),
+    }
+
+    canvas.set_draw_color(Color::RGB(200, 200, 200));
+    match canvas.fill_rect(Rect::from_center(
+        Point::new(x.round() as i32, y.round() as i32),
+        INNER_SIZE,
+        INNER_SIZE,
     )) {
         Ok(_) => {
             canvas.present();
