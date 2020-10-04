@@ -4,10 +4,10 @@ use std::ffi::CString;
 use std::os::raw::c_char;
 
 use c_fixed_string::CFixedStr;
+use libeyelink_sys::FSAMPLE;
 use thiserror::Error;
 
 pub use libeyelink_sys;
-
 pub mod ascparser;
 pub mod eyelink;
 pub mod graphics;
@@ -258,23 +258,15 @@ pub fn eyelink_flush_keybuttons(enable_buttons: i16) -> Result<(), EyelinkError>
     }
 }
 
-pub fn eyelink_newest_float_sample(buf: &mut libeyelink_sys::FSAMPLE) -> Result<(), EyelinkError> {
-    // According to the eylink docs, this is the typical call pattern (check
-    // with NULL first, then call again to get the sample.
-    let res = unsafe { libeyelink_sys::eyelink_newest_float_sample(std::ptr::null_mut()) };
-    match res {
-        -1 => return Err(EyelinkError::NoSampleError),
-        0 => return Err(EyelinkError::NoNewSampleError),
-        1 => (),
-        n => return Err(EyelinkError::APIError(n)),
-    }
+pub fn eyelink_newest_float_sample() -> Result<Box<FSAMPLE>, EyelinkError> {
+    let buf = Box::new(FSAMPLE::default());
+    let buf_raw = Box::into_raw(buf);
 
-    let res =
-        unsafe { libeyelink_sys::eyelink_newest_float_sample(buf as *mut _ as *mut libc::c_void) };
+    let res = unsafe { libeyelink_sys::eyelink_newest_float_sample(buf_raw as *mut _) };
     match res {
         -1 => Err(EyelinkError::NoSampleError),
         0 => Err(EyelinkError::NoNewSampleError),
-        1 => Ok(()),
+        1 => Ok(unsafe { Box::from_raw(buf_raw) }),
         n => Err(EyelinkError::APIError(n)),
     }
 }

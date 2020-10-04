@@ -153,7 +153,7 @@ pub fn stop_recording(edf: &str) -> Result<(), FvideoEyelinkError> {
     let conn_status = eyelink_rs::eyelink_is_connected()?;
     if conn_status != ConnectionStatus::Closed {
         let size = eyelink_rs::receive_data_file(edf, edf)?;
-        info!("Transferred {} bytes.", size);
+        info!("Saved {} ({} bytes).", edf, size);
         Ok(())
     } else {
         Err(FvideoEyelinkError::TransferError(edf.to_string()))

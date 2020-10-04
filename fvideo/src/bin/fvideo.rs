@@ -1,16 +1,18 @@
 extern crate ffmpeg_next as ffmpeg;
 
 use std::path::PathBuf;
+use std::process;
 use std::str::FromStr;
 use std::time::Instant;
 
 use anyhow::{anyhow, Result};
-use log::{debug, info};
+use log::{debug, error, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
-use fvideo::client::{FvideoClient, GazeSource};
+use eyelink_rs::{self, eyelink};
+use fvideo::client::{FvideoClient, GazeSource, EDF_FILE};
 use fvideo::server::{FoveationAlg, FvideoServer};
 
 /// Make sure the qp offset option is in a valid range.
@@ -100,6 +102,13 @@ fn main() -> Result<()> {
         }
         debug!("display_frame: {:?} ms", time.elapsed().as_millis());
     }
+
+    if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+        error!("Failed stopping recording: {}", e);
+        process::exit(1);
+    }
+
+    eyelink_rs::close_eyelink_connection();
 
     let elapsed = now.elapsed();
     let frame_index = client.total_frames();

@@ -24,13 +24,13 @@ use thiserror::Error;
 
 use crate::GazeSample;
 use eyelink_rs::ascparser::{self, EyeSample};
-use eyelink_rs::libeyelink_sys::{FSAMPLE, MISSING_DATA};
+use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
 use x264::NalData;
 
 // TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
 // other filenames (like "recording.edf"). Not sure why.
-const EDF_FILE: &str = "test.edf";
+pub const EDF_FILE: &str = "test.edf";
 
 arg_enum! {
     #[derive(Debug)]
@@ -229,9 +229,7 @@ impl FvideoClient {
                 }
             }
             GazeSource::Eyelink => {
-                let mut evt: FSAMPLE = FSAMPLE::default();
-
-                if eyelink_rs::eyelink_newest_float_sample(&mut evt).is_ok() {
+                if let Ok(evt) = eyelink_rs::eyelink_newest_float_sample() {
                     let idx = match self.eye_used.as_ref() {
                         Some(EyeData::Left) => 0,
                         Some(EyeData::Right) => 1,
@@ -242,21 +240,26 @@ impl FvideoClient {
                         }
                     };
 
-                    let p_x = evt.gx[idx];
-                    let p_y = evt.gy[idx];
+                    let mut p_x = evt.gx[idx];
+                    let mut p_y = evt.gy[idx];
+
                     let pa = evt.pa[idx];
 
                     // Make sure pupil is present
                     if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
+                        // Scale from display to video resolution
+                        p_x = p_x * (self.vid_width as f32 / self.disp_width as f32);
+                        p_y = p_y * (self.vid_height as f32 / self.disp_height as f32);
+
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
                             p_x: p_x.round() as u32,
                             p_y: p_y.round() as u32,
                             m_x: (p_x / 16.0).round() as u32,
                             m_y: (p_y / 16.0).round() as u32,
-                        }
+                        };
                     }
-                };
+                }
             }
             GazeSource::TraceFile => {
                 info!("{:?}", self.trace_samples.as_ref().unwrap().front());
