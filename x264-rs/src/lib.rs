@@ -262,8 +262,8 @@ impl Param {
     pub fn set_x264_defaults(mut self) -> Param {
         self.par.dim = 2;
         self.par.cpu = 1111039;
-        self.par.i_threads = 16;
-        self.par.i_lookahead_threads = 16;
+        self.par.i_threads = 12;
+        self.par.i_lookahead_threads = 12;
         self.par.b_sliced_threads = 1;
         self.par.b_deterministic = 1;
         self.par.b_cpu_independent = 0;
@@ -375,7 +375,7 @@ impl Param {
         self.par.i_slice_max_size = 0;
         self.par.i_slice_max_mbs = 0;
         self.par.i_slice_min_mbs = 0;
-        self.par.i_slice_count = 16;
+        self.par.i_slice_count = 12;
         self.par.i_slice_count_max = 0;
 
         self
