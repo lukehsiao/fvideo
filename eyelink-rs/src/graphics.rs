@@ -65,16 +65,13 @@ unsafe extern "C" fn draw_cal_target(user_data: *mut c_void, x: f32, y: f32) -> 
     };
 
     canvas.set_draw_color(Color::RGB(0, 0, 0));
-    match canvas.fill_rect(Rect::from_center(
+    if let Err(e) = canvas.fill_rect(Rect::from_center(
         Point::new(x.round() as i32, y.round() as i32),
         TARGET_SIZE,
         TARGET_SIZE,
     )) {
-        Err(e) => {
-            error!("Failed drawing rectangle: {}.", e);
-            return 1;
-        }
-        Ok(_) => (),
+        error!("Failed drawing rectangle: {}.", e);
+        return 1;
     }
 
     canvas.set_draw_color(Color::RGB(200, 200, 200));
@@ -122,7 +119,10 @@ unsafe extern "C" fn exit_cal_display(user_data: *mut c_void) -> INT16 {
 }
 
 /// Initialize SDL2 and hooks for the Eyelink Core Library.
-pub fn init_expt_graphics() -> Result<DisplayMode, GraphicsError> {
+///
+/// Returns a DisplayMode and a ptr to the SDL context that must be passed back into
+/// close_expt_graphics() to clean up.
+pub fn init_expt_graphics() -> Result<(DisplayMode, *mut Canvas<Window>), GraphicsError> {
     // Initialize SDL2
     let sdl_context = sdl2::init().map_err(GraphicsError::SDL2Error)?;
     let video = sdl_context.video().map_err(GraphicsError::SDL2Error)?;
@@ -157,6 +157,8 @@ pub fn init_expt_graphics() -> Result<DisplayMode, GraphicsError> {
             .build()?,
     );
 
+    let canvas_ptr = Box::into_raw(canvas);
+
     // We don't need audio, so we leave the following None:
     //     - fcns.cal_target_beep_hook
     //     - fcns.cal_done_beep_hook
@@ -172,7 +174,7 @@ pub fn init_expt_graphics() -> Result<DisplayMode, GraphicsError> {
     let fcns = Box::new(HOOKFCNS2 {
         major: 1,
         minor: 0,
-        userData: Box::into_raw(canvas) as *mut _,
+        userData: canvas_ptr as *mut _,
         setup_cal_display_hook: Some(setup_cal_display),
         exit_cal_display_hook: Some(exit_cal_display),
         setup_image_display_hook: None,
@@ -198,13 +200,21 @@ pub fn init_expt_graphics() -> Result<DisplayMode, GraphicsError> {
             n => return Err(GraphicsError::SDL2Error(format!("Graphic Hooks: {}", n))),
         }
     }
-    Ok(display_mode)
+    Ok((display_mode, canvas_ptr))
 }
 
 /// Clean up all expt graphics.
-pub fn close_expt_graphics() -> Result<(), GraphicsError> {
-    // TODO(lukehsiao): Not sure if I need to do something extra to make sure
-    // SDL_Quit is called...
-
-    Ok(())
+///
+/// # Safety
+/// This function should be passed the canvas pointer returned by init_expt_graphics.
+pub unsafe fn close_expt_graphics(canvas_ptr: *mut Canvas<Window>) -> Result<(), GraphicsError> {
+    // Take ownership of the canvas to allow it to be cleaned up.
+    if !canvas_ptr.is_null() {
+        Box::from_raw(canvas_ptr);
+        Ok(())
+    } else {
+        Err(GraphicsError::SDL2Error(
+            "Received a NULL ptr for canvas.".to_string(),
+        ))
+    }
 }

@@ -13,8 +13,6 @@ pub enum FvideoEyelinkError {
     EyelinkError(#[from] EyelinkError),
     #[error("Unable to transfer data file: {self}")]
     TransferError(String),
-    #[error("Unable to initialize SDL1.2")]
-    SDLError,
     #[error(transparent)]
     GraphicsError(#[from] GraphicsError),
 }
@@ -90,7 +88,7 @@ pub fn run_calibration() -> Result<(), FvideoEyelinkError> {
     //     false => return Err(FvideoEyelinkError::SDLError),
     // }
     // let mut disp = eyelink_rs::get_display_information();
-    let disp = graphics::init_expt_graphics()?;
+    let (disp, canvas_ptr) = graphics::init_expt_graphics()?;
 
     // Set display resolution
     eyelink_rs::eyecmd_printf(
@@ -121,7 +119,9 @@ pub fn run_calibration() -> Result<(), FvideoEyelinkError> {
     {}
 
     // Close graphics once we're done w/ calibration
-    graphics::close_expt_graphics()?;
+    unsafe {
+        graphics::close_expt_graphics(canvas_ptr)?;
+    }
 
     Ok(())
 }
