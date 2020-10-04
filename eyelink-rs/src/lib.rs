@@ -1,7 +1,6 @@
 //! Thin, safe wrappers around libeyelink-sys.
 
 use std::ffi::CString;
-use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 
 use c_fixed_string::CFixedStr;
@@ -11,6 +10,7 @@ pub use libeyelink_sys;
 
 pub mod ascparser;
 pub mod eyelink;
+pub mod graphics;
 
 #[derive(Error, Debug)]
 /// Wrapper for all errors working with libeyelink-sys.
@@ -234,80 +234,9 @@ pub fn receive_data_file(src: &str, dst: &str) -> Result<i32, EyelinkError> {
     }
 }
 
-/// Initialize Eyelink's SDL-based experimental graphics.
-///
-/// **Warning**: In our experience, calling this function can cause a segfault
-/// from the underlying eyelink libraries. To avoid this, you should initialize
-/// SDL yourself first.
-/// ```ignore
-/// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
-///     true => (),
-///     false => return Err(()),
-/// }
-/// eyelink_rs::init_expt_graphics(None, None)?;
-/// ```
-pub fn init_expt_graphics(
-    hwnd: Option<&mut libeyelink_sys::SDL_Surface>,
-    info: Option<&mut libeyelink_sys::DISPLAYINFO>,
-) -> Result<(), EyelinkError> {
-    let hwnd = match hwnd {
-        Some(s) => s,
-        None => std::ptr::null_mut(),
-    };
-    let info = match info {
-        Some(s) => s,
-        None => std::ptr::null_mut(),
-    };
-    unsafe {
-        match libeyelink_sys::init_expt_graphics(hwnd, info) {
-            0 => Ok(()),
-            e => Err(EyelinkError::APIError(e)),
-        }
-    }
-}
-
-pub fn close_expt_graphics() {
-    unsafe { libeyelink_sys::close_expt_graphics() }
-}
-
-/// Get display information using Eyelink's SDL-based library.
-///
-/// **Warning**: In our experience, calling this function can cause a segfault
-/// from the underlying eyelink libraries. To avoid this, you should initialize
-/// SDL yourself first.
-/// ```ignore
-/// match sdl::init(&[sdl::sdl::InitFlag::Video]) {
-///     true => (),
-///     false => return Err(()),
-/// }
-/// let disp = eyelink_rs::get_display_information();
-/// ```
-pub fn get_display_information() -> libeyelink_sys::DISPLAYINFO {
-    unsafe {
-        let mut info: MaybeUninit<libeyelink_sys::DISPLAYINFO> = MaybeUninit::uninit();
-        libeyelink_sys::get_display_information(info.as_mut_ptr());
-        info.assume_init()
-    }
-}
-
 pub fn do_tracker_setup() {
     unsafe {
         libeyelink_sys::do_tracker_setup();
-    }
-}
-
-pub fn set_calibration_colors(
-    fg: &mut libeyelink_sys::SDL_Color,
-    bg: &mut libeyelink_sys::SDL_Color,
-) {
-    unsafe {
-        libeyelink_sys::set_calibration_colors(fg, bg);
-    }
-}
-
-pub fn set_target_size(diameter: u16, holesize: u16) {
-    unsafe {
-        libeyelink_sys::set_target_size(diameter, holesize);
     }
 }
 

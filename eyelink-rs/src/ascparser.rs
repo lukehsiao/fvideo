@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use lazy_static::lazy_static;
-// use log::info;
 use regex::Regex;
 use thiserror::Error;
 

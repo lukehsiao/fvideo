@@ -2,7 +2,7 @@
 
 use crate as eyelink_rs;
 
-use eyelink_rs::libeyelink_sys::SDL_Color;
+use eyelink_rs::graphics::{self, GraphicsError};
 use eyelink_rs::{ConnectionStatus, EyelinkError, OpenMode};
 use log::{error, info};
 use thiserror::Error;
@@ -15,6 +15,8 @@ pub enum FvideoEyelinkError {
     TransferError(String),
     #[error("Unable to initialize SDL1.2")]
     SDLError,
+    #[error(transparent)]
+    GraphicsError(#[from] GraphicsError),
 }
 
 /// Initilize a connection with the Eyelink 1000.
@@ -83,50 +85,43 @@ pub fn initialize_eyelink(mode: OpenMode) -> Result<(), FvideoEyelinkError> {
 /// user.
 pub fn run_calibration() -> Result<(), FvideoEyelinkError> {
     // Initialize SDL-based graphics
-    match sdl::init(&[sdl::sdl::InitFlag::Video]) {
-        true => (),
-        false => return Err(FvideoEyelinkError::SDLError),
-    }
-    let mut disp = eyelink_rs::get_display_information();
-    eyelink_rs::init_expt_graphics(None, Some(&mut disp))?;
+    // match sdl::init(&[sdl::sdl::InitFlag::Video]) {
+    //     true => (),
+    //     false => return Err(FvideoEyelinkError::SDLError),
+    // }
+    // let mut disp = eyelink_rs::get_display_information();
+    let disp = graphics::init_expt_graphics()?;
 
     // Set display resolution
     eyelink_rs::eyecmd_printf(
-        format!(
-            "screen_pixel_coords = {} {} {} {}",
-            disp.left, disp.top, disp.right, disp.bottom
-        )
-        .as_str(),
+        format!("screen_pixel_coords = {} {} {} {}", 0, 0, disp.w, disp.h).as_str(),
     )?;
-    let mut target_fg_color = SDL_Color {
-        r: 0,
-        g: 0,
-        b: 0,
-        unused: 255,
-    };
-    let mut target_bg_color = SDL_Color {
-        r: 200,
-        g: 200,
-        b: 200,
-        unused: 255,
-    };
-
-    eyelink_rs::set_calibration_colors(&mut target_fg_color, &mut target_bg_color);
+    // let mut target_fg_color = SDL_Color {
+    //     r: 0,
+    //     g: 0,
+    //     b: 0,
+    //     unused: 255,
+    // };
+    // let mut target_bg_color = SDL_Color {
+    //     r: 200,
+    //     g: 200,
+    //     b: 200,
+    //     unused: 255,
+    // };
+    //
+    // eyelink_rs::set_calibration_colors(&mut target_fg_color, &mut target_bg_color);
 
     eyelink_rs::do_tracker_setup();
 
     // Once ESC is pressed, do a drift correction.
     // Clear screen to bg color, draw target, clear again when done, and
     // allow ESC to access setup menu before returning, rather than abort.
-    while let Err(EyelinkError::EscPressed) = eyelink_rs::do_drift_correct(
-        (disp.width as i16) / 2,
-        (disp.height as i16) / 2,
-        true,
-        true,
-    ) {}
+    while let Err(EyelinkError::EscPressed) =
+        eyelink_rs::do_drift_correct((disp.w as i16) / 2, (disp.h as i16) / 2, true, true)
+    {}
 
     // Close graphics once we're done w/ calibration
-    eyelink_rs::close_expt_graphics();
+    graphics::close_expt_graphics()?;
 
     Ok(())
 }

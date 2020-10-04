@@ -9,7 +9,7 @@ use log::{debug, info};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use eyelink_rs::eyelink;
+// use eyelink_rs::eyelink;
 use fvideo::client::{FvideoClient, GazeSource};
 use fvideo::server::{FoveationAlg, FvideoServer};
 
