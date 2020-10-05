@@ -317,7 +317,6 @@ impl FvideoClient {
                     self.frame.stride(2),
                 );
 
-                self.canvas.clear();
                 // TODO(lukehsiao): Is this copy slow?
                 let _ = self.canvas.copy(&texture, None, None);
                 self.canvas.present();
