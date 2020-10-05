@@ -287,7 +287,7 @@ impl FvideoClient {
     }
 
     /// Decode and display the provided frame.
-    pub fn display_frame(&mut self, nal: NalData) {
+    pub fn display_frame(&mut self, nal: &NalData) {
         let time = Instant::now();
         let mut texture = self
             .texture_creator

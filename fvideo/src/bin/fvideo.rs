@@ -1,5 +1,7 @@
 extern crate ffmpeg_next as ffmpeg;
 
+use std::fs;
+use std::io::{self, BufWriter, Write};
 use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
@@ -65,6 +67,10 @@ struct Opt {
     #[structopt(short, long, parse(from_os_str))]
     trace: Option<PathBuf>,
 
+    /// Where to save the foveated h264 bitstream.
+    #[structopt(short, long, default_value = "dump.h264", parse(from_os_str))]
+    output: PathBuf,
+
     /// Whether to run eyelink calibration or not.
     #[structopt(short, long)]
     skip_cal: bool,
@@ -86,6 +92,7 @@ fn main() -> Result<()> {
     );
 
     let now = Instant::now();
+    let mut f = BufWriter::new(fs::File::create(opt.output)?);
     loop {
         let current_gaze = client.gaze_sample();
 
@@ -99,7 +106,10 @@ fn main() -> Result<()> {
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         let time = Instant::now();
         for nal in nals {
-            client.display_frame(nal);
+            client.display_frame(&nal);
+
+            // Also save to file
+            f.write(nal.as_bytes())?;
         }
         debug!("Total display_frame: {:?} ms", time.elapsed().as_millis());
     }
