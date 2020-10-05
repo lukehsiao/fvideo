@@ -14,7 +14,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use lazy_static::lazy_static;
-use log::error;
+use log::{debug, error};
 use regex::Regex;
 use structopt::clap::arg_enum;
 use thiserror::Error;
@@ -142,7 +142,9 @@ impl FvideoServer {
     }
 
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
+        let time = Instant::now();
         self.read_frame()?;
+        debug!("read_frame: {:?} ms", time.elapsed().as_millis());
 
         // Prepare QP offsets and encode
 
@@ -200,6 +202,7 @@ impl FvideoServer {
         self.pic.set_timestamp(self.timestamp);
         self.timestamp += 1;
 
+        let time = Instant::now();
         let mut nals = vec![];
         if let Some((nal, _, _)) = self.encoder.encode(&self.pic).unwrap() {
             nals.push(nal);
@@ -210,6 +213,7 @@ impl FvideoServer {
                 nals.push(nal);
             }
         }
+        debug!("x264.encode_frame: {:?} ms", time.elapsed().as_millis());
 
         Ok(nals)
     }

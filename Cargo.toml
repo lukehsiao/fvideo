@@ -5,6 +5,3 @@ members = [
     "x264-rs",
     "x264-rs/x264-sys",
 ]
-
-[profile.release]
-debug = true

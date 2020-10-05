@@ -12,7 +12,7 @@ use std::{num, process};
 
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
-use log::{error, info};
+use log::{debug, error, info};
 use sdl2::event::EventType;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
@@ -288,6 +288,7 @@ impl FvideoClient {
 
     /// Decode and display the provided frame.
     pub fn display_frame(&mut self, nal: NalData) {
+        let time = Instant::now();
         let mut texture = self
             .texture_creator
             .create_texture_streaming(
@@ -296,11 +297,15 @@ impl FvideoClient {
                 self.vid_height as u32,
             )
             .unwrap();
+        debug!("Init texture: {:?} ms", time.elapsed().as_millis());
 
+        let time = Instant::now();
         let packet = Packet::copy(nal.as_bytes());
         self.total_bytes += packet.size() as u64;
         match self.decoder.decode(&packet, &mut self.frame) {
             Ok(true) => {
+                debug!("decode nal: {:?} ms", time.elapsed().as_millis());
+                let time = Instant::now();
                 let rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
                 let _ = texture.update_yuv(
                     rect,
@@ -318,6 +323,7 @@ impl FvideoClient {
                 self.canvas.present();
 
                 self.frame_idx += 1;
+                debug!("Display new frame: {:?} ms", time.elapsed().as_millis());
             }
             Ok(false) => (),
             Err(_) => {

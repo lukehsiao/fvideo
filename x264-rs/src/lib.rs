@@ -260,7 +260,7 @@ impl Param {
     /// Sets the default parameters to match those of using x264's CLI for the
     /// 4k video clip.
     pub fn set_x264_defaults(mut self) -> Param {
-        self.par.dim = 2;
+        self.par.dim = 32;
         self.par.cpu = 1111039;
         self.par.i_threads = 12;
         self.par.i_lookahead_threads = 12;
@@ -269,6 +269,9 @@ impl Param {
         self.par.b_cpu_independent = 0;
         self.par.i_sync_lookahead = 0;
         self.par.i_csp = 2;
+        self.par.i_bitdepth = 8;
+        self.par.i_level_idc = 51;
+        self.par.i_nal_hrd = 0;
 
         self.par.vui.i_sar_height = 0;
         self.par.vui.i_sar_width = 0;

@@ -94,13 +94,14 @@ fn main() -> Result<()> {
             Ok(n) => n,
             Err(_) => break,
         };
-        debug!("encode_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("Total encode_frame: {:?} ms", time.elapsed().as_millis());
 
+        // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         let time = Instant::now();
         for nal in nals {
             client.display_frame(nal);
         }
-        debug!("display_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("Total display_frame: {:?} ms", time.elapsed().as_millis());
     }
 
     if let Err(e) = eyelink::stop_recording(EDF_FILE) {
