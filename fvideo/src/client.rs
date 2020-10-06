@@ -30,10 +30,10 @@ use x264::NalData;
 
 // TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
 // other filenames (like "recording.edf"). Not sure why.
-pub const EDF_FILE: &str = "test.edf";
+const EDF_FILE: &str = "test.edf";
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(PartialEq, Debug)]
     pub enum GazeSource {
         Mouse,
         Eyelink,
@@ -71,6 +71,15 @@ pub struct FvideoClient {
 
 impl Drop for FvideoClient {
     fn drop(&mut self) {
+        if self.gaze_source == GazeSource::Eyelink {
+            if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+                error!("Failed stopping recording: {}", e);
+                process::exit(1);
+            }
+
+            eyelink_rs::close_eyelink_connection();
+        }
+
         // Make sure to flush decoder.
         self.decoder.flush();
     }
