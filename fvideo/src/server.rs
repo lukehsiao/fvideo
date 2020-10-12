@@ -23,7 +23,7 @@ use x264::{Encoder, NalData, Param, Picture};
 use crate::GazeSample;
 
 arg_enum! {
-    #[derive(Debug)]
+    #[derive(Copy, Clone, Debug)]
     pub enum FoveationAlg {
         SquareStep,
         Gaussian
@@ -127,7 +127,13 @@ impl FvideoServer {
 
     fn read_frame(&mut self) -> Result<(), FvideoServerError> {
         // Advance source frame based on frame time.
+        // TODO(lukehsiao): implement some sort of catch-up to correct for
+        // drift.
         if self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur {
+            debug!(
+                "Input frame gap: {:#?}",
+                self.frame_time.elapsed() - self.last_frame_time
+            );
             self.last_frame_time = self.frame_time.elapsed();
             // Skip header data of the frame
             self.video_in.read_line(&mut self.hdr)?;
@@ -137,7 +143,6 @@ impl FvideoServer {
                 let mut buf = self.pic.as_mut_slice(plane).unwrap();
                 self.video_in.read_exact(&mut buf)?;
             }
-            debug!("New input frame: {:#?}", &self.last_frame_time);
         }
 
         Ok(())
@@ -146,7 +151,7 @@ impl FvideoServer {
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
         let time = Instant::now();
         self.read_frame()?;
-        debug!("read_frame: {:#?}", time.elapsed());
+        debug!("    read_frame: {:#?}", time.elapsed());
 
         // Prepare QP offsets and encode
 
@@ -215,7 +220,7 @@ impl FvideoServer {
                 nals.push(nal);
             }
         }
-        debug!("x264.encode_frame: {:#?}", time.elapsed());
+        debug!("    x264.encode_frame: {:#?}", time.elapsed());
 
         Ok(nals)
     }
@@ -233,6 +238,20 @@ fn setup_x264_params(fovea: i32, width: u32, height: u32) -> Result<Param, Fvide
     par = par.set_no_scenecut();
 
     Ok(par)
+}
+
+/// Return the width, height, and framerate of the input Y4M.
+///
+/// See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for details.
+pub fn get_video_metadata(video: &PathBuf) -> Result<(u32, u32, f64), FvideoServerError> {
+    let video_in = File::open(video)?;
+    let mut video_in = BufReader::new(video_in);
+
+    // First, read dimensions/FPS from Y4M header.
+    let mut hdr = String::new();
+    video_in.read_line(&mut hdr).unwrap();
+    let (width, height, fps) = parse_y4m_header(&hdr)?;
+    Ok((width, height, fps))
 }
 
 /// Parse the width, height, and frame rate from the Y4M header.

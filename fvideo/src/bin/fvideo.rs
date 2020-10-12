@@ -4,6 +4,8 @@ use std::fs;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::mpsc;
+use std::thread;
 use std::time::Instant;
 
 use anyhow::{anyhow, Result};
@@ -13,7 +15,7 @@ use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
 use fvideo::client::{FvideoClient, GazeSource};
-use fvideo::server::{FoveationAlg, FvideoServer};
+use fvideo::server::{self, FoveationAlg, FvideoServer};
 
 /// Make sure the qp offset option is in a valid range.
 fn parse_qo_max(src: &str) -> Result<f32> {
@@ -79,39 +81,62 @@ fn main() -> Result<()> {
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
 
-    let mut server = FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video)?;
-
+    let (width, height, _) = server::get_video_metadata(&opt.video)?;
     let mut client = FvideoClient::new(
-        server.width(),
-        server.height(),
-        opt.gaze_source,
+        width,
+        height,
+        opt.gaze_source.clone(),
         opt.skip_cal,
-        opt.trace,
+        opt.trace.clone(),
     );
+    let mut outfile = BufWriter::new(fs::File::create(opt.output.clone())?);
+
+    let (nal_tx, nal_rx) = mpsc::channel();
+    let (gaze_tx, gaze_rx) = mpsc::channel();
 
     let now = Instant::now();
-    let mut f = BufWriter::new(fs::File::create(opt.output)?);
 
-    loop {
-        let current_gaze = client.gaze_sample();
+    gaze_tx.send(client.gaze_sample())?;
 
-        let time = Instant::now();
-        let nals = match server.encode_frame(current_gaze) {
-            Ok(n) => n,
-            Err(_) => break,
-        };
-        debug!("Total encode_frame: {:#?}", time.elapsed());
+    // Create encoder thread
+    let t_enc = thread::spawn(move || -> Result<()> {
+        let mut server = FvideoServer::new(
+            opt.fovea as i32,
+            opt.alg.clone(),
+            opt.qo_max,
+            opt.video.clone(),
+        )?;
+
+        for current_gaze in gaze_rx {
+            // Only look at latest available gaze sample
+            let time = Instant::now();
+            let nals = match server.encode_frame(current_gaze) {
+                Ok(n) => n,
+                Err(_) => break,
+            };
+            debug!("Total encode_frame: {:#?}", time.elapsed());
+
+            for nal in nals {
+                nal_tx.send(nal)?;
+            }
+        }
+        Ok(())
+    });
+
+    // Continuously display until channel is closed.
+    for nal in nal_rx {
+        gaze_tx.send(client.gaze_sample())?;
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         let time = Instant::now();
-        for nal in nals {
-            client.display_frame(&nal);
-
-            // Also save to file
-            f.write(nal.as_bytes())?;
-        }
+        client.display_frame(&nal);
         debug!("Total display_frame: {:#?}", time.elapsed());
+
+        // Also save to file
+        outfile.write(nal.as_bytes())?;
     }
+
+    t_enc.join().unwrap()?;
 
     let elapsed = now.elapsed();
     let frame_index = client.total_frames();

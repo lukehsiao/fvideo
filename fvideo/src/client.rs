@@ -33,7 +33,7 @@ use x264::NalData;
 const EDF_FILE: &str = "test.edf";
 
 arg_enum! {
-    #[derive(PartialEq, Debug)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     pub enum GazeSource {
         Mouse,
         Eyelink,
@@ -257,8 +257,8 @@ impl FvideoClient {
                     // Make sure pupil is present
                     if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
                         // Scale from display to video resolution
-                        p_x = p_x * (self.vid_width as f32 / self.disp_width as f32);
-                        p_y = p_y * (self.vid_height as f32 / self.disp_height as f32);
+                        p_x *= self.vid_width as f32 / self.disp_width as f32;
+                        p_y *= self.vid_height as f32 / self.disp_height as f32;
 
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
@@ -306,14 +306,14 @@ impl FvideoClient {
                 self.vid_height as u32,
             )
             .unwrap();
-        debug!("Init texture: {:#?}", time.elapsed());
+        debug!("    init texture: {:#?}", time.elapsed());
 
         let time = Instant::now();
         let packet = Packet::copy(nal.as_bytes());
         self.total_bytes += packet.size() as u64;
         match self.decoder.decode(&packet, &mut self.frame) {
             Ok(true) => {
-                debug!("decode nal: {:?}", time.elapsed());
+                debug!("    decode nal: {:?}", time.elapsed());
                 let time = Instant::now();
                 let rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
                 let _ = texture.update_yuv(
@@ -331,7 +331,7 @@ impl FvideoClient {
                 self.canvas.present();
 
                 self.frame_idx += 1;
-                debug!("Display new frame: {:?}", time.elapsed());
+                debug!("    display new frame: {:?}", time.elapsed());
             }
             Ok(false) => (),
             Err(_) => {
