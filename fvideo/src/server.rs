@@ -62,6 +62,7 @@ pub struct FvideoServer {
     mb_y: u32,
     frame_dur: Duration,
     frame_time: Instant,
+    frame_cnt: u32,
     last_frame_time: Duration,
     qp_offsets: Vec<f32>,
     hdr: String,
@@ -110,6 +111,7 @@ impl FvideoServer {
             mb_y,
             frame_dur,
             frame_time,
+            frame_cnt: 0,
             last_frame_time: frame_time.elapsed(),
             qp_offsets,
             hdr: String::new(),
@@ -127,16 +129,19 @@ impl FvideoServer {
 
     fn read_frame(&mut self) -> Result<(), FvideoServerError> {
         // Advance source frame based on frame time.
-        // TODO(lukehsiao): implement some sort of catch-up to correct for
-        // drift.
-        if self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur {
+        if (self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur)
+            || (self.frame_time.elapsed().as_millis() / self.frame_dur.as_millis()
+                > self.frame_cnt.into())
+        {
             debug!(
-                "Input frame gap: {:#?}",
+                "Frame {} gap: {:#?}",
+                self.frame_cnt,
                 self.frame_time.elapsed() - self.last_frame_time
             );
             self.last_frame_time = self.frame_time.elapsed();
             // Skip header data of the frame
             self.video_in.read_line(&mut self.hdr)?;
+            self.frame_cnt += 1;
 
             // Read the input YUV frame
             for plane in 0..3 {
