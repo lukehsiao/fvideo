@@ -10,7 +10,7 @@ keywords = ["x264","h264"]
 edition = "2018"
 
 [dependencies]
-thiserror = "1.0.20"
+thiserror = "1.0.21"
 x264-sys = { version = "0.2.0", path = "x264-sys" }
 
 [[example]]
@@ -18,4 +18,4 @@ name = "encode"
 path = "examples/encode.rs"
 
 [dev-dependencies]
-regex = "1.3.9"
+regex = "1.4.0"
