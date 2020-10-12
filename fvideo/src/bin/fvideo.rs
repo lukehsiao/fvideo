@@ -91,6 +91,7 @@ fn main() -> Result<()> {
 
     let now = Instant::now();
     let mut f = BufWriter::new(fs::File::create(opt.output)?);
+
     loop {
         let current_gaze = client.gaze_sample();
 
@@ -99,7 +100,7 @@ fn main() -> Result<()> {
             Ok(n) => n,
             Err(_) => break,
         };
-        debug!("Total encode_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("Total encode_frame: {:#?}", time.elapsed());
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         let time = Instant::now();
@@ -109,7 +110,7 @@ fn main() -> Result<()> {
             // Also save to file
             f.write(nal.as_bytes())?;
         }
-        debug!("Total display_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("Total display_frame: {:#?}", time.elapsed());
     }
 
     let elapsed = now.elapsed();

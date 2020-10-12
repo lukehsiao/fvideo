@@ -62,6 +62,7 @@ pub struct FvideoServer {
     mb_y: u32,
     frame_dur: Duration,
     frame_time: Instant,
+    last_frame_time: Duration,
     qp_offsets: Vec<f32>,
     hdr: String,
     timestamp: i64,
@@ -94,6 +95,8 @@ impl FvideoServer {
         let mb_y = height / 16;
         let qp_offsets = vec![0.0; (mb_x * mb_y).try_into()?];
 
+        let frame_time = Instant::now();
+
         Ok(FvideoServer {
             fovea,
             alg,
@@ -106,7 +109,8 @@ impl FvideoServer {
             mb_x,
             mb_y,
             frame_dur,
-            frame_time: Instant::now(),
+            frame_time,
+            last_frame_time: frame_time.elapsed(),
             qp_offsets,
             hdr: String::new(),
             timestamp: 0,
@@ -122,11 +126,9 @@ impl FvideoServer {
     }
 
     fn read_frame(&mut self) -> Result<(), FvideoServerError> {
-        // TODO(lukehsiao): Only advance input frame based on frame rate
-        //
-        // Perhaps a separate thread that is just handling advancing self.pic at
-        // the right time?
-        if self.frame_time.elapsed() >= self.frame_dur {
+        // Advance source frame based on frame time.
+        if self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur {
+            self.last_frame_time = self.frame_time.elapsed();
             // Skip header data of the frame
             self.video_in.read_line(&mut self.hdr)?;
 
@@ -135,7 +137,7 @@ impl FvideoServer {
                 let mut buf = self.pic.as_mut_slice(plane).unwrap();
                 self.video_in.read_exact(&mut buf)?;
             }
-            self.frame_time = Instant::now();
+            debug!("New input frame: {:#?}", &self.last_frame_time);
         }
 
         Ok(())
@@ -144,7 +146,7 @@ impl FvideoServer {
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
         let time = Instant::now();
         self.read_frame()?;
-        debug!("read_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("read_frame: {:#?}", time.elapsed());
 
         // Prepare QP offsets and encode
 
@@ -213,7 +215,7 @@ impl FvideoServer {
                 nals.push(nal);
             }
         }
-        debug!("x264.encode_frame: {:?} ms", time.elapsed().as_millis());
+        debug!("x264.encode_frame: {:#?}", time.elapsed());
 
         Ok(nals)
     }
