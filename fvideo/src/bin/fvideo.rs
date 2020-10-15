@@ -9,12 +9,13 @@ use std::thread;
 use std::time::Instant;
 
 use anyhow::{anyhow, Result};
-use log::{debug, info};
+use chrono::Utc;
+use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
-use fvideo::client::{FvideoClient, GazeSource};
+use fvideo::client::{FvideoClient, GazeSource, EDF_FILE};
 use fvideo::server::{self, FoveationAlg, FvideoServer};
 
 /// Make sure the qp offset option is in a valid range.
@@ -67,9 +68,11 @@ struct Opt {
     #[structopt(short, long, parse(from_os_str))]
     trace: Option<PathBuf>,
 
-    /// Where to save the foveated h264 bitstream.
-    #[structopt(short, long, default_value = "dump.h264", parse(from_os_str))]
-    output: PathBuf,
+    /// Where to save the foveated h264 bitstream and tracefile.
+    ///
+    /// Defaults to output/%Y-%m-%d-%H-%M-%S/.
+    #[structopt(short, long, parse(from_os_str))]
+    output: Option<PathBuf>,
 
     /// Whether to run eyelink calibration or not.
     #[structopt(short, long)]
@@ -81,15 +84,26 @@ fn main() -> Result<()> {
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
 
+    let gaze_source = opt.gaze_source;
+
     let (width, height, _) = server::get_video_metadata(&opt.video)?;
-    let mut client = FvideoClient::new(
-        width,
-        height,
-        opt.gaze_source.clone(),
-        opt.skip_cal,
-        opt.trace.clone(),
-    );
-    let mut outfile = BufWriter::new(fs::File::create(opt.output.clone())?);
+    let mut client = FvideoClient::new(width, height, gaze_source, opt.skip_cal, opt.trace.clone());
+
+    let outdir = match &opt.output {
+        None => [
+            "output/",
+            &Utc::now().format("%Y-%m-%d-%H-%M-%S").to_string(),
+        ]
+        .iter()
+        .collect::<PathBuf>(),
+        Some(p) => p.to_path_buf(),
+    };
+    if let Err(e) = fs::create_dir_all(&outdir) {
+        info!("{}", e);
+    }
+
+    let outfile: PathBuf = [&outdir, &PathBuf::from("video.h264")].iter().collect();
+    let mut outfile = BufWriter::new(fs::File::create(outfile)?);
 
     let (nal_tx, nal_rx) = mpsc::channel();
     let (gaze_tx, gaze_rx) = mpsc::channel();
@@ -148,6 +162,15 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!("Total Encoded Size: {} bytes", total_bytes);
+
+    // TODO(lukehsiao): This is kind of hack-y. Should probably have the client
+    // do this.
+    if let GazeSource::Eyelink = gaze_source {
+        let edf_dest: PathBuf = [&outdir, &PathBuf::from("eyetrace.edf")].iter().collect();
+        if let Err(e) = fs::rename(EDF_FILE, edf_dest) {
+            warn!("{}", e);
+        }
+    }
 
     Ok(())
 }

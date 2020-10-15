@@ -21,6 +21,7 @@ path = "src/bin/fvideo.rs"
 
 [dependencies]
 anyhow = "1.0.33"
+chrono = "0.4.19"
 eyelink-rs = {path = "../eyelink-rs"}
 ffmpeg-next = "4.3.7"
 lazy_static = "1.4.0"

@@ -30,7 +30,7 @@ use x264::NalData;
 
 // TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
 // other filenames (like "recording.edf"). Not sure why.
-const EDF_FILE: &str = "test.edf";
+pub const EDF_FILE: &str = "test.edf";
 
 arg_enum! {
     #[derive(Copy, Clone, PartialEq, Debug)]
