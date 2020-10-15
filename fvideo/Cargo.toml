@@ -16,8 +16,7 @@ path = "src/lib.rs"
 name = "recording"
 
 [[bin]]
-name = "fvideo"
-path = "src/bin/fvideo.rs"
+name = "realtime"
 
 [dependencies]
 anyhow = "1.0.33"
