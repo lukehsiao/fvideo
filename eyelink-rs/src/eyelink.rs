@@ -2,8 +2,8 @@
 
 use crate as eyelink_rs;
 
-use eyelink_rs::graphics::{self, GraphicsError};
-use eyelink_rs::{ConnectionStatus, EyelinkError, OpenMode};
+use crate::graphics::{self, GraphicsError};
+use crate::{ConnectionStatus, EyelinkError, OpenMode};
 use log::{error, info};
 use thiserror::Error;
 

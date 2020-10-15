@@ -48,7 +48,7 @@ pub enum FvideoServerError {
     EncoderError(String),
 }
 
-/// Structure of a single gaze sample.
+/// Server/Encoder Struct
 pub struct FvideoServer {
     fovea: i32,
     alg: FoveationAlg,
