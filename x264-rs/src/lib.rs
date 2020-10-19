@@ -228,13 +228,6 @@ impl Param {
         self
     }
 
-    /// Set the size of the dim parameter used for foveation.
-    pub fn set_fovea(mut self, dim: i32) -> Param {
-        self.par.dim = dim as c_int;
-
-        self
-    }
-
     pub fn set_min_keyint(mut self, min_keyint: i32) -> Param {
         self.par.i_keyint_max = min_keyint as c_int;
         self.par.i_keyint_min = min_keyint as c_int;
@@ -260,7 +253,6 @@ impl Param {
     /// Sets the default parameters to match those of using x264's CLI for the
     /// 4k video clip.
     pub fn set_x264_defaults(mut self) -> Param {
-        self.par.dim = 32;
         self.par.cpu = 1111039;
         self.par.i_threads = 12;
         self.par.i_lookahead_threads = 12;
@@ -269,7 +261,6 @@ impl Param {
         self.par.b_cpu_independent = 0;
         self.par.i_sync_lookahead = 0;
         self.par.i_csp = 2;
-        self.par.i_bitdepth = 8;
         self.par.i_level_idc = 51;
         self.par.i_nal_hrd = 0;
 
@@ -294,7 +285,6 @@ impl Param {
         self.par.b_open_gop = 0;
         self.par.b_bluray_compat = 0;
         self.par.i_avcintra_class = 0;
-        self.par.i_avcintra_flavor = 0;
         self.par.b_deblocking_filter = 1;
         self.par.i_deblocking_filter_alphac0 = 0;
         self.par.i_deblocking_filter_beta = 0;
@@ -358,7 +348,6 @@ impl Param {
         self.par.rc.i_zones = 0;
 
         self.par.i_frame_packing = -1;
-        self.par.i_alternative_transfer = 2;
         self.par.b_aud = 0;
         self.par.b_repeat_headers = 1;
         self.par.b_annexb = 1;

@@ -86,7 +86,7 @@ impl FvideoServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let mut par = setup_x264_params(fovea, width, height)?;
+        let mut par = setup_x264_params(width, height)?;
         let pic = Picture::from_param(&par)?;
         let encoder =
             Encoder::open(&mut par).map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -231,14 +231,13 @@ impl FvideoServer {
     }
 }
 
-fn setup_x264_params(fovea: i32, width: u32, height: u32) -> Result<Param, FvideoServerError> {
+fn setup_x264_params(width: u32, height: u32) -> Result<Param, FvideoServerError> {
     let mut par = Param::default_preset("superfast", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
     // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
     par = par.set_x264_defaults();
     par = par.set_dimension(width as i32, height as i32);
-    par = par.set_fovea(fovea);
     par = par.set_min_keyint(i32::MAX);
     par = par.set_no_scenecut();
 
