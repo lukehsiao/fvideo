@@ -193,7 +193,7 @@ fn main() -> Result<()> {
         debug!("Total display_frame: {:#?}", time.elapsed());
 
         // Also save to file
-        outfile.write(nal.as_bytes())?;
+        outfile.write_all(nal.as_bytes())?;
     }
 
     t_enc.join().unwrap()?;
