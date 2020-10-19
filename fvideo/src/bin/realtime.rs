@@ -160,12 +160,8 @@ fn main() -> Result<()> {
 
     // Create encoder thread
     let t_enc = thread::spawn(move || -> Result<()> {
-        let mut server = FvideoServer::new(
-            opt.fovea as i32,
-            opt.alg.clone(),
-            opt.qo_max,
-            opt.video.clone(),
-        )?;
+        let mut server =
+            FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video.clone())?;
 
         for current_gaze in gaze_rx {
             // Only look at latest available gaze sample
