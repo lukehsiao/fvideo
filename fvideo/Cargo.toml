@@ -5,6 +5,7 @@ authors = ["Luke Hsiao <lwhsiao@stanford.edu>"]
 edition = "2018"
 description = "A collection of binaries for foveated video encoding."
 publish = false
+license = "Apache-2.0 OR MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
