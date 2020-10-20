@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-#![forbid(warnings)]
+// #![forbid(warnings)]
 
 use std::time::Instant;
 

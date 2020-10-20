@@ -19,6 +19,9 @@ name = "recording"
 [[bin]]
 name = "realtime"
 
+[[bin]]
+name = "latency"
+
 [dependencies]
 anyhow = "1.0.33"
 chrono = "0.4.19"

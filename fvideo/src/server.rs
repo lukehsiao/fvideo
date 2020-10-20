@@ -231,6 +231,108 @@ impl FvideoServer {
     }
 }
 
+const BLACK: u8 = 16;
+const WHITE: u8 = 235;
+const _WIDTH: usize = 100;
+const DIFF_THRESH: i32 = 500;
+const LINGER_FRAMES: i64 = 240;
+
+/// Dummy server struct used for e2e latency measurements
+pub struct FvideoDummyServer {
+    pic_black: Picture,
+    pic_white: Picture,
+    encoder: Encoder,
+    _width: u32,
+    _height: u32,
+    timestamp: i64,
+    tripped_buff: i64,
+    tripped: bool,
+    first_gaze: Option<GazeSample>,
+}
+
+impl FvideoDummyServer {
+    /// Used to create a dummy video server for measuring e2e latency.
+    pub fn new(width: u32, height: u32) -> Result<FvideoDummyServer, FvideoServerError> {
+        let mut par = setup_x264_params(width, height)?;
+        let mut pic_black = Picture::from_param(&par)?;
+        let mut pic_white = Picture::from_param(&par)?;
+        let encoder =
+            Encoder::open(&mut par).map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+        // init black
+        for plane in 0..3 {
+            let mut buf = pic_black.as_mut_slice(plane).unwrap();
+            fill(&mut buf, BLACK);
+        }
+
+        // init white
+        for plane in 0..3 {
+            let mut buf = pic_white.as_mut_slice(plane).unwrap();
+            fill(&mut buf, WHITE);
+        }
+
+        Ok(FvideoDummyServer {
+            pic_black,
+            pic_white,
+            encoder,
+            _width: width,
+            _height: height,
+            timestamp: 0,
+            tripped_buff: 0,
+            tripped: false,
+            first_gaze: None,
+        })
+    }
+
+    /// Read frame from dummy video which will include a white square at the
+    /// bottom left when the gaze position has changed beyond a threshold.
+    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
+        if self.tripped_buff >= LINGER_FRAMES {
+            return Err(FvideoServerError::EncoderError("Finished.".to_string()));
+        }
+        if let None = self.first_gaze {
+            self.first_gaze = Some(gaze);
+        }
+
+        if (gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
+            || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH
+        {
+            self.tripped = true;
+        }
+
+        let pic = match self.tripped {
+            true => {
+                self.pic_white.set_timestamp(self.timestamp);
+                &self.pic_white
+            }
+            false => {
+                self.pic_black.set_timestamp(self.timestamp);
+                &self.pic_black
+            }
+        };
+
+        self.timestamp += 1;
+        if self.tripped {
+            self.tripped_buff += 1;
+        }
+
+        let time = Instant::now();
+        let mut nals = vec![];
+        if let Some((nal, _, _)) = self.encoder.encode(pic).unwrap() {
+            nals.push(nal);
+        }
+
+        while self.encoder.delayed_frames() {
+            if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
+                nals.push(nal);
+            }
+        }
+        debug!("    x264.encode_frame: {:#?}", time.elapsed());
+
+        Ok(nals)
+    }
+}
+
 fn setup_x264_params(width: u32, height: u32) -> Result<Param, FvideoServerError> {
     let mut par = Param::default_preset("superfast", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -294,6 +396,16 @@ fn parse_y4m_header(src: &str) -> Result<(u32, u32, f64), FvideoServerError> {
     Ok((width, height, fps))
 }
 
+fn fill(slice: &mut [u8], value: u8) {
+    if let Some((last, elems)) = slice.split_last_mut() {
+        for el in elems {
+            el.clone_from(&value);
+        }
+
+        *last = value
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -306,5 +418,12 @@ mod tests {
         assert_eq!(width, 3840);
         assert_eq!(height, 2160);
         assert_eq!(fps, 24.0);
+    }
+
+    #[test]
+    fn test_fill() {
+        let mut buf = vec![0; 10];
+        fill(&mut buf, 1);
+        assert_eq!(buf, vec![1; 10]);
     }
 }
