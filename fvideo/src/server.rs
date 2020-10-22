@@ -234,8 +234,8 @@ impl FvideoServer {
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
 const _WIDTH: usize = 100;
-const DIFF_THRESH: i32 = 500;
-const LINGER_FRAMES: i64 = 240;
+const DIFF_THRESH: i32 = 200;
+const LINGER_FRAMES: i64 = 120;
 
 /// Dummy server struct used for e2e latency measurements
 pub struct FvideoDummyServer {
@@ -260,15 +260,19 @@ impl FvideoDummyServer {
             Encoder::open(&mut par).map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // init black
-        for plane in 0..3 {
+        let mut buf = pic_black.as_mut_slice(0).unwrap();
+        fill(&mut buf, BLACK);
+        for plane in 1..3 {
             let mut buf = pic_black.as_mut_slice(plane).unwrap();
-            fill(&mut buf, BLACK);
+            fill(&mut buf, 128);
         }
 
         // init white
-        for plane in 0..3 {
+        let mut buf = pic_white.as_mut_slice(0).unwrap();
+        fill(&mut buf, WHITE);
+        for plane in 1..3 {
             let mut buf = pic_white.as_mut_slice(plane).unwrap();
-            fill(&mut buf, WHITE);
+            fill(&mut buf, 128);
         }
 
         Ok(FvideoDummyServer {

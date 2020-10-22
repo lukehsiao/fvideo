@@ -132,7 +132,6 @@ fn main() -> Result<()> {
     let mut serial_buf: Vec<u8> = vec![0; 64];
     port.read(serial_buf.as_mut_slice())?;
     let arduino_measurement = String::from_utf8(serial_buf)?;
-    println!("{}", arduino_measurement);
 
     let elapsed = now.elapsed();
 
@@ -145,6 +144,8 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!("Total Encoded Size: {} bytes", total_bytes);
+
+    println!("{}", arduino_measurement);
 
     Ok(())
 }
