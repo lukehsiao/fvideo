@@ -4,12 +4,15 @@
 //! <https://github.com/lukehsiao/eyelink-latency>
 extern crate ffmpeg_next as ffmpeg;
 
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use log::{debug, info};
+use serialport::prelude::{DataBits, FlowControl, Parity, StopBits};
+use serialport::SerialPortSettings;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -41,12 +44,38 @@ struct Opt {
     /// Height of dummy input.
     #[structopt(short, long, default_value = "2160")]
     height: u32,
+
+    /// Path for serial connection to ASG.
+    #[structopt(short, long, default_value = "/dev/ttyACM0", parse(from_os_str))]
+    serial: PathBuf,
+
+    /// Baud rate for ASG.
+    #[structopt(short, long, default_value = "115200")]
+    baud: u32,
 }
+
+const GO_CMD: &str = "g";
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
+
+    // Setup serial port connection
+    debug!("Serial Ports: {:#?}", serialport::available_ports()?);
+    let s = SerialPortSettings {
+        baud_rate: opt.baud,
+        data_bits: DataBits::Eight,
+        flow_control: FlowControl::None,
+        parity: Parity::None,
+        stop_bits: StopBits::One,
+        timeout: Duration::from_millis(1),
+    };
+    let mut port = serialport::open_with_settings(&opt.serial, &s)?;
+
+    // Sleep to give arduino time to reboot.
+    // This is needed since Arduino uses DTR line to trigger a reset.
+    thread::sleep(Duration::from_secs(5));
 
     let gaze_source = opt.gaze_source;
 
@@ -57,6 +86,7 @@ fn main() -> Result<()> {
 
     let now = Instant::now();
 
+    // Send first sample to kick off process
     gaze_tx.send(client.gaze_sample())?;
 
     // Create encoder thread
@@ -80,7 +110,14 @@ fn main() -> Result<()> {
     });
 
     // Continuously display until channel is closed.
+    let mut triggered = false;
     for nal in nal_rx {
+        // Trigger ASG movement
+        if !triggered && now.elapsed() > Duration::from_secs(5) {
+            port.write(GO_CMD.as_bytes())?;
+            triggered = true;
+        }
+
         gaze_tx.send(client.gaze_sample())?;
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
@@ -90,6 +127,12 @@ fn main() -> Result<()> {
     }
 
     t_enc.join().unwrap()?;
+
+    // Read the measurement from the Arduino
+    let mut serial_buf: Vec<u8> = vec![0; 64];
+    port.read(serial_buf.as_mut_slice())?;
+    let arduino_measurement = String::from_utf8(serial_buf)?;
+    println!("{}", arduino_measurement);
 
     let elapsed = now.elapsed();
 
