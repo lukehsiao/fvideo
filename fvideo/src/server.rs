@@ -14,7 +14,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use lazy_static::lazy_static;
-use log::{debug, error};
+use log::{debug, error, info};
 use regex::Regex;
 use structopt::clap::arg_enum;
 use thiserror::Error;
@@ -235,7 +235,7 @@ const BLACK: u8 = 16;
 const WHITE: u8 = 235;
 const _WIDTH: usize = 100;
 const DIFF_THRESH: i32 = 200;
-const LINGER_FRAMES: i64 = 120;
+const LINGER_FRAMES: i64 = 1;
 
 /// Dummy server struct used for e2e latency measurements
 pub struct FvideoDummyServer {
@@ -245,8 +245,8 @@ pub struct FvideoDummyServer {
     _width: u32,
     _height: u32,
     timestamp: i64,
-    tripped_buff: i64,
-    tripped: bool,
+    triggered_buff: i64,
+    triggered: bool,
     first_gaze: Option<GazeSample>,
 }
 
@@ -282,8 +282,8 @@ impl FvideoDummyServer {
             _width: width,
             _height: height,
             timestamp: 0,
-            tripped_buff: 0,
-            tripped: false,
+            triggered_buff: 0,
+            triggered: false,
             first_gaze: None,
         })
     }
@@ -291,7 +291,7 @@ impl FvideoDummyServer {
     /// Read frame from dummy video which will include a white square at the
     /// bottom left when the gaze position has changed beyond a threshold.
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
-        if self.tripped_buff >= LINGER_FRAMES {
+        if self.triggered_buff >= LINGER_FRAMES {
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
         if let None = self.first_gaze {
@@ -301,10 +301,11 @@ impl FvideoDummyServer {
         if (gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
             || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH
         {
-            self.tripped = true;
+            self.triggered = true;
+            info!("Server triggered!");
         }
 
-        let pic = match self.tripped {
+        let pic = match self.triggered {
             true => {
                 self.pic_white.set_timestamp(self.timestamp);
                 &self.pic_white
@@ -316,8 +317,8 @@ impl FvideoDummyServer {
         };
 
         self.timestamp += 1;
-        if self.tripped {
-            self.tripped_buff += 1;
+        if self.triggered {
+            self.triggered_buff += 1;
         }
 
         let time = Instant::now();

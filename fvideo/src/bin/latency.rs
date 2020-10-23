@@ -4,7 +4,10 @@
 //! <https://github.com/lukehsiao/eyelink-latency>
 extern crate ffmpeg_next as ffmpeg;
 
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
+use std::str;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -31,7 +34,7 @@ struct Opt {
     #[structopt(
         short,
         long,
-        default_value = "Mouse",
+        default_value = "Eyelink",
         possible_values = &GazeSource::variants(),
         case_insensitive=true,
     )]
@@ -52,30 +55,40 @@ struct Opt {
     /// Baud rate for ASG.
     #[structopt(short, long, default_value = "115200")]
     baud: u32,
+
+    /// Path to append results of each run.
+    ///
+    /// Will create file if it does not exist.
+    #[structopt(short, long, default_value = "results.csv", parse(from_os_str))]
+    output: PathBuf,
 }
 
 const GO_CMD: &str = "g";
 
 fn main() -> Result<()> {
-    pretty_env_logger::init();
+    pretty_env_logger::init_timed();
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
 
+    let mut logfile = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&opt.output)?;
+
     // Setup serial port connection
-    debug!("Serial Ports: {:#?}", serialport::available_ports()?);
     let s = SerialPortSettings {
         baud_rate: opt.baud,
         data_bits: DataBits::Eight,
         flow_control: FlowControl::None,
         parity: Parity::None,
         stop_bits: StopBits::One,
-        timeout: Duration::from_millis(1),
+        timeout: Duration::from_millis(100),
     };
     let mut port = serialport::open_with_settings(&opt.serial, &s)?;
 
     // Sleep to give arduino time to reboot.
     // This is needed since Arduino uses DTR line to trigger a reset.
-    thread::sleep(Duration::from_secs(5));
+    thread::sleep(Duration::from_secs(1));
 
     let gaze_source = opt.gaze_source;
 
@@ -84,11 +97,10 @@ fn main() -> Result<()> {
     let (nal_tx, nal_rx) = mpsc::channel();
     let (gaze_tx, gaze_rx) = mpsc::channel();
 
-    let now = Instant::now();
-
     // Send first sample to kick off process
     gaze_tx.send(client.gaze_sample())?;
 
+    let now = Instant::now();
     // Create encoder thread
     let t_enc = thread::spawn(move || -> Result<()> {
         let mut server = FvideoDummyServer::new(opt.width, opt.height)?;
@@ -113,8 +125,9 @@ fn main() -> Result<()> {
     let mut triggered = false;
     for nal in nal_rx {
         // Trigger ASG movement
-        if !triggered && now.elapsed() > Duration::from_secs(5) {
+        if !triggered && now.elapsed() > Duration::from_secs(1) {
             port.write(GO_CMD.as_bytes())?;
+            info!("Triggered!");
             triggered = true;
         }
 
@@ -129,9 +142,12 @@ fn main() -> Result<()> {
     t_enc.join().unwrap()?;
 
     // Read the measurement from the Arduino
-    let mut serial_buf: Vec<u8> = vec![0; 64];
+    let mut serial_buf: Vec<u8> = vec![0; 32];
     port.read(serial_buf.as_mut_slice())?;
-    let arduino_measurement = String::from_utf8(serial_buf)?;
+    let arduino_measurement = str::from_utf8(&serial_buf)?
+        .split_ascii_whitespace()
+        .next()
+        .unwrap();
 
     let elapsed = now.elapsed();
 
@@ -144,8 +160,8 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!("Total Encoded Size: {} bytes", total_bytes);
-
-    println!("{}", arduino_measurement);
+    writeln!(logfile, "{}", arduino_measurement)?;
+    info!("e2e latency: {} us", arduino_measurement);
 
     Ok(())
 }
