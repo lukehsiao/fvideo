@@ -233,7 +233,7 @@ impl FvideoServer {
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
-const _WIDTH: usize = 100;
+const BOX_DIM: u32 = 200;
 const DIFF_THRESH: i32 = 200;
 const LINGER_FRAMES: i64 = 1;
 
@@ -268,8 +268,18 @@ impl FvideoDummyServer {
         }
 
         // init white
-        let mut buf = pic_white.as_mut_slice(0).unwrap();
-        fill(&mut buf, WHITE);
+        // But, only a small portion in the bottom left of the frame. Otherwise
+        // a whole screen of white adds a lot of latency.
+        let buf = pic_white.as_mut_slice(0).unwrap();
+        for c in 0..height {
+            for r in 0..width {
+                buf[(width * c + r) as usize] = if c > (height - BOX_DIM) && r < (BOX_DIM) {
+                    WHITE
+                } else {
+                    BLACK
+                };
+            }
+        }
         for plane in 1..3 {
             let mut buf = pic_white.as_mut_slice(plane).unwrap();
             fill(&mut buf, 128);
