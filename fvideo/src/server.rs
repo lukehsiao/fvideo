@@ -312,11 +312,11 @@ impl FvideoDummyServer {
             || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH
         {
             self.triggered = true;
-            info!("Server triggered!");
         }
 
         let pic = match self.triggered {
             true => {
+                info!("Server changing white!");
                 self.pic_white.set_timestamp(self.timestamp);
                 &self.pic_white
             }

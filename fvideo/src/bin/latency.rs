@@ -125,13 +125,18 @@ fn main() -> Result<()> {
     let mut triggered = false;
     for nal in nal_rx {
         // Trigger ASG movement
-        if !triggered && now.elapsed() > Duration::from_secs(1) {
+        if !triggered && now.elapsed() > Duration::from_millis(500) {
             port.write(GO_CMD.as_bytes())?;
             info!("Triggered!");
             triggered = true;
+            // TODO(lukehsiao): I don't like this. If we don't have a little
+            // delay, then the gaze_sample read next might not yet have the new
+            // position.
+            thread::sleep(Duration::from_micros(2500));
         }
 
         gaze_tx.send(client.gaze_sample())?;
+        debug!("Send gaze.");
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         let time = Instant::now();
