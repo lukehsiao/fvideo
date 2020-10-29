@@ -112,36 +112,39 @@ fn main() -> Result<()> {
                 Ok(n) => n,
                 Err(_) => break,
             };
-            debug!("Total encode_frame: {:#?}", time.elapsed());
 
             for nal in nals {
                 nal_tx.send(nal)?;
             }
+            debug!("Total encode_frame: {:#?}", time.elapsed());
         }
         Ok(())
     });
 
     // Continuously display until channel is closed.
     let mut triggered = false;
+    let mut time = Instant::now();
     for nal in nal_rx {
-        // Trigger ASG movement
-        if !triggered && now.elapsed() > Duration::from_millis(500) {
-            port.write(GO_CMD.as_bytes())?;
-            info!("Triggered!");
-            triggered = true;
-            // TODO(lukehsiao): I don't like this. If we don't have a little
-            // delay, then the gaze_sample read next might not yet have the new
-            // position.
-            thread::sleep(Duration::from_micros(2500));
-        }
-
         gaze_tx.send(client.gaze_sample())?;
         debug!("Send gaze.");
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-        let time = Instant::now();
         client.display_frame(&nal);
         debug!("Total display_frame: {:#?}", time.elapsed());
+
+        time = Instant::now();
+        // Trigger ASG movement
+        if !triggered && now.elapsed() > Duration::from_millis(500) {
+            port.write(GO_CMD.as_bytes())?;
+            debug!("Triggered!");
+            triggered = true;
+            // TODO(lukehsiao): I don't like this. If we don't have a little
+            // delay, then the gaze_sample read next might not yet have the new
+            // position, costing us an additional encode.
+            //
+            // We could switch this to while client.asg_triggered() {};
+            thread::sleep(Duration::from_micros(2400));
+        }
     }
 
     t_enc.join().unwrap()?;

@@ -308,15 +308,16 @@ impl FvideoDummyServer {
             self.first_gaze = Some(gaze);
         }
 
-        if (gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
-            || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH
+        if !self.triggered
+            && ((gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
+                || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
         {
             self.triggered = true;
+            debug!("Server changing white!");
         }
 
         let pic = match self.triggered {
             true => {
-                info!("Server changing white!");
                 self.pic_white.set_timestamp(self.timestamp);
                 &self.pic_white
             }

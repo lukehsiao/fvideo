@@ -308,12 +308,13 @@ impl FvideoClient {
             .unwrap();
         debug!("    init texture: {:#?}", time.elapsed());
 
-        let time = Instant::now();
+        let dec_time = Instant::now();
         let packet = Packet::copy(nal.as_bytes());
         self.total_bytes += packet.size() as u64;
         match self.decoder.decode(&packet, &mut self.frame) {
             Ok(true) => {
-                debug!("    decode nal: {:?}", time.elapsed());
+                debug!("    decode nal: {:?}", dec_time.elapsed());
+
                 let time = Instant::now();
                 let rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
                 let _ = texture.update_yuv(
