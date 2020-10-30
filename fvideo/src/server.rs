@@ -14,7 +14,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use lazy_static::lazy_static;
-use log::{debug, error, info};
+use log::{debug, error};
 use regex::Regex;
 use structopt::clap::arg_enum;
 use thiserror::Error;

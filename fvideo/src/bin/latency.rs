@@ -75,22 +75,27 @@ fn main() -> Result<()> {
         .create(true)
         .open(&opt.output)?;
 
-    // Setup serial port connection
-    let s = SerialPortSettings {
-        baud_rate: opt.baud,
-        data_bits: DataBits::Eight,
-        flow_control: FlowControl::None,
-        parity: Parity::None,
-        stop_bits: StopBits::One,
-        timeout: Duration::from_millis(100),
+    let gaze_source = opt.gaze_source;
+
+    let mut port = match gaze_source {
+        GazeSource::Eyelink => {
+            // Setup serial port connection
+            let s = SerialPortSettings {
+                baud_rate: opt.baud,
+                data_bits: DataBits::Eight,
+                flow_control: FlowControl::None,
+                parity: Parity::None,
+                stop_bits: StopBits::One,
+                timeout: Duration::from_millis(100),
+            };
+            Some(serialport::open_with_settings(&opt.serial, &s)?)
+        }
+        _ => None,
     };
-    let mut port = serialport::open_with_settings(&opt.serial, &s)?;
 
     // Sleep to give arduino time to reboot.
     // This is needed since Arduino uses DTR line to trigger a reset.
     thread::sleep(Duration::from_secs(1));
-
-    let gaze_source = opt.gaze_source;
 
     let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, None);
 
@@ -133,29 +138,36 @@ fn main() -> Result<()> {
         debug!("Total display_frame: {:#?}", time.elapsed());
 
         time = Instant::now();
-        // Trigger ASG movement
-        if !triggered && now.elapsed() > Duration::from_millis(500) {
-            port.write(GO_CMD.as_bytes())?;
-            debug!("Triggered!");
-            triggered = true;
-            // TODO(lukehsiao): I don't like this. If we don't have a little
-            // delay, then the gaze_sample read next might not yet have the new
-            // position, costing us an additional encode.
-            //
-            // We could switch this to while client.asg_triggered() {};
-            thread::sleep(Duration::from_micros(2400));
+
+        if let Some(ref mut p) = port {
+            // Trigger ASG movement
+            if !triggered && now.elapsed() > Duration::from_millis(500) {
+                p.write(GO_CMD.as_bytes())?;
+                debug!("Triggered!");
+                triggered = true;
+                // TODO(lukehsiao): I don't like this. If we don't have a little
+                // delay, then the gaze_sample read next might not yet have the new
+                // position, costing us an additional encode.
+                //
+                // We could switch this to while client.asg_triggered() {};
+                thread::sleep(Duration::from_micros(2400));
+            }
         }
     }
 
     t_enc.join().unwrap()?;
 
     // Read the measurement from the Arduino
-    let mut serial_buf: Vec<u8> = vec![0; 32];
-    port.read(serial_buf.as_mut_slice())?;
-    let arduino_measurement = str::from_utf8(&serial_buf)?
-        .split_ascii_whitespace()
-        .next()
-        .unwrap();
+    if let Some(ref mut p) = port {
+        let mut serial_buf: Vec<u8> = vec![0; 32];
+        p.read(serial_buf.as_mut_slice())?;
+        let arduino_measurement = str::from_utf8(&serial_buf)?
+            .split_ascii_whitespace()
+            .next()
+            .unwrap();
+        writeln!(logfile, "{}", arduino_measurement)?;
+        info!("e2e latency: {} us", arduino_measurement);
+    }
 
     let elapsed = now.elapsed();
 
@@ -168,8 +180,6 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!("Total Encoded Size: {} bytes", total_bytes);
-    writeln!(logfile, "{}", arduino_measurement)?;
-    info!("e2e latency: {} us", arduino_measurement);
 
     Ok(())
 }
