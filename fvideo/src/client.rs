@@ -6,6 +6,7 @@
 extern crate ffmpeg_next as ffmpeg;
 
 use std::collections::VecDeque;
+use std::convert::TryInto;
 use std::path::PathBuf;
 use std::time::Instant;
 use std::{num, process};
@@ -14,7 +15,7 @@ use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
 use log::{debug, error, info};
 use sdl2::event::EventType;
-use sdl2::pixels::PixelFormatEnum;
+use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
@@ -293,6 +294,30 @@ impl FvideoClient {
         }
 
         self.last_gaze_sample
+    }
+
+    /// Utility function for immediately drawing a white square to the bottom
+    /// left corner of the display. Useful for debugging timing.
+    ///
+    /// In particular, this is intended to be used with a photodiode like the
+    /// one in <https://github.com/lukehsiao/eyelink-latency>.
+    pub fn display_white(&mut self, dim: u32) {
+        self.canvas.set_draw_color(Color::WHITE);
+        match self.canvas.fill_rect(Rect::new(
+            0,
+            (self.frame.height() - dim).try_into().unwrap(),
+            dim,
+            dim,
+        )) {
+            Ok(_) => {
+                self.canvas.present();
+            }
+            Err(e) => {
+                error!("Failed drawing rectangle: {}.", e);
+            }
+        }
+
+        self.frame_idx += 1;
     }
 
     /// Decode and display the provided frame.
