@@ -145,11 +145,12 @@ fn main() -> Result<()> {
                 p.write(GO_CMD.as_bytes())?;
                 debug!("Triggered!");
                 triggered = true;
-                // TODO(lukehsiao): I don't like this. If we don't have a little
-                // delay, then the gaze_sample read next might not yet have the new
-                // position, costing us an additional encode.
+                // TODO(lukehsiao): I don't like this. If we don't have a little delay, then the
+                // gaze_sample read next might not yet have the new position, costing us an
+                // additional encode. But, then this adds a flat display that may be MORE than the
+                // actual delay needed to read the new gaze.
                 //
-                // We could switch this to while client.asg_triggered() {};
+                // We could switch this to while client.asg_triggered()?
                 thread::sleep(Duration::from_micros(2400));
             }
         }
