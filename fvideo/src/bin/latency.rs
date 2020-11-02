@@ -21,7 +21,7 @@ use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
 use fvideo::client::{FvideoClient, GazeSource};
-use fvideo::server::FvideoDummyServer;
+use fvideo::dummyserver::{FvideoDummyServer, DIFF_THRESH};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
