@@ -228,6 +228,51 @@ impl FvideoClient {
         }
     }
 
+    /// Repeatedly checks the latest gaze sample until a threshold is exceeded.
+    pub fn triggered_gaze_sample(&mut self, thresh: i32) -> GazeSample {
+        loop {
+            if let Ok(evt) = eyelink_rs::eyelink_newest_float_sample() {
+                let idx = match self.eye_used.as_ref() {
+                    Some(EyeData::Left) => 0,
+                    Some(EyeData::Right) => 1,
+                    Some(EyeData::Binocular) => 0, // if both eyes used, still just use left
+                    None => {
+                        error!("No eye data was found.");
+                        process::exit(1);
+                    }
+                };
+
+                let mut p_x = evt.gx[idx];
+                let mut p_y = evt.gy[idx];
+
+                let pa = evt.pa[idx];
+
+                // Make sure pupil is present
+                if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
+                    // Scale from display to video resolution
+                    p_x *= self.vid_width as f32 / self.disp_width as f32;
+                    p_y *= self.vid_height as f32 / self.disp_height as f32;
+
+                    let gaze = GazeSample {
+                        time: Instant::now(),
+                        p_x: p_x.round() as u32,
+                        p_y: p_y.round() as u32,
+                        m_x: (p_x / 16.0).round() as u32,
+                        m_y: (p_y / 16.0).round() as u32,
+                    };
+
+                    if (gaze.p_x as i32 - self.last_gaze_sample.p_x as i32).abs() > thresh
+                        || (gaze.p_y as i32 - self.last_gaze_sample.p_y as i32).abs() > thresh
+                    {
+                        self.last_gaze_sample = gaze;
+                        return self.last_gaze_sample;
+                    }
+                    self.last_gaze_sample = gaze;
+                }
+            }
+        }
+    }
+
     /// Get the latest gaze sample, if one is available.
     ///
     /// Note: This currently uses mouse position as a substitute for Eyelink data.

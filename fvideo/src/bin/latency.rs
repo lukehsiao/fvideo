@@ -95,7 +95,7 @@ fn main() -> Result<()> {
 
     // Sleep to give arduino time to reboot.
     // This is needed since Arduino uses DTR line to trigger a reset.
-    thread::sleep(Duration::from_secs(1));
+    thread::sleep(Duration::from_secs(2));
 
     let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, false, None);
 
@@ -106,6 +106,7 @@ fn main() -> Result<()> {
     gaze_tx.send(client.gaze_sample())?;
 
     let now = Instant::now();
+
     // Create encoder thread
     let t_enc = thread::spawn(move || -> Result<()> {
         let mut server = FvideoDummyServer::new(opt.width, opt.height)?;
@@ -128,29 +129,28 @@ fn main() -> Result<()> {
 
     // Continuously display until channel is closed.
     let mut triggered = false;
-    let mut time = Instant::now();
+    let mut gaze = client.gaze_sample();
     for nal in nal_rx {
-        gaze_tx.send(client.gaze_sample())?;
-        debug!("Send gaze.");
+        gaze_tx.send(gaze)?;
+        debug!("Sent gaze.");
 
+        let time = Instant::now();
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
         client.display_frame(&nal);
         debug!("Total display_frame: {:#?}", time.elapsed());
 
-        time = Instant::now();
+        gaze = client.gaze_sample();
 
+        // After a delay, trigger the ASG.
         if let Some(ref mut p) = port {
             // Trigger ASG movement
-            if !triggered && now.elapsed() > Duration::from_millis(500) {
+            if !triggered && now.elapsed() > Duration::from_millis(1500) {
                 p.write(GO_CMD.as_bytes())?;
                 triggered = true;
-                // TODO(lukehsiao): I don't like this. If we don't have a little delay, then the
-                // gaze_sample read next might not yet have the new position, costing us an
-                // additional encode. But, then this adds a flat display that may be MORE than the
-                // actual delay needed to read the new gaze.
-                //
-                // We could switch this to while client.asg_triggered()?
-                thread::sleep(Duration::from_micros(2400));
+                debug!("Triggered Arduino!");
+                let time = Instant::now();
+                gaze = client.triggered_gaze_sample(DIFF_THRESH);
+                debug!("Total triggered_gaze_sample time: {:#?}", time.elapsed());
             }
         }
     }
