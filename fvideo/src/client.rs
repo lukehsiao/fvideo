@@ -87,12 +87,12 @@ impl Drop for FvideoClient {
 }
 
 impl FvideoClient {
-    pub fn new(
+    pub fn new<T: Into<Option<PathBuf>>>(
         vid_width: u32,
         vid_height: u32,
         gaze_source: GazeSource,
         skip_cal: bool,
-        trace: Option<PathBuf>,
+        trace: T,
     ) -> FvideoClient {
         let mut eye_used = None;
         let mut trace_samples = None;
@@ -139,7 +139,7 @@ impl FvideoClient {
             }
             GazeSource::Mouse => (),
             GazeSource::TraceFile => {
-                let trace = trace.expect("Missing trace file path.");
+                let trace = trace.into().expect("Missing trace file path.");
                 trace_samples = match ascparser::parse_asc(trace) {
                     Err(e) => {
                         error!("Unable to parse ASC file: {}", e);
