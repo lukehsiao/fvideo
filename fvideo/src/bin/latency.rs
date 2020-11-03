@@ -97,7 +97,7 @@ fn main() -> Result<()> {
     // This is needed since Arduino uses DTR line to trigger a reset.
     thread::sleep(Duration::from_secs(1));
 
-    let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, None);
+    let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, false, None);
 
     let (nal_tx, nal_rx) = mpsc::channel();
     let (gaze_tx, gaze_rx) = mpsc::channel();
@@ -143,7 +143,6 @@ fn main() -> Result<()> {
             // Trigger ASG movement
             if !triggered && now.elapsed() > Duration::from_millis(500) {
                 p.write(GO_CMD.as_bytes())?;
-                debug!("Triggered!");
                 triggered = true;
                 // TODO(lukehsiao): I don't like this. If we don't have a little delay, then the
                 // gaze_sample read next might not yet have the new position, costing us an

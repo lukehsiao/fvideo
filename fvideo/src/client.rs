@@ -68,12 +68,18 @@ pub struct FvideoClient {
     last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
+    record: bool,
 }
 
 impl Drop for FvideoClient {
     fn drop(&mut self) {
         if self.gaze_source == GazeSource::Eyelink {
-            if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+            if self.record {
+                if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+                    error!("Failed stopping recording: {}", e);
+                    process::exit(1);
+                }
+            } else if let Err(e) = eyelink::stop_recording(None) {
                 error!("Failed stopping recording: {}", e);
                 process::exit(1);
             }
@@ -92,6 +98,7 @@ impl FvideoClient {
         vid_height: u32,
         gaze_source: GazeSource,
         skip_cal: bool,
+        record: bool,
         trace: T,
     ) -> FvideoClient {
         let mut eye_used = None;
@@ -110,7 +117,13 @@ impl FvideoClient {
                     process::exit(1);
                 }
 
-                if let Err(e) = eyelink::start_recording(EDF_FILE) {
+                if record {
+                    info!("Recording eye-trace to {}.", EDF_FILE);
+                    if let Err(e) = eyelink::start_recording(EDF_FILE) {
+                        error!("Failed starting recording: {}", e);
+                        process::exit(1);
+                    }
+                } else if let Err(e) = eyelink::start_recording(None) {
                     error!("Failed starting recording: {}", e);
                     process::exit(1);
                 }
@@ -211,6 +224,7 @@ impl FvideoClient {
             last_gaze_sample,
             eye_used,
             trace_samples,
+            record,
         }
     }
 

@@ -130,7 +130,7 @@ pub fn run_calibration() -> Result<(), FvideoEyelinkError> {
 ///
 /// TODO(lukehsiao): `edf` should be "test.edf" for now. There is an untriaged
 /// bug for other file names.
-pub fn stop_recording(edf: &str) -> Result<(), FvideoEyelinkError> {
+pub fn stop_recording<'a, T: Into<Option<&'a str>>>(edf: T) -> Result<(), FvideoEyelinkError> {
     const MIN_DELAY_MS: u32 = 500;
 
     // End recording
@@ -141,7 +141,6 @@ pub fn stop_recording(edf: &str) -> Result<(), FvideoEyelinkError> {
     // Close and transfer EDF file
     eyelink_rs::set_offline_mode();
     eyelink_rs::msec_delay(MIN_DELAY_MS);
-    eyelink_rs::eyecmd_printf("close_data_file")?;
 
     // Don't save the file if we aborted the experiment
     if eyelink_rs::break_pressed()? {
@@ -151,53 +150,72 @@ pub fn stop_recording(edf: &str) -> Result<(), FvideoEyelinkError> {
     }
 
     let conn_status = eyelink_rs::eyelink_is_connected()?;
-    if conn_status != ConnectionStatus::Closed {
-        let size = eyelink_rs::receive_data_file(edf, edf)?;
-        info!("Saved {} ({} bytes).", edf, size);
-        Ok(())
-    } else {
-        Err(FvideoEyelinkError::TransferError(edf.to_string()))
+    if let Some(edf) = edf.into() {
+        eyelink_rs::eyecmd_printf("close_data_file")?;
+
+        if conn_status != ConnectionStatus::Closed {
+            let size = eyelink_rs::receive_data_file(edf, edf)?;
+            info!("Saved {} ({} bytes).", edf, size);
+        } else {
+            return Err(FvideoEyelinkError::TransferError(edf.to_string()));
+        }
     }
+    Ok(())
 }
 
 /// Start an eyetrace recording.
 ///
 /// TODO(lukehsiao): `edf` should be "test.edf" for now. There is an untriaged
 /// bug for other file names.
-pub fn start_recording(edf: &str) -> Result<(), FvideoEyelinkError> {
-    match eyelink_rs::open_data_file(edf) {
-        Ok(_) => (),
-        Err(e) => {
-            eyelink_rs::close_eyelink_connection();
-            error!("{}", e);
-            return Err(e.into());
+pub fn start_recording<'a, T: Into<Option<&'a str>>>(edf: T) -> Result<(), FvideoEyelinkError> {
+    if let Some(edf) = edf.into() {
+        match eyelink_rs::open_data_file(edf) {
+            Ok(_) => (),
+            Err(e) => {
+                eyelink_rs::close_eyelink_connection();
+                error!("{}", e);
+                return Err(e.into());
+            }
         }
-    }
-    eyelink_rs::eyecmd_printf("add_file_preamble_text 'RECORDED BY recording.rs'")?;
+        eyelink_rs::eyecmd_printf("add_file_preamble_text 'RECORDED BY recording.rs'")?;
 
-    let (_, sw_version) = eyelink_rs::eyelink_get_tracker_version()?;
+        let (_, sw_version) = eyelink_rs::eyelink_get_tracker_version()?;
 
-    // Set EDF file contents
-    eyelink_rs::eyecmd_printf(
-        "file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT",
-    )?;
-    if sw_version >= 4 {
+        // Set EDF file contents
         eyelink_rs::eyecmd_printf(
-            "file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET,INPUT",
+            "file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE,BUTTON,INPUT",
         )?;
+        if sw_version >= 4 {
+            eyelink_rs::eyecmd_printf(
+                "file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,HTARGET,INPUT",
+            )?;
+        } else {
+            eyelink_rs::eyecmd_printf(
+                "file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT",
+            )?;
+        }
+
+        // Give Eyelink some time to switch modes in prep for recording
+        eyelink_rs::set_offline_mode();
+        eyelink_rs::msec_delay(50);
+
+        // Record to EDF file and link
+        eyelink_rs::start_recording(true, true, true, true)?;
+
+        // Start recording for a bit before displaying stimulus
+        eyelink_rs::begin_realtime_mode(100);
     } else {
-        eyelink_rs::eyecmd_printf("file_sample_data = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT")?;
+        info!("Not recording an eyetrace file.");
+        // Give Eyelink some time to switch modes in prep for recording
+        eyelink_rs::set_offline_mode();
+        eyelink_rs::msec_delay(50);
+
+        // Record to just link
+        eyelink_rs::start_recording(false, false, true, true)?;
+
+        // Start recording for a bit before displaying stimulus
+        eyelink_rs::begin_realtime_mode(100);
     }
-
-    // Give Eyelink some time to switch modes in prep for recording
-    eyelink_rs::set_offline_mode();
-    eyelink_rs::msec_delay(50);
-
-    // Record to EDF file and link
-    eyelink_rs::start_recording(true, true, true, true)?;
-
-    // Start recording for a bit before displaying stimulus
-    eyelink_rs::begin_realtime_mode(100);
 
     Ok(())
 }

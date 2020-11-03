@@ -11,7 +11,7 @@ use crate::GazeSample;
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
 const BOX_DIM: u32 = 200;
-pub const DIFF_THRESH: i32 = 200;
+pub const DIFF_THRESH: i32 = 100;
 const LINGER_FRAMES: i64 = 1;
 
 /// Dummy server struct used for e2e latency measurements
@@ -81,7 +81,7 @@ impl FvideoDummyServer {
         if self.triggered_buff >= LINGER_FRAMES {
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
-        if let None = self.first_gaze {
+        if self.first_gaze.is_none() {
             self.first_gaze = Some(gaze);
         }
 

@@ -123,6 +123,10 @@ struct Opt {
     /// Whether to run eyelink calibration or not.
     #[structopt(short, long)]
     skip_cal: bool,
+
+    /// Whether to record an eye trace or not.
+    #[structopt(short, long)]
+    record: bool,
 }
 
 fn main() -> Result<()> {
@@ -133,7 +137,14 @@ fn main() -> Result<()> {
     let gaze_source = opt.gaze_source;
 
     let (width, height, _) = server::get_video_metadata(&opt.video)?;
-    let mut client = FvideoClient::new(width, height, gaze_source, opt.skip_cal, opt.trace.clone());
+    let mut client = FvideoClient::new(
+        width,
+        height,
+        gaze_source,
+        opt.skip_cal,
+        opt.record,
+        opt.trace.clone(),
+    );
 
     let outdir = match &opt.output {
         None => [
