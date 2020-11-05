@@ -166,18 +166,21 @@ fn main() -> Result<()> {
             .next()
             .unwrap();
         writeln!(logfile, "{}", arduino_measurement)?;
-        info!("e2e latency: {} us", arduino_measurement);
+        info!(
+            "e2e latency: {:#?}",
+            Duration::from_micros(arduino_measurement.parse()?)
+        );
     }
 
-    let elapsed = now.elapsed();
+    let elapsed = now.elapsed().as_secs_f64();
 
     let frame_index = client.total_frames();
     let total_bytes = client.total_bytes();
     info!(
-        "FPS: {}/{} = {}",
+        "FPS: {}/{:.2} = {:.1}",
         frame_index,
-        elapsed.as_secs_f64(),
-        frame_index as f64 / elapsed.as_secs_f64()
+        elapsed,
+        frame_index as f64 / elapsed
     );
     info!("Total Encoded Size: {} bytes", total_bytes);
 
