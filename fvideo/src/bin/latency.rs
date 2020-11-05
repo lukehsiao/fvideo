@@ -13,7 +13,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use log::{debug, info};
+use log::{debug, error, info};
 use serialport::prelude::{DataBits, FlowControl, Parity, StopBits};
 use serialport::SerialPortSettings;
 use structopt::clap::AppSettings;
@@ -150,7 +150,7 @@ fn main() -> Result<()> {
                 debug!("Triggered Arduino!");
                 let time = Instant::now();
                 gaze = client.triggered_gaze_sample(DIFF_THRESH);
-                debug!("Total triggered_gaze_sample time: {:#?}", time.elapsed());
+                info!("Gaze update time: {:#?}", time.elapsed());
             }
         }
     }
@@ -160,7 +160,10 @@ fn main() -> Result<()> {
     // Read the measurement from the Arduino
     if let Some(ref mut p) = port {
         let mut serial_buf: Vec<u8> = vec![0; 32];
-        p.read(serial_buf.as_mut_slice())?;
+        if let Err(e) = p.read(serial_buf.as_mut_slice()) {
+            error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
+            return Err(e.into());
+        }
         let arduino_measurement = str::from_utf8(&serial_buf)?
             .split_ascii_whitespace()
             .next()
