@@ -10,7 +10,6 @@ use crate::GazeSample;
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
-const BOX_DIM: u32 = 200;
 pub const DIFF_THRESH: i32 = 100;
 const LINGER_FRAMES: i64 = 1;
 
@@ -47,10 +46,11 @@ impl FvideoDummyServer {
         // init white
         // But, only a small portion in the bottom left of the frame. Otherwise
         // a whole screen of white adds a lot of latency.
+        let box_dim = width / 19;
         let buf = pic_white.as_mut_slice(0).unwrap();
         for c in 0..height {
             for r in 0..width {
-                buf[(width * c + r) as usize] = if c > (height - BOX_DIM) && r < (BOX_DIM) {
+                buf[(width * c + r) as usize] = if c > (height - box_dim) && r < (box_dim) {
                     WHITE
                 } else {
                     BLACK
