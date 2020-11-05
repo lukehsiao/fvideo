@@ -360,14 +360,13 @@ impl FvideoClient {
     ///
     /// In particular, this is intended to be used with a photodiode like the
     /// one in <https://github.com/lukehsiao/eyelink-latency>.
-    pub fn display_white(&mut self, dim: u32) {
+    pub fn display_white(&mut self, height: u32, dim: u32) {
+        dbg!(&dim);
         self.canvas.set_draw_color(Color::WHITE);
-        match self.canvas.fill_rect(Rect::new(
-            0,
-            (self.frame.height() - dim).try_into().unwrap(),
-            dim,
-            dim,
-        )) {
+        match self
+            .canvas
+            .fill_rect(Rect::new(0, (height - dim).try_into().unwrap(), dim, dim))
+        {
             Ok(_) => {
                 self.canvas.present();
             }
@@ -376,6 +375,14 @@ impl FvideoClient {
             }
         }
 
+        self.frame_idx += 1;
+    }
+
+    /// Utility function for clearing a screen with all black.
+    pub fn clear(&mut self) {
+        self.canvas.set_draw_color(Color::BLACK);
+        self.canvas.clear();
+        self.canvas.present();
         self.frame_idx += 1;
     }
 

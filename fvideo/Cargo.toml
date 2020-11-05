@@ -22,6 +22,9 @@ name = "realtime"
 [[bin]]
 name = "latency"
 
+[[bin]]
+name = "displaylatency"
+
 [dependencies]
 anyhow = "1.0.33"
 chrono = "0.4.19"

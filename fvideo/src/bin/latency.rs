@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use log::{debug, error, info};
 use serialport::prelude::{DataBits, FlowControl, Parity, StopBits};
-use serialport::SerialPortSettings;
+use serialport::{ClearBuffer, SerialPortSettings};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -128,6 +128,7 @@ fn main() -> Result<()> {
     });
 
     // Continuously display until channel is closed.
+    let mut e2e_time = Instant::now();
     let mut triggered = false;
     let mut gaze = client.gaze_sample();
     for nal in nal_rx {
@@ -145,9 +146,11 @@ fn main() -> Result<()> {
         if let Some(ref mut p) = port {
             // Trigger ASG movement
             if !triggered && now.elapsed() > Duration::from_millis(1500) {
+                p.clear(ClearBuffer::All)?;
+                e2e_time = Instant::now();
+                info!("Triggered Arduino!");
                 p.write(GO_CMD.as_bytes())?;
                 triggered = true;
-                debug!("Triggered Arduino!");
                 let time = Instant::now();
                 gaze = client.triggered_gaze_sample(DIFF_THRESH);
                 info!("Gaze update time: {:#?}", time.elapsed());
@@ -160,19 +163,29 @@ fn main() -> Result<()> {
     // Read the measurement from the Arduino
     if let Some(ref mut p) = port {
         let mut serial_buf: Vec<u8> = vec![0; 32];
+        info!("Rust e2e time: {:#?}", e2e_time.elapsed());
         if let Err(e) = p.read(serial_buf.as_mut_slice()) {
             error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
             return Err(e.into());
         }
+        info!("Read response: {:#?}", e2e_time.elapsed());
+
         let arduino_measurement = str::from_utf8(&serial_buf)?
             .split_ascii_whitespace()
             .next()
             .unwrap();
         writeln!(logfile, "{}", arduino_measurement)?;
-        info!(
-            "e2e latency: {:#?}",
-            Duration::from_micros(arduino_measurement.parse()?)
-        );
+        let arduino_micros = match arduino_measurement.parse::<u64>() {
+            Ok(p) => p,
+            Err(e) => {
+                error!(
+                    "Unable to parse arduino measurement: {}",
+                    arduino_measurement
+                );
+                return Err(e.into());
+            }
+        };
+        info!("e2e latency: {:#?}", Duration::from_micros(arduino_micros));
     }
 
     let elapsed = now.elapsed().as_secs_f64();
