@@ -72,13 +72,15 @@ fn main() -> Result<()> {
                 stop_bits: StopBits::One,
                 timeout: Duration::from_millis(100),
             };
-            let p = Some(serialport::open_with_settings(&opt.serial, &s)?);
+            let p = serialport::open_with_settings(&opt.serial, &s)?;
 
             // Sleep to give arduino time to reboot.
             // This is needed since Arduino uses DTR line to trigger a reset.
-            thread::sleep(Duration::from_secs(2));
+            thread::sleep(Duration::from_secs(3));
 
-            p
+            p.clear(ClearBuffer::All)?;
+
+            Some(p)
         }
         _ => None,
     };
@@ -91,6 +93,7 @@ fn main() -> Result<()> {
         Record::No,
         None,
     );
+    client.gaze_sample();
 
     // Toggle a couple times to get these in cache.
     for _ in 0..3 {
@@ -98,13 +101,12 @@ fn main() -> Result<()> {
         client.display_white(opt.height, opt.width / 19);
     }
     client.clear();
-    client.display_white(opt.height, opt.width / 19);
+
+    thread::sleep(Duration::from_millis(100));
 
     // Trigger the ASG.
-    client.gaze_sample();
     let mut e2e_time = Instant::now();
     if let Some(ref mut p) = port {
-        p.clear(ClearBuffer::All)?;
         e2e_time = Instant::now();
         info!("Triggered Arduino!");
         p.write(GO_CMD.as_bytes())?;
@@ -115,7 +117,7 @@ fn main() -> Result<()> {
 
     let now = Instant::now();
     client.display_white(opt.height, opt.width / 19);
-    info!("Display_white: {:#?}", now.elapsed());
+    info!("rust draw time: {:#?}", now.elapsed());
 
     info!("Rust e2e time: {:#?}", e2e_time.elapsed());
 
@@ -131,17 +133,7 @@ fn main() -> Result<()> {
             .split_ascii_whitespace()
             .next()
             .unwrap();
-        let arduino_micros = match arduino_measurement.parse::<u64>() {
-            Ok(p) => p,
-            Err(e) => {
-                error!(
-                    "Unable to parse arduino measurement: \"{}\"",
-                    arduino_measurement
-                );
-                return Err(e.into());
-            }
-        };
-        info!("e2e latency: {:#?}", Duration::from_micros(arduino_micros));
+        info!("arduino latency: {}µs", arduino_measurement);
     }
 
     Ok(())

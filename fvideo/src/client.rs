@@ -162,7 +162,7 @@ impl FvideoClient {
 
                 eye_used = match eyelink_rs::eyelink_eye_available() {
                     Ok(e) => {
-                        info!("Eye data from: {:?}", e);
+                        debug!("Eye data from: {:?}", e);
                         Some(e)
                     }
                     Err(e) => {
@@ -202,14 +202,12 @@ impl FvideoClient {
         let window = video_subsystem
             .window("fvideo.rs", vid_width, vid_height)
             .fullscreen_desktop()
-            // .position_centered()
             .build()
             .unwrap();
 
         let canvas = window
             .into_canvas()
             .accelerated()
-            // .present_vsync()
             .target_texture()
             .build()
             .unwrap();
@@ -223,6 +221,8 @@ impl FvideoClient {
         event_pump.pump_events();
 
         // 0 is immediate update
+        // 1 synchronizes with vertical retrace
+        // -1 for adaptive vsync
         video_subsystem.gl_set_swap_interval(0).unwrap();
 
         let texture_creator = canvas.texture_creator();

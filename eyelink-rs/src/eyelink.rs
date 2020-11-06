@@ -205,7 +205,6 @@ pub fn start_recording<'a, T: Into<Option<&'a str>>>(edf: T) -> Result<(), Fvide
         // Start recording for a bit before displaying stimulus
         eyelink_rs::begin_realtime_mode(100);
     } else {
-        info!("Not recording an eyetrace file.");
         // Give Eyelink some time to switch modes in prep for recording
         eyelink_rs::set_offline_mode();
         eyelink_rs::msec_delay(50);
