@@ -72,7 +72,13 @@ fn main() -> Result<()> {
                 stop_bits: StopBits::One,
                 timeout: Duration::from_millis(100),
             };
-            Some(serialport::open_with_settings(&opt.serial, &s)?)
+            let p = Some(serialport::open_with_settings(&opt.serial, &s)?);
+
+            // Sleep to give arduino time to reboot.
+            // This is needed since Arduino uses DTR line to trigger a reset.
+            thread::sleep(Duration::from_secs(2));
+
+            p
         }
         _ => None,
     };
@@ -86,11 +92,13 @@ fn main() -> Result<()> {
         None,
     );
 
-    // Sleep to give arduino time to reboot.
-    // This is needed since Arduino uses DTR line to trigger a reset.
-    thread::sleep(Duration::from_secs(2));
-
+    // Toggle a couple times to get these in cache.
+    for _ in 0..3 {
+        client.clear();
+        client.display_white(opt.height, opt.width / 19);
+    }
     client.clear();
+    client.display_white(opt.height, opt.width / 19);
 
     // Trigger the ASG.
     client.gaze_sample();
@@ -105,7 +113,9 @@ fn main() -> Result<()> {
         info!("Gaze update time: {:#?}", time.elapsed());
     }
 
+    let now = Instant::now();
     client.display_white(opt.height, opt.width / 19);
+    info!("Display_white: {:#?}", now.elapsed());
 
     info!("Rust e2e time: {:#?}", e2e_time.elapsed());
 
@@ -125,7 +135,7 @@ fn main() -> Result<()> {
             Ok(p) => p,
             Err(e) => {
                 error!(
-                    "Unable to parse arduino measurement: {}",
+                    "Unable to parse arduino measurement: \"{}\"",
                     arduino_measurement
                 );
                 return Err(e.into());
