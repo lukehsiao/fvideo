@@ -20,7 +20,7 @@ use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
-use fvideo::client::{FvideoClient, GazeSource};
+use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record};
 use fvideo::dummyserver::{FvideoDummyServer, DIFF_THRESH};
 
 #[derive(StructOpt, Debug)]
@@ -97,7 +97,14 @@ fn main() -> Result<()> {
     // This is needed since Arduino uses DTR line to trigger a reset.
     thread::sleep(Duration::from_secs(2));
 
-    let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, false, None);
+    let mut client = FvideoClient::new(
+        opt.width,
+        opt.height,
+        gaze_source,
+        Calibrate::No,
+        Record::No,
+        None,
+    );
 
     let (nal_tx, nal_rx) = mpsc::channel();
     let (gaze_tx, gaze_rx) = mpsc::channel();

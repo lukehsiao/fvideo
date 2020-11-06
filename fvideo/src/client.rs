@@ -52,6 +52,18 @@ pub enum FvideoClientError {
     EyelinkError(#[from] eyelink_rs::EyelinkError),
 }
 
+#[derive(Debug)]
+pub enum Calibrate {
+    Yes,
+    No,
+}
+
+#[derive(Debug)]
+pub enum Record {
+    Yes,
+    No,
+}
+
 pub struct FvideoClient {
     decoder: decoder::Video,
     frame: Video,
@@ -68,20 +80,25 @@ pub struct FvideoClient {
     last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
-    record: bool,
+    record: Record,
 }
 
 impl Drop for FvideoClient {
     fn drop(&mut self) {
         if self.gaze_source == GazeSource::Eyelink {
-            if self.record {
-                if let Err(e) = eyelink::stop_recording(EDF_FILE) {
-                    error!("Failed stopping recording: {}", e);
-                    process::exit(1);
+            match self.record {
+                Record::Yes => {
+                    if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+                        error!("Failed stopping recording: {}", e);
+                        process::exit(1);
+                    }
                 }
-            } else if let Err(e) = eyelink::stop_recording(None) {
-                error!("Failed stopping recording: {}", e);
-                process::exit(1);
+                Record::No => {
+                    if let Err(e) = eyelink::stop_recording(None) {
+                        error!("Failed stopping recording: {}", e);
+                        process::exit(1);
+                    }
+                }
             }
 
             eyelink_rs::close_eyelink_connection();
@@ -97,8 +114,8 @@ impl FvideoClient {
         vid_width: u32,
         vid_height: u32,
         gaze_source: GazeSource,
-        skip_cal: bool,
-        record: bool,
+        cal: Calibrate,
+        record: Record,
         trace: T,
     ) -> FvideoClient {
         let mut eye_used = None;
@@ -110,22 +127,32 @@ impl FvideoClient {
                     process::exit(1);
                 }
 
-                if skip_cal {
-                    info!("Skipping calibration.");
-                } else if let Err(e) = eyelink::run_calibration() {
-                    error!("Failed Eyelink Calibration: {}", e);
-                    process::exit(1);
+                match cal {
+                    Calibrate::Yes => {
+                        if let Err(e) = eyelink::run_calibration() {
+                            error!("Failed Eyelink Calibration: {}", e);
+                            process::exit(1);
+                        }
+                    }
+                    Calibrate::No => {
+                        info!("Skipping calibration.");
+                    }
                 }
 
-                if record {
-                    info!("Recording eye-trace to {}.", EDF_FILE);
-                    if let Err(e) = eyelink::start_recording(EDF_FILE) {
-                        error!("Failed starting recording: {}", e);
-                        process::exit(1);
+                match record {
+                    Record::Yes => {
+                        info!("Recording eye-trace to {}.", EDF_FILE);
+                        if let Err(e) = eyelink::start_recording(EDF_FILE) {
+                            error!("Failed starting recording: {}", e);
+                            process::exit(1);
+                        }
                     }
-                } else if let Err(e) = eyelink::start_recording(None) {
-                    error!("Failed starting recording: {}", e);
-                    process::exit(1);
+                    Record::No => {
+                        if let Err(e) = eyelink::start_recording(None) {
+                            error!("Failed starting recording: {}", e);
+                            process::exit(1);
+                        }
+                    }
                 }
 
                 if let Err(e) = eyelink_rs::eyelink_wait_for_block_start(100, 1, 0) {
@@ -361,7 +388,6 @@ impl FvideoClient {
     /// In particular, this is intended to be used with a photodiode like the
     /// one in <https://github.com/lukehsiao/eyelink-latency>.
     pub fn display_white(&mut self, height: u32, dim: u32) {
-        dbg!(&dim);
         self.canvas.set_draw_color(Color::WHITE);
         match self
             .canvas

@@ -61,7 +61,7 @@ use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::client::{FvideoClient, GazeSource, EDF_FILE};
+use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record, EDF_FILE};
 use fvideo::server::{self, FoveationAlg, FvideoServer};
 
 /// Make sure the qp offset option is in a valid range.
@@ -141,8 +141,12 @@ fn main() -> Result<()> {
         width,
         height,
         gaze_source,
-        opt.skip_cal,
-        opt.record,
+        if opt.skip_cal {
+            Calibrate::No
+        } else {
+            Calibrate::Yes
+        },
+        if opt.record { Record::Yes } else { Record::No },
         opt.trace.clone(),
     );
 

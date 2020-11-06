@@ -17,7 +17,7 @@ use serialport::{ClearBuffer, SerialPortSettings};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::client::{FvideoClient, GazeSource};
+use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record};
 use fvideo::dummyserver::DIFF_THRESH;
 
 #[derive(StructOpt, Debug)]
@@ -61,9 +61,7 @@ fn main() -> Result<()> {
     ffmpeg::init().unwrap();
     let opt = Opt::from_args();
 
-    let gaze_source = opt.gaze_source;
-
-    let mut port = match gaze_source {
+    let mut port = match opt.gaze_source {
         GazeSource::Eyelink => {
             // Setup serial port connection
             let s = SerialPortSettings {
@@ -79,7 +77,14 @@ fn main() -> Result<()> {
         _ => None,
     };
 
-    let mut client = FvideoClient::new(opt.width, opt.height, gaze_source, true, false, None);
+    let mut client = FvideoClient::new(
+        opt.width,
+        opt.height,
+        opt.gaze_source,
+        Calibrate::No,
+        Record::No,
+        None,
+    );
 
     // Sleep to give arduino time to reboot.
     // This is needed since Arduino uses DTR line to trigger a reset.
