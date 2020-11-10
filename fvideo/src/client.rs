@@ -81,6 +81,7 @@ pub struct FvideoClient {
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
     record: Record,
+    triggered: bool,
 }
 
 impl Drop for FvideoClient {
@@ -252,6 +253,7 @@ impl FvideoClient {
             eye_used,
             trace_samples,
             record,
+            triggered: false,
         }
     }
 
@@ -292,6 +294,7 @@ impl FvideoClient {
                         || (gaze.p_y as i32 - self.last_gaze_sample.p_y as i32).abs() > thresh
                     {
                         self.last_gaze_sample = gaze;
+                        self.triggered = true;
                         return self.last_gaze_sample;
                     }
                     self.last_gaze_sample = gaze;
@@ -423,14 +426,22 @@ impl FvideoClient {
                 self.vid_height as u32,
             )
             .unwrap();
-        debug!("    init texture: {:#?}", time.elapsed());
+        if self.triggered {
+            info!("    init texture: {:#?}", time.elapsed());
+        } else {
+            debug!("    init texture: {:#?}", time.elapsed());
+        }
 
         let dec_time = Instant::now();
         let packet = Packet::copy(nal.as_bytes());
         self.total_bytes += packet.size() as u64;
         match self.decoder.decode(&packet, &mut self.frame) {
             Ok(true) => {
-                debug!("    decode nal: {:?}", dec_time.elapsed());
+                if self.triggered {
+                    info!("    decode nal: {:?}", dec_time.elapsed());
+                } else {
+                    debug!("    decode nal: {:?}", dec_time.elapsed());
+                }
 
                 let time = Instant::now();
                 let rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
@@ -449,7 +460,11 @@ impl FvideoClient {
                 self.canvas.present();
 
                 self.frame_idx += 1;
-                debug!("    display new frame: {:?}", time.elapsed());
+                if self.triggered {
+                    info!("    display new frame: {:?}", time.elapsed());
+                } else {
+                    debug!("    display new frame: {:?}", time.elapsed());
+                }
             }
             Ok(false) => (),
             Err(_) => {

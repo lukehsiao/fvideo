@@ -1,7 +1,5 @@
 extern crate ffmpeg_next as ffmpeg;
 
-use std::time::Instant;
-
 use log::debug;
 use x264::{Encoder, NalData, Picture};
 
@@ -75,6 +73,10 @@ impl FvideoDummyServer {
         })
     }
 
+    pub fn triggered(&self) -> bool {
+        self.triggered
+    }
+
     /// Read frame from dummy video which will include a white square at the
     /// bottom left when the gaze position has changed beyond a threshold.
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<Vec<NalData>, FvideoServerError> {
@@ -109,7 +111,6 @@ impl FvideoDummyServer {
             self.triggered_buff += 1;
         }
 
-        let time = Instant::now();
         let mut nals = vec![];
         if let Some((nal, _, _)) = self.encoder.encode(pic).unwrap() {
             nals.push(nal);
@@ -120,7 +121,6 @@ impl FvideoDummyServer {
                 nals.push(nal);
             }
         }
-        debug!("    x264.encode_frame: {:#?}", time.elapsed());
 
         Ok(nals)
     }

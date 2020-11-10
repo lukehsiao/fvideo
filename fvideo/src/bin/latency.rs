@@ -88,14 +88,16 @@ fn main() -> Result<()> {
                 stop_bits: StopBits::One,
                 timeout: Duration::from_millis(100),
             };
-            Some(serialport::open_with_settings(&opt.serial, &s)?)
+            let p = serialport::open_with_settings(&opt.serial, &s)?;
+
+            // Sleep to give arduino time to reboot.
+            // This is needed since Arduino uses DTR line to trigger a reset.
+            thread::sleep(Duration::from_secs(2));
+
+            Some(p)
         }
         _ => None,
     };
-
-    // Sleep to give arduino time to reboot.
-    // This is needed since Arduino uses DTR line to trigger a reset.
-    thread::sleep(Duration::from_secs(2));
 
     let mut client = FvideoClient::new(
         opt.width,
@@ -129,32 +131,25 @@ fn main() -> Result<()> {
             for nal in nals {
                 nal_tx.send(nal)?;
             }
-            debug!("Total encode_frame: {:#?}", time.elapsed());
+            if server.triggered() {
+                info!("Total encode_frame: {:#?}", time.elapsed());
+            } else {
+                debug!("Total encode_frame: {:#?}", time.elapsed());
+            }
         }
         Ok(())
     });
 
     // Continuously display until channel is closed.
-    let mut e2e_time = Instant::now();
     let mut triggered = false;
-    let mut gaze = client.gaze_sample();
     for nal in nal_rx {
-        gaze_tx.send(gaze)?;
-        debug!("Sent gaze.");
-
-        let time = Instant::now();
-        // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-        client.display_frame(&nal);
-        debug!("Total display_frame: {:#?}", time.elapsed());
-
-        gaze = client.gaze_sample();
+        let mut gaze = client.gaze_sample();
 
         // After a delay, trigger the ASG.
         if let Some(ref mut p) = port {
             // Trigger ASG movement
             if !triggered && now.elapsed() > Duration::from_millis(1500) {
                 p.clear(ClearBuffer::All)?;
-                e2e_time = Instant::now();
                 info!("Triggered Arduino!");
                 p.write(GO_CMD.as_bytes())?;
                 triggered = true;
@@ -163,6 +158,19 @@ fn main() -> Result<()> {
                 info!("Gaze update time: {:#?}", time.elapsed());
             }
         }
+
+        gaze_tx.send(gaze)?;
+        debug!("Sent gaze.");
+
+        let time = Instant::now();
+
+        // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
+        client.display_frame(&nal);
+        if triggered {
+            info!("Total display_frame: {:#?}", time.elapsed());
+        } else {
+            debug!("Total display_frame: {:#?}", time.elapsed());
+        }
     }
 
     t_enc.join().unwrap()?;
@@ -170,12 +178,10 @@ fn main() -> Result<()> {
     // Read the measurement from the Arduino
     if let Some(ref mut p) = port {
         let mut serial_buf: Vec<u8> = vec![0; 32];
-        info!("Rust e2e time: {:#?}", e2e_time.elapsed());
         if let Err(e) = p.read(serial_buf.as_mut_slice()) {
             error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
             return Err(e.into());
         }
-        info!("Read response: {:#?}", e2e_time.elapsed());
 
         let arduino_measurement = str::from_utf8(&serial_buf)?
             .split_ascii_whitespace()
