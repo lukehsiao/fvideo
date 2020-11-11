@@ -6,6 +6,7 @@ license = "MIT"
 description = "FFI bindings to x264"
 repository = "https://github.com/rust-av/x264-rs"
 edition = "2018"
+publish = false
 
 [build-dependencies]
 bindgen = "0.54"
