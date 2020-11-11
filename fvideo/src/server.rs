@@ -246,7 +246,7 @@ pub(crate) fn setup_x264_params(width: u32, height: u32) -> Result<Param, Fvideo
 
 /// Return the width, height, and framerate of the input Y4M.
 ///
-/// See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for details.
+/// See <https://wiki.multimedia.cx/index.php/YUV4MPEG2> for details.
 pub fn get_video_metadata(video: &PathBuf) -> Result<(u32, u32, f64), FvideoServerError> {
     let video_in = File::open(video)?;
     let mut video_in = BufReader::new(video_in);
