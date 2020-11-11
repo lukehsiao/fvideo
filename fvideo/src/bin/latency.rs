@@ -13,7 +13,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use serialport::prelude::{DataBits, FlowControl, Parity, StopBits};
 use serialport::{ClearBuffer, SerialPortSettings};
 use structopt::clap::AppSettings;
@@ -199,6 +199,8 @@ fn main() -> Result<()> {
             }
         };
         info!("e2e latency: {:#?}", Duration::from_micros(arduino_micros));
+    } else {
+        warn!("e2e latency unavailable w/o ASG.");
     }
 
     let elapsed = now.elapsed().as_secs_f64();
