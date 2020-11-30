@@ -23,7 +23,7 @@ name = "realtime"
 name = "latency"
 
 [[bin]]
-name = "displaylatency"
+name = "minlatency"
 
 [dependencies]
 anyhow = "1.0.34"
