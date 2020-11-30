@@ -16,6 +16,7 @@ pub enum X264Error {
     GenericError(String),
 }
 
+#[derive(Debug)]
 pub struct Picture {
     pub pic: x264_picture_t,
     plane_size: [usize; 3],
