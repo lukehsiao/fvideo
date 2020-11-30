@@ -26,7 +26,8 @@ arg_enum! {
     #[derive(Copy, Clone, Debug)]
     pub enum FoveationAlg {
         SquareStep,
-        Gaussian
+        Gaussian,
+        TwoStream,
     }
 }
 
@@ -205,6 +206,9 @@ impl FvideoServer {
                                 };
                         }
                     }
+                }
+                FoveationAlg::TwoStream => {
+                    todo!();
                 }
             }
 

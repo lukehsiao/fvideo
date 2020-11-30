@@ -12,6 +12,9 @@
 //!     -h, --help
 //!             Prints help information
 //!
+//!     -r, --record
+//!             Whether to record an eye trace or not
+//!
 //!     -s, --skip-cal
 //!             Whether to run eyelink calibration or not
 //!
@@ -22,7 +25,7 @@
 //! OPTIONS:
 //!     -a, --alg <alg>
 //!             The method used to calculate QP offsets for foveation [default: Gaussian]  [possible values:
-//!             SquareStep, Gaussian]
+//!             SquareStep, Gaussian, TwoStream]
 //!     -f, --fovea <fovea>
 //!             The parameter for the size of the foveal region (0 = disable foveation).
 //!
@@ -76,6 +79,7 @@ fn parse_qo_max(src: &str) -> Result<f32> {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
+    name("realtime"),
     about("A tool for foveated encoding an input Y4M and decoding/displaying the results."),
     setting(AppSettings::ColoredHelp),
     setting(AppSettings::ColorAuto)
