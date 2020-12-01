@@ -93,23 +93,33 @@ impl FvideoServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let mut fg_par = setup_x264_params(width, height)?;
-        let fg_pic = Picture::from_param(&fg_par)?;
-        let orig_pic = Picture::from_param(&fg_par)?;
-        let fg_encoder = Encoder::open(&mut fg_par)
-            .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+        let orig_par = setup_x264_params(width, height)?;
+        let orig_pic = Picture::from_param(&orig_par)?;
 
         // Only init 2nd stream if it is necessary
-        let (bg_pic, bg_encoder) = match alg {
+        let (fg_pic, fg_encoder, bg_pic, bg_encoder) = match alg {
             FoveationAlg::TwoStream => {
-                let mut bg_par = setup_x264_params(CROP_WIDTH, CROP_HEIGHT)?;
+                // foreground stream is cropped
+                let mut fg_par = setup_x264_params(CROP_WIDTH, CROP_HEIGHT)?;
+                let fg_pic = Picture::from_param(&fg_par)?;
+                let fg_encoder = Encoder::open(&mut fg_par)
+                    .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+                let mut bg_par = setup_x264_params(width, height)?;
                 let bg_pic = Picture::from_param(&bg_par)?;
                 let bg_encoder = Encoder::open(&mut bg_par)
                     .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
-                (Some(bg_pic), Some(bg_encoder))
+                (fg_pic, fg_encoder, Some(bg_pic), Some(bg_encoder))
             }
-            _ => (None, None),
+            _ => {
+                let mut fg_par = setup_x264_params(width, height)?;
+                let fg_pic = Picture::from_param(&fg_par)?;
+                let fg_encoder = Encoder::open(&mut fg_par)
+                    .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+                (fg_pic, fg_encoder, None, None)
+            }
         };
 
         // The frame dimensions in terms of macroblocks
