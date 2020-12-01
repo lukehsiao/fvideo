@@ -151,7 +151,7 @@ fn main() -> Result<()> {
             if !triggered && now.elapsed() > Duration::from_millis(1500) {
                 p.clear(ClearBuffer::All)?;
                 info!("Triggered Arduino!");
-                p.write(GO_CMD.as_bytes())?;
+                p.write_all(GO_CMD.as_bytes())?;
                 triggered = true;
                 let time = Instant::now();
                 gaze = client.triggered_gaze_sample(DIFF_THRESH);

@@ -111,7 +111,7 @@ fn main() -> Result<()> {
     if let Some(ref mut p) = port {
         e2e_time = Instant::now();
         info!("Triggered Arduino!");
-        p.write(GO_CMD.as_bytes())?;
+        p.write_all(GO_CMD.as_bytes())?;
         let time = Instant::now();
         client.triggered_gaze_sample(DIFF_THRESH);
         info!("Gaze update time: {:#?}", time.elapsed());
