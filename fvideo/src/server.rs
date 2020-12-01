@@ -55,8 +55,11 @@ pub struct FvideoServer {
     alg: FoveationAlg,
     qo_max: f32,
     video_in: BufReader<File>,
-    pic: Picture,
-    encoder: Encoder,
+    bg_pic: Option<Picture>,
+    fg_pic: Picture,
+    orig_pic: Picture,
+    bg_encoder: Option<Encoder>,
+    fg_encoder: Encoder,
     width: u32,
     height: u32,
     mb_x: u32,
@@ -69,6 +72,9 @@ pub struct FvideoServer {
     hdr: String,
     timestamp: i64,
 }
+
+const CROP_WIDTH: u32 = 480;
+const CROP_HEIGHT: u32 = 272;
 
 impl FvideoServer {
     pub fn new(
@@ -87,10 +93,24 @@ impl FvideoServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let mut par = setup_x264_params(width, height)?;
-        let pic = Picture::from_param(&par)?;
-        let encoder =
-            Encoder::open(&mut par).map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+        let mut fg_par = setup_x264_params(width, height)?;
+        let fg_pic = Picture::from_param(&fg_par)?;
+        let orig_pic = Picture::from_param(&fg_par)?;
+        let fg_encoder = Encoder::open(&mut fg_par)
+            .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+        // Only init 2nd stream if it is necessary
+        let (bg_pic, bg_encoder) = match alg {
+            FoveationAlg::TwoStream => {
+                let mut bg_par = setup_x264_params(CROP_WIDTH, CROP_HEIGHT)?;
+                let bg_pic = Picture::from_param(&bg_par)?;
+                let bg_encoder = Encoder::open(&mut bg_par)
+                    .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+                (Some(bg_pic), Some(bg_encoder))
+            }
+            _ => (None, None),
+        };
 
         // The frame dimensions in terms of macroblocks
         let mb_x = width / 16;
@@ -104,8 +124,11 @@ impl FvideoServer {
             alg,
             qo_max,
             video_in,
-            pic,
-            encoder,
+            bg_pic,
+            fg_pic,
+            orig_pic,
+            bg_encoder,
+            fg_encoder,
             width,
             height,
             mb_x,
@@ -140,13 +163,14 @@ impl FvideoServer {
                 self.frame_time.elapsed() - self.last_frame_time
             );
             self.last_frame_time = self.frame_time.elapsed();
+
             // Skip header data of the frame
             self.video_in.read_line(&mut self.hdr)?;
             self.frame_cnt += 1;
 
             // Read the input YUV frame
             for plane in 0..3 {
-                let mut buf = self.pic.as_mut_slice(plane).unwrap();
+                let mut buf = self.fg_pic.as_mut_slice(plane).unwrap();
                 self.video_in.read_exact(&mut buf)?;
             }
         }
@@ -191,6 +215,7 @@ impl FvideoServer {
                                     .exp());
                         }
                     }
+                    self.fg_pic.pic.prop.quant_offsets = self.qp_offsets.as_mut_ptr();
                 }
                 FoveationAlg::SquareStep => {
                     for j in 0..self.mb_y {
@@ -206,26 +231,27 @@ impl FvideoServer {
                                 };
                         }
                     }
+                    self.fg_pic.pic.prop.quant_offsets = self.qp_offsets.as_mut_ptr();
                 }
                 FoveationAlg::TwoStream => {
-                    todo!();
+                    // Crop frame to only the relevant (480 x 272) area
+                    // self.pic.img.i_stride = [480, 240, 240, 0];
+                    // self.pic.plane_size = [480 * 272, 240 * 136, 240 * 136];
                 }
             }
-
-            self.pic.pic.prop.quant_offsets = self.qp_offsets.as_mut_ptr();
         }
 
-        self.pic.set_timestamp(self.timestamp);
+        self.fg_pic.set_timestamp(self.timestamp);
         self.timestamp += 1;
 
         let time = Instant::now();
         let mut nals = vec![];
-        if let Some((nal, _, _)) = self.encoder.encode(&self.pic).unwrap() {
+        if let Some((nal, _, _)) = self.fg_encoder.encode(&self.fg_pic).unwrap() {
             nals.push(nal);
         }
 
-        while self.encoder.delayed_frames() {
-            if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
+        while self.fg_encoder.delayed_frames() {
+            if let Some((nal, _, _)) = self.fg_encoder.encode(None).unwrap() {
                 nals.push(nal);
             }
         }
