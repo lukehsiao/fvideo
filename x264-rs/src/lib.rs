@@ -412,6 +412,9 @@ impl NalData {
     }
 }
 
+/// This is opaque, but can be viewed in the x264 source code in
+/// common/common.h.
+#[derive(Debug)]
 pub struct Encoder {
     enc: *mut x264_t,
 }
