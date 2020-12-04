@@ -19,7 +19,7 @@ pub enum X264Error {
 #[derive(Debug)]
 pub struct Picture {
     pub pic: x264_picture_t,
-    plane_size: [usize; 3],
+    pub plane_size: [usize; 3],
     native: bool,
 }
 

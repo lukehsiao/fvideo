@@ -65,7 +65,7 @@ use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record, EDF_FILE};
-use fvideo::server::{self, FoveationAlg, FvideoServer};
+use fvideo::server::{self, FoveationAlg, FvideoServer, CROP_HEIGHT, CROP_WIDTH};
 
 /// Make sure the qp offset option is in a valid range.
 fn parse_qo_max(src: &str) -> Result<f32> {
@@ -140,7 +140,11 @@ fn main() -> Result<()> {
 
     let gaze_source = opt.gaze_source;
 
-    let (width, height, _) = server::get_video_metadata(&opt.video)?;
+    let (width, height, _) = match opt.alg {
+        FoveationAlg::TwoStream => (CROP_WIDTH, CROP_HEIGHT, 0.0),
+        _ => server::get_video_metadata(&opt.video)?,
+    };
+
     let mut client = FvideoClient::new(
         width,
         height,

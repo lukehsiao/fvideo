@@ -1,17 +1,17 @@
 //! Struct for the foveated video encoding server.
 //!
-//! The server is responsible for encoding frames using the latest gaze data
-//! available from the client.
+//! The server is responsible for encoding frames using the latest gaze data available from the
+//! client.
 
 extern crate ffmpeg_next as ffmpeg;
 
+use std::cmp;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
-use std::num;
 use std::path::PathBuf;
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
+use std::{num, ptr};
 
 use lazy_static::lazy_static;
 use log::{debug, error};
@@ -73,8 +73,8 @@ pub struct FvideoServer {
     timestamp: i64,
 }
 
-const CROP_WIDTH: u32 = 480;
-const CROP_HEIGHT: u32 = 272;
+pub const CROP_WIDTH: u32 = 1920;
+pub const CROP_HEIGHT: u32 = 1080;
 
 impl FvideoServer {
     pub fn new(
@@ -105,6 +105,7 @@ impl FvideoServer {
                 let fg_encoder = Encoder::open(&mut fg_par)
                     .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
+                // TODO: this will also need to be lower resolution than orig
                 let mut bg_par = setup_x264_params(width, height)?;
                 let bg_pic = Picture::from_param(&bg_par)?;
                 let bg_encoder = Encoder::open(&mut bg_par)
@@ -113,6 +114,7 @@ impl FvideoServer {
                 (fg_pic, fg_encoder, Some(bg_pic), Some(bg_encoder))
             }
             _ => {
+                // Otherwise, there is just a single stream of orig resolution
                 let mut fg_par = setup_x264_params(width, height)?;
                 let fg_pic = Picture::from_param(&fg_par)?;
                 let fg_encoder = Encoder::open(&mut fg_par)
@@ -180,7 +182,7 @@ impl FvideoServer {
 
             // Read the input YUV frame
             for plane in 0..3 {
-                let mut buf = self.fg_pic.as_mut_slice(plane).unwrap();
+                let mut buf = self.orig_pic.as_mut_slice(plane).unwrap();
                 self.video_in.read_exact(&mut buf)?;
             }
         }
@@ -193,11 +195,10 @@ impl FvideoServer {
         self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
 
-        // Prepare QP offsets and encode
-
         // TODO(lukehsiao): 5x5px white square where mouse cursor is.
-        // Note that 235 = white for luma
-        // Also note that trying to iterate over the whole image here was too slow.
+        // Note that 235 = white for luma. Also note that trying to iterate over the whole image
+        // here was too slow.
+        //
         // const SQ_WIDTH: usize = 4;
         // let luma = pic.as_mut_slice(0).unwrap();
         // for x in 0..SQ_WIDTH {
@@ -206,7 +207,10 @@ impl FvideoServer {
         //     }
         // }
 
-        if self.fovea > 0 && self.timestamp > 0 {
+        // Prepare foveation algorithm preprocessing (e.g., computing QP offsets).
+        //
+        // Wait for timestamp > 0 so that the first (and only) I-frame is sent untouched.
+        if self.fovea > 0 && self.timestamp >= 0 {
             // Calculate offsets based on Foveation Alg
             match self.alg {
                 FoveationAlg::Gaussian => {
@@ -244,6 +248,14 @@ impl FvideoServer {
                     self.fg_pic.pic.prop.quant_offsets = self.qp_offsets.as_mut_ptr();
                 }
                 FoveationAlg::TwoStream => {
+                    crop_x264_pic(
+                        &self.orig_pic,
+                        &gaze,
+                        CROP_WIDTH,
+                        CROP_HEIGHT,
+                        &mut self.fg_pic,
+                    )?;
+
                     // Crop frame to only the relevant (480 x 272) area
                     // self.pic.img.i_stride = [480, 240, 240, 0];
                     // self.pic.plane_size = [480 * 272, 240 * 136, 240 * 136];
@@ -296,6 +308,81 @@ pub fn get_video_metadata(video: &PathBuf) -> Result<(u32, u32, f64), FvideoServ
     video_in.read_line(&mut hdr).unwrap();
     let (width, height, fps) = parse_y4m_header(&hdr)?;
     Ok((width, height, fps))
+}
+
+/// Crop orig_pic centered around the gaze and place into fg_pic.
+fn crop_x264_pic(
+    src: &Picture,
+    gaze: &GazeSample,
+    width: u32,
+    height: u32,
+    dst: &mut Picture,
+) -> Result<(), FvideoServerError> {
+    // output->img.width  = h->dims[2];
+    // output->img.height = h->dims[3];
+    // [> shift the plane pointers down 'top' rows and right 'left' columns. <]
+    // for( int i = 0; i < output->img.planes; i++ )
+    // {
+    //     intptr_t offset = output->img.stride[i] * h->dims[1] * h->csp->height[i];
+    //     offset += h->dims[0] * h->csp->width[i] * x264_cli_csp_depth_factor( output->img.csp );
+    //     output->img.plane[i] += offset;
+    // }
+
+    // Keep the "cropped" window contained in the frame
+    //
+    // Only allow multiples of 2 to maintain integer values after division
+    dbg!(&gaze);
+    let top: u32 = match cmp::max(gaze.p_y as i32 - height as i32 / 2, 0) {
+        n if n > 0 && n % 2 == 0 => n as u32,
+        n if n > 0 && n % 2 != 0 => n as u32 + 1,
+        _ => 0,
+    };
+
+    let left: u32 = match cmp::max(gaze.p_x as i32 - width as i32 / 2, 0) {
+        n if n > 0 && n % 2 == 0 => n as u32,
+        n if n > 0 && n % 2 != 0 => n as u32 + 1,
+        _ => 0,
+    };
+
+    // TODO(lukehsiao): hard-coded color space values for now.
+    let csp_height = vec![1.0, 0.5, 0.5];
+    let csp_width = vec![1.0, 0.5, 0.5];
+
+    let mut offset_plane: [*mut u8; 4] = [ptr::null_mut(); 4];
+
+    // Shift the plane pointers down 'top' rows and right 'left' columns
+    for i in 0..3 {
+        let mut offset: isize =
+            (src.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i]) as isize;
+        offset += (left as f32 * csp_width[i] * src.pic.img.i_csp as f32) as isize;
+
+        // grab the offset ptrs
+        // Copy data into fg_pic
+        unsafe {
+            offset_plane[i] = src.pic.img.plane[i].offset(offset);
+
+            // Manually copying over. Is this too slow?
+            let mut src_ptr: *mut u8 = offset_plane[i];
+            let mut dst_ptr: *mut u8 = dst.pic.img.plane[i];
+
+            for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]) as u32 {
+                ptr::copy_nonoverlapping(src_ptr, dst_ptr, dst.pic.img.i_stride[i] as usize);
+
+                // Advance a full row
+                src_ptr = src_ptr.offset(src.pic.img.i_stride[i] as isize);
+                dst_ptr = dst_ptr.offset(dst.pic.img.i_stride[i] as isize);
+            }
+        }
+    }
+
+    // dbg!(src);
+    // dbg!(dst);
+    // dbg!(left);
+    // dbg!(top);
+    // dbg!(gaze);
+    // dbg!(offset_plane);
+    // todo!();
+    Ok(())
 }
 
 /// Parse the width, height, and frame rate from the Y4M header.
