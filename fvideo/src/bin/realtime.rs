@@ -140,14 +140,22 @@ fn main() -> Result<()> {
 
     let gaze_source = opt.gaze_source;
 
-    let (width, height, _) = match opt.alg {
-        FoveationAlg::TwoStream => (CROP_WIDTH, CROP_HEIGHT, 0.0),
-        _ => server::get_video_metadata(&opt.video)?,
+    let (fg_width, fg_height, bg_width, bg_height) = match opt.alg {
+        FoveationAlg::TwoStream => {
+            let (w, h, _) = server::get_video_metadata(&opt.video)?;
+            (Some(CROP_WIDTH), Some(CROP_HEIGHT), w, h)
+        }
+        _ => {
+            let (w, h, _) = server::get_video_metadata(&opt.video)?;
+            (None, None, w, h)
+        }
     };
 
     let mut client = FvideoClient::new(
-        width,
-        height,
+        fg_width,
+        fg_height,
+        bg_width,
+        bg_height,
         gaze_source,
         if opt.skip_cal {
             Calibrate::No

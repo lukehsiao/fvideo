@@ -86,6 +86,8 @@ fn main() -> Result<()> {
     };
 
     let mut client = FvideoClient::new(
+        None,
+        None,
         opt.width,
         opt.height,
         opt.gaze_source,

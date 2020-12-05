@@ -73,8 +73,8 @@ pub struct FvideoServer {
     timestamp: i64,
 }
 
-pub const CROP_WIDTH: u32 = 1920;
-pub const CROP_HEIGHT: u32 = 1080;
+pub const CROP_WIDTH: u32 = 480;
+pub const CROP_HEIGHT: u32 = 272;
 
 impl FvideoServer {
     pub fn new(
@@ -182,7 +182,10 @@ impl FvideoServer {
 
             // Read the input YUV frame
             for plane in 0..3 {
-                let mut buf = self.orig_pic.as_mut_slice(plane).unwrap();
+                let mut buf = match self.alg {
+                    FoveationAlg::TwoStream => self.orig_pic.as_mut_slice(plane).unwrap(),
+                    _ => self.fg_pic.as_mut_slice(plane).unwrap(),
+                };
                 self.video_in.read_exact(&mut buf)?;
             }
         }
@@ -331,7 +334,6 @@ fn crop_x264_pic(
     // Keep the "cropped" window contained in the frame
     //
     // Only allow multiples of 2 to maintain integer values after division
-    dbg!(&gaze);
     let top: u32 = match cmp::max(gaze.p_y as i32 - height as i32 / 2, 0) {
         n if n > 0 && n % 2 == 0 => n as u32,
         n if n > 0 && n % 2 != 0 => n as u32 + 1,

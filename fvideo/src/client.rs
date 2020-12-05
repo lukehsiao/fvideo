@@ -70,8 +70,10 @@ pub struct FvideoClient {
     texture_creator: TextureCreator<WindowContext>,
     canvas: Canvas<Window>,
     event_pump: EventPump,
-    vid_width: u32,
-    vid_height: u32,
+    fg_width: Option<u32>,
+    fg_height: Option<u32>,
+    bg_width: u32,
+    bg_height: u32,
     disp_width: u32,
     disp_height: u32,
     total_bytes: u64,
@@ -111,9 +113,11 @@ impl Drop for FvideoClient {
 }
 
 impl FvideoClient {
-    pub fn new<T: Into<Option<PathBuf>>>(
-        vid_width: u32,
-        vid_height: u32,
+    pub fn new<T: Into<Option<PathBuf>>, U: Into<Option<u32>>>(
+        fg_width: U,
+        fg_height: U,
+        bg_width: u32,
+        bg_height: u32,
         gaze_source: GazeSource,
         cal: Calibrate,
         record: Record,
@@ -200,8 +204,15 @@ impl FvideoClient {
         let video_subsystem = sdl_context.video().unwrap();
         let mut event_pump = sdl_context.event_pump().unwrap();
 
+        let (disp_width, disp_height) = {
+            let disp_rect = video_subsystem.display_bounds(0).unwrap();
+            (disp_rect.w as u32, disp_rect.h as u32)
+        };
+
+        dbg!(&disp_width, &disp_height);
+
         let window = video_subsystem
-            .window("fvideo.rs", vid_width, vid_height)
+            .window("fvideo.rs", disp_width, disp_height)
             .fullscreen_desktop()
             .build()
             .unwrap();
@@ -212,11 +223,6 @@ impl FvideoClient {
             .target_texture()
             .build()
             .unwrap();
-
-        let (disp_width, disp_height) = {
-            let disp_rect = video_subsystem.display_bounds(0).unwrap();
-            (disp_rect.w as u32, disp_rect.h as u32)
-        };
 
         event_pump.enable_event(EventType::MouseMotion);
         event_pump.pump_events();
@@ -230,10 +236,10 @@ impl FvideoClient {
 
         let last_gaze_sample = GazeSample {
             time: Instant::now(),
-            p_x: vid_width / 2,
-            p_y: vid_height / 2,
-            m_x: vid_width / 2 / 16,
-            m_y: vid_height / 2 / 16,
+            p_x: bg_width / 2,
+            p_y: bg_height / 2,
+            m_x: bg_width / 2 / 16,
+            m_y: bg_height / 2 / 16,
         };
 
         FvideoClient {
@@ -242,8 +248,10 @@ impl FvideoClient {
             texture_creator,
             canvas,
             event_pump,
-            vid_width,
-            vid_height,
+            fg_width: fg_width.into(),
+            fg_height: fg_height.into(),
+            bg_width,
+            bg_height,
             disp_width,
             disp_height,
             total_bytes: 0,
@@ -279,8 +287,8 @@ impl FvideoClient {
                 // Make sure pupil is present
                 if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
                     // Scale from display to video resolution
-                    p_x *= self.vid_width as f32 / self.disp_width as f32;
-                    p_y *= self.vid_height as f32 / self.disp_height as f32;
+                    p_x *= self.bg_width as f32 / self.disp_width as f32;
+                    p_y *= self.bg_height as f32 / self.disp_height as f32;
 
                     let gaze = GazeSample {
                         time: Instant::now(),
@@ -315,8 +323,8 @@ impl FvideoClient {
                     let mut p_y = self.event_pump.mouse_state().y() as u32;
 
                     // Scale from display to video resolution
-                    p_x = (p_x as f64 * (self.vid_width as f64 / self.disp_width as f64)) as u32;
-                    p_y = (p_y as f64 * (self.vid_height as f64 / self.disp_height as f64)) as u32;
+                    p_x = (p_x as f64 * (self.bg_width as f64 / self.disp_width as f64)) as u32;
+                    p_y = (p_y as f64 * (self.bg_height as f64 / self.disp_height as f64)) as u32;
 
                     self.last_gaze_sample = GazeSample {
                         time: Instant::now(),
@@ -347,8 +355,8 @@ impl FvideoClient {
                     // Make sure pupil is present
                     if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
                         // Scale from display to video resolution
-                        p_x *= self.vid_width as f32 / self.disp_width as f32;
-                        p_y *= self.vid_height as f32 / self.disp_height as f32;
+                        p_x *= self.bg_width as f32 / self.disp_width as f32;
+                        p_y *= self.bg_height as f32 / self.disp_height as f32;
 
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
@@ -418,13 +426,13 @@ impl FvideoClient {
     /// Decode and display the provided frame.
     pub fn display_frame(&mut self, nal: &NalData) {
         let time = Instant::now();
+        let (width, height) = match (self.fg_width, self.fg_height) {
+            (Some(w), Some(h)) => (w, h),
+            (_, _) => (self.bg_width, self.bg_height),
+        };
         let mut texture = self
             .texture_creator
-            .create_texture_streaming(
-                PixelFormatEnum::YV12,
-                self.vid_width as u32,
-                self.vid_height as u32,
-            )
+            .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
             .unwrap();
         if self.triggered {
             info!("    init texture: {:#?}", time.elapsed());
@@ -444,7 +452,7 @@ impl FvideoClient {
                 }
 
                 let time = Instant::now();
-                let rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
+                let mut rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
                 let _ = texture.update_yuv(
                     rect,
                     self.frame.data(0),
@@ -456,7 +464,11 @@ impl FvideoClient {
                 );
 
                 // TODO(lukehsiao): Is this copy slow?
-                let _ = self.canvas.copy(&texture, None, None);
+                let p_x: i32 = self.event_pump.mouse_state().x();
+                let p_y: i32 = self.event_pump.mouse_state().y();
+                rect.center_on((p_x, p_y));
+                self.canvas.clear();
+                let _ = self.canvas.copy(&texture, None, rect);
                 self.canvas.present();
 
                 self.frame_idx += 1;
