@@ -209,8 +209,6 @@ impl FvideoClient {
             (disp_rect.w as u32, disp_rect.h as u32)
         };
 
-        dbg!(&disp_width, &disp_height);
-
         let window = video_subsystem
             .window("fvideo.rs", disp_width, disp_height)
             .fullscreen_desktop()
@@ -430,10 +428,15 @@ impl FvideoClient {
             (Some(w), Some(h)) => (w, h),
             (_, _) => (self.bg_width, self.bg_height),
         };
-        let mut texture = self
+        let mut fg_texture = self
             .texture_creator
             .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
             .unwrap();
+        let mut bg_texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
+            .unwrap();
+
         if self.triggered {
             info!("    init texture: {:#?}", time.elapsed());
         } else {
@@ -453,7 +456,17 @@ impl FvideoClient {
 
                 let time = Instant::now();
                 let mut rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
-                let _ = texture.update_yuv(
+                let _ = fg_texture.update_yuv(
+                    rect,
+                    self.frame.data(0),
+                    self.frame.stride(0),
+                    self.frame.data(1),
+                    self.frame.stride(1),
+                    self.frame.data(2),
+                    self.frame.stride(2),
+                );
+
+                let _ = bg_texture.update_yuv(
                     rect,
                     self.frame.data(0),
                     self.frame.stride(0),
@@ -468,7 +481,8 @@ impl FvideoClient {
                 let p_y: i32 = self.event_pump.mouse_state().y();
                 rect.center_on((p_x, p_y));
                 self.canvas.clear();
-                let _ = self.canvas.copy(&texture, None, rect);
+                let _ = self.canvas.copy(&bg_texture, None, None);
+                let _ = self.canvas.copy(&fg_texture, None, rect);
                 self.canvas.present();
 
                 self.frame_idx += 1;
