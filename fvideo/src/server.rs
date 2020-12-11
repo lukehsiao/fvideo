@@ -13,6 +13,9 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use std::{num, ptr};
 
+use ffmpeg::format::Pixel;
+use ffmpeg::software::scaling::{context::Context, flag::Flags};
+use ffmpeg::sys as ffmpeg_sys_next;
 use lazy_static::lazy_static;
 use log::{debug, error};
 use regex::Regex;
@@ -23,7 +26,7 @@ use x264::{Encoder, NalData, Param, Picture};
 use crate::GazeSample;
 
 arg_enum! {
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
     pub enum FoveationAlg {
         SquareStep,
         Gaussian,
@@ -45,6 +48,8 @@ pub enum FvideoServerError {
     IoError(#[from] io::Error),
     #[error(transparent)]
     X264Error(#[from] x264::X264Error),
+    #[error(transparent)]
+    FFMpegError(#[from] ffmpeg::Error),
     #[error("Encoder Error: {self}")]
     EncoderError(String),
 }
@@ -60,6 +65,7 @@ pub struct FvideoServer {
     orig_pic: Picture,
     bg_encoder: Option<Encoder>,
     fg_encoder: Encoder,
+    scaler: Context,
     width: u32,
     height: u32,
     mb_x: u32,
@@ -75,6 +81,8 @@ pub struct FvideoServer {
 
 pub const CROP_WIDTH: u32 = 480;
 pub const CROP_HEIGHT: u32 = 272;
+pub const RESCALE_WIDTH: u32 = 1280;
+pub const RESCALE_HEIGHT: u32 = 720;
 
 impl FvideoServer {
     pub fn new(
@@ -106,7 +114,7 @@ impl FvideoServer {
                     .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
                 // TODO: this will also need to be lower resolution than orig
-                let mut bg_par = setup_x264_params(width, height)?;
+                let mut bg_par = setup_x264_params(RESCALE_WIDTH, RESCALE_HEIGHT)?;
                 let bg_pic = Picture::from_param(&bg_par)?;
                 let bg_encoder = Encoder::open(&mut bg_par)
                     .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -123,6 +131,16 @@ impl FvideoServer {
                 (fg_pic, fg_encoder, None, None)
             }
         };
+
+        let scaler = Context::get(
+            Pixel::YUV420P,
+            width,
+            height,
+            Pixel::YUV420P,
+            RESCALE_WIDTH,
+            RESCALE_HEIGHT,
+            Flags::FAST_BILINEAR,
+        )?;
 
         // The frame dimensions in terms of macroblocks
         let mb_x = width / 16;
@@ -141,6 +159,7 @@ impl FvideoServer {
             orig_pic,
             bg_encoder,
             fg_encoder,
+            scaler,
             width,
             height,
             mb_x,
@@ -259,9 +278,21 @@ impl FvideoServer {
                         &mut self.fg_pic,
                     )?;
 
-                    // Crop frame to only the relevant (480 x 272) area
-                    // self.pic.img.i_stride = [480, 240, 240, 0];
-                    // self.pic.plane_size = [480 * 272, 240 * 136, 240 * 136];
+                    // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
+                    // fast_bilinear rather than bilinear gives about 800fps.
+                    unsafe {
+                        ffmpeg_sys_next::sws_scale(
+                            self.scaler.as_mut_ptr(),
+                            self.orig_pic.pic.img.plane.as_ptr() as *const *const _,
+                            self.orig_pic.pic.img.i_stride.as_ptr(),
+                            0,
+                            self.height.try_into()?,
+                            self.bg_pic.as_ref().unwrap().pic.img.plane.as_ptr(),
+                            self.bg_pic.as_ref().unwrap().pic.img.i_stride.as_ptr(),
+                        );
+                    }
+
+                    self.bg_pic.as_mut().unwrap().set_timestamp(self.timestamp);
                 }
             }
         }
