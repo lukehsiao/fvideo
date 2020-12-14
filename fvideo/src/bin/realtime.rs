@@ -64,8 +64,10 @@ use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record, EDF_FILE};
-use fvideo::server::{self, FoveationAlg, FvideoServer, CROP_HEIGHT, CROP_WIDTH};
+use fvideo::client::FvideoClient;
+use fvideo::server::FvideoServer;
+use fvideo::twostreamserver::FvideoTwoStreamServer;
+use fvideo::{Calibrate, FoveationAlg, GazeSource, Record, EDF_FILE};
 
 /// Make sure the qp offset option is in a valid range.
 fn parse_qo_max(src: &str) -> Result<f32> {
@@ -91,7 +93,7 @@ struct Opt {
     #[structopt(short, long, default_value = "0")]
     fovea: u32,
 
-    /// The method used to calculate QP offsets for foveation.
+    /// The method used for foveation.
     #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
     alg: FoveationAlg,
 
@@ -140,22 +142,12 @@ fn main() -> Result<()> {
 
     let gaze_source = opt.gaze_source;
 
-    let (fg_width, fg_height, bg_width, bg_height) = match opt.alg {
-        FoveationAlg::TwoStream => {
-            let (w, h, _) = server::get_video_metadata(&opt.video)?;
-            (Some(CROP_WIDTH), Some(CROP_HEIGHT), w, h)
-        }
-        _ => {
-            let (w, h, _) = server::get_video_metadata(&opt.video)?;
-            (None, None, w, h)
-        }
-    };
+    let (width, height, _) = fvideo::get_video_metadata(&opt.video)?;
 
     let mut client = FvideoClient::new(
-        fg_width,
-        fg_height,
-        bg_width,
-        bg_height,
+        opt.alg,
+        width,
+        height,
         gaze_source,
         if opt.skip_cal {
             Calibrate::No
@@ -189,38 +181,80 @@ fn main() -> Result<()> {
 
     gaze_tx.send(client.gaze_sample())?;
 
-    // Create encoder thread
-    let t_enc = thread::spawn(move || -> Result<()> {
-        let mut server =
-            FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video.clone())?;
+    // Create server thread
+    let alg_clone = opt.alg.clone();
+    let t_enc = match opt.alg {
+        FoveationAlg::TwoStream => {
+            thread::spawn(move || -> Result<()> {
+                let mut server = FvideoTwoStreamServer::new(opt.fovea as i32, opt.video.clone())?;
 
-        for current_gaze in gaze_rx {
-            // Only look at latest available gaze sample
-            let time = Instant::now();
-            let nals = match server.encode_frame(current_gaze) {
-                Ok(n) => n,
-                Err(_) => break,
-            };
-            debug!("Total encode_frame: {:#?}", time.elapsed());
+                for current_gaze in gaze_rx {
+                    // Only look at latest available gaze sample
+                    let time = Instant::now();
+                    let nals = match server.encode_frame(current_gaze) {
+                        Ok(n) => n,
+                        Err(_) => break,
+                    };
+                    debug!("Total encode_frame: {:#?}", time.elapsed());
 
-            for nal in nals {
-                nal_tx.send(nal)?;
-            }
+                    for nal in nals {
+                        nal_tx.send(nal)?;
+                    }
+                }
+                Ok(())
+            })
         }
-        Ok(())
-    });
+        _ => {
+            thread::spawn(move || -> Result<()> {
+                let mut server =
+                    FvideoServer::new(opt.fovea as i32, opt.alg, opt.qo_max, opt.video.clone())?;
+
+                for current_gaze in gaze_rx {
+                    // Only look at latest available gaze sample
+                    let time = Instant::now();
+                    let nals = match server.encode_frame(current_gaze) {
+                        Ok(n) => n,
+                        Err(_) => break,
+                    };
+                    debug!("Total encode_frame: {:#?}", time.elapsed());
+
+                    for nal in nals {
+                        nal_tx.send(nal)?;
+                    }
+                }
+                Ok(())
+            })
+        }
+    };
 
     // Continuously display until channel is closed.
-    for nal in nal_rx {
-        gaze_tx.send(client.gaze_sample())?;
+    match alg_clone {
+        FoveationAlg::TwoStream => {
+            for nal in nal_rx {
+                gaze_tx.send(client.gaze_sample())?;
 
-        // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-        let time = Instant::now();
-        client.display_frame(&nal);
-        debug!("Total display_frame: {:#?}", time.elapsed());
+                // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
+                let time = Instant::now();
+                client.display_frame(nal.0.as_ref().unwrap(), &nal.1);
+                debug!("Total display_frame: {:#?}", time.elapsed());
 
-        // Also save to file
-        outfile.write_all(nal.as_bytes())?;
+                // Also save to file
+                outfile.write_all(nal.0.as_ref().unwrap().as_bytes())?;
+            }
+        }
+        _ => {
+            for nal in nal_rx {
+                gaze_tx.send(client.gaze_sample())?;
+
+                // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
+                let time = Instant::now();
+                client.display_frame(None, &nal.1);
+                debug!("Total display_frame: {:#?}", time.elapsed());
+
+                // Also save to file
+                outfile.write_all(nal.1.as_bytes())?;
+            }
+        }
     }
 
     t_enc.join().unwrap()?;

@@ -20,8 +20,9 @@ use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
-use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record};
+use fvideo::client::FvideoClient;
 use fvideo::dummyserver::{FvideoDummyServer, DIFF_THRESH};
+use fvideo::{Calibrate, FoveationAlg, GazeSource, Record};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -39,6 +40,10 @@ struct Opt {
         case_insensitive=true,
     )]
     gaze_source: GazeSource,
+
+    /// The method used for foveation.
+    #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
+    alg: FoveationAlg,
 
     /// Width of dummy input.
     #[structopt(short, long, default_value = "3840")]
@@ -100,8 +105,7 @@ fn main() -> Result<()> {
     };
 
     let mut client = FvideoClient::new(
-        None,
-        None,
+        opt.alg,
         opt.width,
         opt.height,
         gaze_source,
@@ -167,7 +171,7 @@ fn main() -> Result<()> {
         let time = Instant::now();
 
         // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-        client.display_frame(&nal);
+        client.display_frame(None, &nal);
         if triggered {
             info!("Total display_frame: {:#?}", time.elapsed());
         } else {

@@ -3,8 +3,7 @@ extern crate ffmpeg_next as ffmpeg;
 use log::debug;
 use x264::{Encoder, NalData, Picture};
 
-use crate::server::{self, FvideoServerError};
-use crate::GazeSample;
+use crate::{FvideoServerError, GazeSample};
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
@@ -27,7 +26,7 @@ pub struct FvideoDummyServer {
 impl FvideoDummyServer {
     /// Used to create a dummy video server for measuring e2e latency.
     pub fn new(width: u32, height: u32) -> Result<FvideoDummyServer, FvideoServerError> {
-        let mut par = server::setup_x264_params(width, height)?;
+        let mut par = crate::setup_x264_params(width, height)?;
         let mut pic_black = Picture::from_param(&par)?;
         let mut pic_white = Picture::from_param(&par)?;
         let encoder =

@@ -8,8 +8,8 @@ extern crate ffmpeg_next as ffmpeg;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::path::PathBuf;
+use std::process;
 use std::time::Instant;
-use std::{num, process};
 
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
@@ -20,58 +20,23 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
-use structopt::clap::arg_enum;
-use thiserror::Error;
 
-use crate::GazeSample;
+use crate::twostreamserver::{CROP_HEIGHT, CROP_WIDTH, RESCALE_HEIGHT, RESCALE_WIDTH};
+use crate::{Calibrate, FoveationAlg, GazeSample, GazeSource, Record, EDF_FILE};
 use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
 use x264::NalData;
 
-// TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
-// other filenames (like "recording.edf"). Not sure why.
-pub const EDF_FILE: &str = "test.edf";
-
-arg_enum! {
-    #[derive(Copy, Clone, PartialEq, Debug)]
-    pub enum GazeSource {
-        Mouse,
-        Eyelink,
-        TraceFile,
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum FvideoClientError {
-    #[error(transparent)]
-    ParseIntError(#[from] num::ParseIntError),
-    #[error(transparent)]
-    ParseFloatError(#[from] num::ParseFloatError),
-    #[error(transparent)]
-    EyelinkError(#[from] eyelink_rs::EyelinkError),
-}
-
-#[derive(Debug)]
-pub enum Calibrate {
-    Yes,
-    No,
-}
-
-#[derive(Debug)]
-pub enum Record {
-    Yes,
-    No,
-}
-
 pub struct FvideoClient {
-    decoder: decoder::Video,
-    frame: Video,
+    alg: FoveationAlg,
+    fg_decoder: decoder::Video,
+    bg_decoder: decoder::Video,
     texture_creator: TextureCreator<WindowContext>,
     canvas: Canvas<Window>,
     event_pump: EventPump,
-    fg_width: Option<u32>,
-    fg_height: Option<u32>,
+    fg_width: u32,
+    fg_height: u32,
     bg_width: u32,
     bg_height: u32,
     disp_width: u32,
@@ -108,16 +73,16 @@ impl Drop for FvideoClient {
         }
 
         // Make sure to flush decoder.
-        self.decoder.flush();
+        self.fg_decoder.flush();
+        self.bg_decoder.flush();
     }
 }
 
 impl FvideoClient {
-    pub fn new<T: Into<Option<PathBuf>>, U: Into<Option<u32>>>(
-        fg_width: U,
-        fg_height: U,
-        bg_width: u32,
-        bg_height: u32,
+    pub fn new<T: Into<Option<PathBuf>>>(
+        alg: FoveationAlg,
+        width: u32,
+        height: u32,
         gaze_source: GazeSource,
         cal: Calibrate,
         record: Record,
@@ -194,7 +159,14 @@ impl FvideoClient {
                 };
             }
         }
-        let decoder = decoder::new()
+
+        let fg_decoder = decoder::new()
+            .open_as(decoder::find(codec::Id::H264))
+            .unwrap()
+            .video()
+            .unwrap();
+
+        let bg_decoder = decoder::new()
             .open_as(decoder::find(codec::Id::H264))
             .unwrap()
             .video()
@@ -234,20 +206,26 @@ impl FvideoClient {
 
         let last_gaze_sample = GazeSample {
             time: Instant::now(),
-            p_x: bg_width / 2,
-            p_y: bg_height / 2,
-            m_x: bg_width / 2 / 16,
-            m_y: bg_height / 2 / 16,
+            p_x: width / 2,
+            p_y: height / 2,
+            m_x: width / 2 / 16,
+            m_y: height / 2 / 16,
+        };
+
+        let (fg_width, fg_height, bg_width, bg_height) = match alg {
+            FoveationAlg::TwoStream => (CROP_WIDTH, CROP_HEIGHT, RESCALE_WIDTH, RESCALE_HEIGHT),
+            _ => (width, height, width, height),
         };
 
         FvideoClient {
-            decoder,
-            frame: Video::empty(),
+            alg,
+            fg_decoder,
+            bg_decoder,
             texture_creator,
             canvas,
             event_pump,
-            fg_width: fg_width.into(),
-            fg_height: fg_height.into(),
+            fg_width,
+            fg_height,
             bg_width,
             bg_height,
             disp_width,
@@ -421,20 +399,12 @@ impl FvideoClient {
         self.frame_idx += 1;
     }
 
-    /// Decode and display the provided frame.
-    pub fn display_frame(&mut self, nal: &NalData) {
+    fn display_onestream_frame(&mut self, nal: &NalData) {
         let time = Instant::now();
-        let (width, height) = match (self.fg_width, self.fg_height) {
-            (Some(w), Some(h)) => (w, h),
-            (_, _) => (self.bg_width, self.bg_height),
-        };
-        let mut fg_texture = self
+
+        let mut texture = self
             .texture_creator
-            .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
-            .unwrap();
-        let mut bg_texture = self
-            .texture_creator
-            .create_texture_streaming(PixelFormatEnum::YV12, width as u32, height as u32)
+            .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
             .unwrap();
 
         if self.triggered {
@@ -446,7 +416,8 @@ impl FvideoClient {
         let dec_time = Instant::now();
         let packet = Packet::copy(nal.as_bytes());
         self.total_bytes += packet.size() as u64;
-        match self.decoder.decode(&packet, &mut self.frame) {
+        let mut frame = Video::empty();
+        match self.bg_decoder.decode(&packet, &mut frame) {
             Ok(true) => {
                 if self.triggered {
                     info!("    decode nal: {:?}", dec_time.elapsed());
@@ -455,34 +426,17 @@ impl FvideoClient {
                 }
 
                 let time = Instant::now();
-                let mut rect = Rect::new(0, 0, self.frame.width(), self.frame.height());
-                let _ = fg_texture.update_yuv(
+                let rect = Rect::new(0, 0, frame.width(), frame.height());
+                let _ = texture.update_yuv(
                     rect,
-                    self.frame.data(0),
-                    self.frame.stride(0),
-                    self.frame.data(1),
-                    self.frame.stride(1),
-                    self.frame.data(2),
-                    self.frame.stride(2),
+                    frame.data(0),
+                    frame.stride(0),
+                    frame.data(1),
+                    frame.stride(1),
+                    frame.data(2),
+                    frame.stride(2),
                 );
-
-                let _ = bg_texture.update_yuv(
-                    rect,
-                    self.frame.data(0),
-                    self.frame.stride(0),
-                    self.frame.data(1),
-                    self.frame.stride(1),
-                    self.frame.data(2),
-                    self.frame.stride(2),
-                );
-
-                // TODO(lukehsiao): Is this copy slow?
-                let p_x: i32 = self.event_pump.mouse_state().x();
-                let p_y: i32 = self.event_pump.mouse_state().y();
-                rect.center_on((p_x, p_y));
-                self.canvas.clear();
-                let _ = self.canvas.copy(&bg_texture, None, None);
-                let _ = self.canvas.copy(&fg_texture, None, rect);
+                let _ = self.canvas.copy(&texture, None, None);
                 self.canvas.present();
 
                 self.frame_idx += 1;
@@ -496,6 +450,99 @@ impl FvideoClient {
             Err(_) => {
                 error!("Error occured while decoding packet.");
             }
+        }
+    }
+
+    fn display_twostream_frame(&mut self, fg_nal: &NalData, bg_nal: &NalData) {
+        let time = Instant::now();
+
+        let mut fg_texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, self.fg_width, self.fg_height)
+            .unwrap();
+
+        let mut bg_texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
+            .unwrap();
+
+        if self.triggered {
+            info!("    init texture: {:#?}", time.elapsed());
+        } else {
+            debug!("    init texture: {:#?}", time.elapsed());
+        }
+
+        let dec_time = Instant::now();
+        let fg_packet = Packet::copy(fg_nal.as_bytes());
+        let bg_packet = Packet::copy(bg_nal.as_bytes());
+        self.total_bytes += fg_packet.size() as u64 + bg_packet.size() as u64;
+        let mut fg_frame = Video::empty();
+        let mut bg_frame = Video::empty();
+        match (
+            self.fg_decoder.decode(&fg_packet, &mut fg_frame),
+            self.bg_decoder.decode(&bg_packet, &mut bg_frame),
+        ) {
+            (Ok(true), Ok(true)) => {
+                if self.triggered {
+                    info!("    decode nal: {:?}", dec_time.elapsed());
+                } else {
+                    debug!("    decode nal: {:?}", dec_time.elapsed());
+                }
+
+                let time = Instant::now();
+                let mut fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
+                let bg_rect = Rect::new(0, 0, bg_frame.width(), bg_frame.height());
+                let _ = fg_texture.update_yuv(
+                    fg_rect,
+                    fg_frame.data(0),
+                    fg_frame.stride(0),
+                    fg_frame.data(1),
+                    fg_frame.stride(1),
+                    fg_frame.data(2),
+                    fg_frame.stride(2),
+                );
+
+                let _ = bg_texture.update_yuv(
+                    bg_rect,
+                    bg_frame.data(0),
+                    bg_frame.stride(0),
+                    bg_frame.data(1),
+                    bg_frame.stride(1),
+                    bg_frame.data(2),
+                    bg_frame.stride(2),
+                );
+
+                // TODO(lukehsiao): Is this copy slow?
+                let p_x: i32 = self.event_pump.mouse_state().x();
+                let p_y: i32 = self.event_pump.mouse_state().y();
+                fg_rect.center_on((p_x, p_y));
+                self.canvas.clear();
+                let _ = self.canvas.copy(&bg_texture, None, None);
+                let _ = self.canvas.copy(&fg_texture, None, fg_rect);
+                self.canvas.present();
+
+                self.frame_idx += 1;
+                if self.triggered {
+                    info!("    display new frame: {:?}", time.elapsed());
+                } else {
+                    debug!("    display new frame: {:?}", time.elapsed());
+                }
+            }
+            (Ok(false), Ok(_)) | (Ok(_), Ok(false)) => (),
+            (Err(_), _) | (_, Err(_)) => {
+                error!("Error occured while decoding packet.");
+            }
+        }
+    }
+
+    /// Decode and display the provided frame.
+    pub fn display_frame<'a, T>(&mut self, fg_nal: T, bg_nal: &NalData)
+    where
+        T: Into<Option<&'a NalData>>,
+    {
+        match self.alg {
+            FoveationAlg::TwoStream => self.display_twostream_frame(fg_nal.into().unwrap(), bg_nal),
+            _ => self.display_onestream_frame(bg_nal),
         }
     }
 

@@ -17,8 +17,9 @@ use serialport::{ClearBuffer, SerialPortSettings};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::client::{Calibrate, FvideoClient, GazeSource, Record};
+use fvideo::client::FvideoClient;
 use fvideo::dummyserver::DIFF_THRESH;
+use fvideo::{Calibrate, FoveationAlg, GazeSource, Record};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -36,6 +37,10 @@ struct Opt {
         case_insensitive=true,
     )]
     gaze_source: GazeSource,
+
+    /// The method used for foveation.
+    #[structopt(short, long, default_value = "Gaussian", possible_values = &FoveationAlg::variants(), case_insensitive=true)]
+    alg: FoveationAlg,
 
     /// Width of dummy input.
     #[structopt(short, long, default_value = "1920")]
@@ -86,8 +91,7 @@ fn main() -> Result<()> {
     };
 
     let mut client = FvideoClient::new(
-        None,
-        None,
+        opt.alg,
         opt.width,
         opt.height,
         opt.gaze_source,
