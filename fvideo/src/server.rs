@@ -59,7 +59,7 @@ impl FvideoServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let mut par = crate::setup_x264_params(width, height)?;
+        let mut par = crate::setup_x264_params(width, height, 24)?;
         let pic = Picture::from_param(&par)?;
         let encoder =
             Encoder::open(&mut par).map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;

@@ -37,10 +37,10 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const CROP_WIDTH: u32 = 480;
-pub const CROP_HEIGHT: u32 = 272;
-pub const RESCALE_WIDTH: u32 = 1280;
-pub const RESCALE_HEIGHT: u32 = 720;
+pub const CROP_WIDTH: u32 = 160;
+pub const CROP_HEIGHT: u32 = 160;
+pub const RESCALE_WIDTH: u32 = 1024;
+pub const RESCALE_HEIGHT: u32 = 576;
 
 impl FvideoTwoStreamServer {
     pub fn new(fovea: i32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
@@ -56,17 +56,17 @@ impl FvideoTwoStreamServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let orig_par = crate::setup_x264_params(width, height)?;
+        let orig_par = crate::setup_x264_params(width, height, 24)?;
         let orig_pic = Picture::from_param(&orig_par)?;
 
         // foreground stream is cropped
-        let mut fg_par = crate::setup_x264_params(CROP_WIDTH, CROP_HEIGHT)?;
+        let mut fg_par = crate::setup_x264_params(CROP_WIDTH, CROP_HEIGHT, 24)?;
         let fg_pic = Picture::from_param(&fg_par)?;
         let fg_encoder = Encoder::open(&mut fg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params(RESCALE_WIDTH, RESCALE_HEIGHT)?;
+        let mut bg_par = crate::setup_x264_params(RESCALE_WIDTH, RESCALE_HEIGHT, 32)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -214,6 +214,10 @@ impl FvideoTwoStreamServer {
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
+    ///
+    /// TODO(lukehsiao): Currently two bugs. First, the position needs to be scaled for the display
+    /// (like the background image is). Second, the crop has a weird duplicate image thing going
+    /// on, as if it's horizontally squished.
     fn crop_x264_pic(
         &mut self,
         gaze: &GazeSample,
@@ -224,24 +228,22 @@ impl FvideoTwoStreamServer {
         let p_y = gaze.d_y * self.height as f32;
         let p_x = gaze.d_x * self.width as f32;
 
-        // Keep the "cropped" window contained in the frame
-        //
+        // Keep the "cropped" window contained in the frame.
         // Only allow multiples of 2 to maintain integer values after division
-        let top: u32 = match cmp::max(p_y as i32 - height as i32 / 2, 0) {
+        let top: u32 = match cmp::max(p_y.round() as i32 - height as i32 / 2, 0) {
             n if n > 0 && n % 2 == 0 => n as u32,
             n if n > 0 && n % 2 != 0 => n as u32 + 1,
             _ => 0,
         };
-
-        let left: u32 = match cmp::max(p_x as i32 - width as i32 / 2, 0) {
+        let left: u32 = match cmp::max(p_x.round() as i32 - width as i32 / 2, 0) {
             n if n > 0 && n % 2 == 0 => n as u32,
             n if n > 0 && n % 2 != 0 => n as u32 + 1,
             _ => 0,
         };
 
         // TODO(lukehsiao): hard-coded color space values for now.
-        let csp_height = vec![1.0, 0.5, 0.5];
-        let csp_width = vec![1.0, 0.5, 0.5];
+        let csp_height = [1.0, 0.5, 0.5];
+        let csp_width = [1.0, 0.5, 0.5];
 
         let mut offset_plane: [*mut u8; 4] = [ptr::null_mut(); 4];
 

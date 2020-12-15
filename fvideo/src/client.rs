@@ -484,6 +484,7 @@ impl FvideoClient {
         let fg_packet = Packet::copy(fg_nal.as_bytes());
         let bg_packet = Packet::copy(bg_nal.as_bytes());
         self.total_bytes += fg_packet.size() as u64 + bg_packet.size() as u64;
+        // self.total_bytes += fg_packet.size() as u64;
         let mut fg_frame = Video::empty();
         let mut bg_frame = Video::empty();
         match (
