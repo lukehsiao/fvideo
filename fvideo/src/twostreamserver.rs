@@ -20,7 +20,7 @@ use crate::{FvideoServerError, GazeSample};
 
 /// Server/Encoder Struct
 pub struct FvideoTwoStreamServer {
-    fovea: i32,
+    _fovea: i32,
     video_in: BufReader<File>,
     bg_pic: Picture,
     fg_pic: Picture,
@@ -84,7 +84,7 @@ impl FvideoTwoStreamServer {
         let frame_time = Instant::now();
 
         Ok(FvideoTwoStreamServer {
-            fovea,
+            _fovea: fovea,
             video_in,
             bg_pic,
             fg_pic,
@@ -147,32 +147,39 @@ impl FvideoTwoStreamServer {
         self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
 
-        if self.fovea > 0 && self.timestamp >= 0 {
-            crop_x264_pic(
-                &self.orig_pic,
-                &gaze,
-                CROP_WIDTH,
-                CROP_HEIGHT,
-                &mut self.fg_pic,
-            )?;
+        //TODO(lukehsiao): Need to scale back up the gaze sample for for the original picture, or
+        //only contain display coordinates and scale before use.
+        // Scale gaze sample back up to original
+        // Scale from display to video resolution
+        // p_x *= self.bg_width as f32 / self.disp_width as f32;
+        // p_y *= self.bg_height as f32 / self.disp_height as f32;
+        //
+        // let gaze = GazeSample {
+        //     time: Instant::now(),
+        //     p_x: p_x.round() as u32,
+        //     p_y: p_y.round() as u32,
+        //     m_x: (p_x / 16.0).round() as u32,
+        //     m_y: (p_y / 16.0).round() as u32,
+        // };
 
-            // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
-            // fast_bilinear rather than bilinear gives about 800fps.
-            unsafe {
-                ffmpeg_sys_next::sws_scale(
-                    self.scaler.as_mut_ptr(),
-                    self.orig_pic.pic.img.plane.as_ptr() as *const *const _,
-                    self.orig_pic.pic.img.i_stride.as_ptr(),
-                    0,
-                    self.height.try_into()?,
-                    self.bg_pic.pic.img.plane.as_ptr(),
-                    self.bg_pic.pic.img.i_stride.as_ptr(),
-                );
-            }
+        // Crop section into fg_pic
+        self.crop_x264_pic(&gaze, CROP_WIDTH, CROP_HEIGHT)?;
 
-            self.bg_pic.set_timestamp(self.timestamp);
+        // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
+        // fast_bilinear rather than bilinear gives about 800fps.
+        unsafe {
+            ffmpeg_sys_next::sws_scale(
+                self.scaler.as_mut_ptr(),
+                self.orig_pic.pic.img.plane.as_ptr() as *const *const _,
+                self.orig_pic.pic.img.i_stride.as_ptr(),
+                0,
+                self.height.try_into()?,
+                self.bg_pic.pic.img.plane.as_ptr(),
+                self.bg_pic.pic.img.i_stride.as_ptr(),
+            );
         }
 
+        self.bg_pic.set_timestamp(self.timestamp);
         self.fg_pic.set_timestamp(self.timestamp);
         self.timestamp += 1;
 
@@ -205,60 +212,67 @@ impl FvideoTwoStreamServer {
 
         Ok(nals)
     }
-}
 
-/// Crop orig_pic centered around the gaze and place into fg_pic.
-fn crop_x264_pic(
-    src: &Picture,
-    gaze: &GazeSample,
-    width: u32,
-    height: u32,
-    dst: &mut Picture,
-) -> Result<(), FvideoServerError> {
-    // Keep the "cropped" window contained in the frame
-    //
-    // Only allow multiples of 2 to maintain integer values after division
-    let top: u32 = match cmp::max(gaze.p_y as i32 - height as i32 / 2, 0) {
-        n if n > 0 && n % 2 == 0 => n as u32,
-        n if n > 0 && n % 2 != 0 => n as u32 + 1,
-        _ => 0,
-    };
+    /// Crop orig_pic centered around the gaze and place into fg_pic.
+    fn crop_x264_pic(
+        &mut self,
+        gaze: &GazeSample,
+        width: u32,
+        height: u32,
+    ) -> Result<(), FvideoServerError> {
+        // Scale from disp coordinates to original video coordinates
+        let p_y = gaze.p_y * self.height / RESCALE_HEIGHT;
+        let p_x = gaze.p_x * self.width / RESCALE_WIDTH;
 
-    let left: u32 = match cmp::max(gaze.p_x as i32 - width as i32 / 2, 0) {
-        n if n > 0 && n % 2 == 0 => n as u32,
-        n if n > 0 && n % 2 != 0 => n as u32 + 1,
-        _ => 0,
-    };
+        // Keep the "cropped" window contained in the frame
+        //
+        // Only allow multiples of 2 to maintain integer values after division
+        let top: u32 = match cmp::max(p_y as i32 - height as i32 / 2, 0) {
+            n if n > 0 && n % 2 == 0 => n as u32,
+            n if n > 0 && n % 2 != 0 => n as u32 + 1,
+            _ => 0,
+        };
 
-    // TODO(lukehsiao): hard-coded color space values for now.
-    let csp_height = vec![1.0, 0.5, 0.5];
-    let csp_width = vec![1.0, 0.5, 0.5];
+        let left: u32 = match cmp::max(p_x as i32 - width as i32 / 2, 0) {
+            n if n > 0 && n % 2 == 0 => n as u32,
+            n if n > 0 && n % 2 != 0 => n as u32 + 1,
+            _ => 0,
+        };
 
-    let mut offset_plane: [*mut u8; 4] = [ptr::null_mut(); 4];
+        // TODO(lukehsiao): hard-coded color space values for now.
+        let csp_height = vec![1.0, 0.5, 0.5];
+        let csp_width = vec![1.0, 0.5, 0.5];
 
-    // Shift the plane pointers down 'top' rows and right 'left' columns
-    for i in 0..3 {
-        let mut offset: isize =
-            (src.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i]) as isize;
-        offset += (left as f32 * csp_width[i] * src.pic.img.i_csp as f32) as isize;
+        let mut offset_plane: [*mut u8; 4] = [ptr::null_mut(); 4];
 
-        // grab the offset ptrs
-        // Copy data into fg_pic
-        unsafe {
-            offset_plane[i] = src.pic.img.plane[i].offset(offset);
+        // Shift the plane pointers down 'top' rows and right 'left' columns
+        for i in 0..3 {
+            let mut offset: isize =
+                (self.orig_pic.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i]) as isize;
+            offset += (left as f32 * csp_width[i] * self.orig_pic.pic.img.i_csp as f32) as isize;
 
-            // Manually copying over. Is this too slow?
-            let mut src_ptr: *mut u8 = offset_plane[i];
-            let mut dst_ptr: *mut u8 = dst.pic.img.plane[i];
+            // grab the offset ptrs
+            // Copy data into fg_pic
+            unsafe {
+                offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset);
 
-            for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]) as u32 {
-                ptr::copy_nonoverlapping(src_ptr, dst_ptr, dst.pic.img.i_stride[i] as usize);
+                // Manually copying over. Is this too slow?
+                let mut src_ptr: *mut u8 = offset_plane[i];
+                let mut dst_ptr: *mut u8 = self.fg_pic.pic.img.plane[i];
 
-                // Advance a full row
-                src_ptr = src_ptr.offset(src.pic.img.i_stride[i] as isize);
-                dst_ptr = dst_ptr.offset(dst.pic.img.i_stride[i] as isize);
+                for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]) as u32 {
+                    ptr::copy_nonoverlapping(
+                        src_ptr,
+                        dst_ptr,
+                        self.fg_pic.pic.img.i_stride[i] as usize,
+                    );
+
+                    // Advance a full row
+                    src_ptr = src_ptr.offset(self.orig_pic.pic.img.i_stride[i] as isize);
+                    dst_ptr = dst_ptr.offset(self.fg_pic.pic.img.i_stride[i] as isize);
+                }
             }
         }
+        Ok(())
     }
-    Ok(())
 }
