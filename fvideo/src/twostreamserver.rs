@@ -221,8 +221,8 @@ impl FvideoTwoStreamServer {
         height: u32,
     ) -> Result<(), FvideoServerError> {
         // Scale from disp coordinates to original video coordinates
-        let p_y = gaze.p_y * self.height / RESCALE_HEIGHT;
-        let p_x = gaze.p_x * self.width / RESCALE_WIDTH;
+        let p_y = gaze.d_y * self.height as f32;
+        let p_x = gaze.d_x * self.width as f32;
 
         // Keep the "cropped" window contained in the frame
         //

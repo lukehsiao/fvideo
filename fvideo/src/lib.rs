@@ -23,8 +23,10 @@ pub mod twostreamserver;
 #[derive(Copy, Clone, Debug)]
 pub struct GazeSample {
     pub time: Instant, // time of the sample
-    pub p_x: u32,      // x position in px
-    pub p_y: u32,      // y position in px
+    pub d_x: f32,      // x position as fraction of disp width
+    pub d_y: f32,      // y position as fraction of disp height
+    pub p_x: u32,      // x position in video px
+    pub p_y: u32,      // y position in video px
     pub m_x: u32,      // x position in macroblock
     pub m_y: u32,      // y position in macroblock
 }

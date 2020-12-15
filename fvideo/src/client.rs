@@ -206,6 +206,8 @@ impl FvideoClient {
 
         let last_gaze_sample = GazeSample {
             time: Instant::now(),
+            d_x: 0.5,
+            d_y: 0.5,
             p_x: width / 2,
             p_y: height / 2,
             m_x: width / 2 / 16,
@@ -255,19 +257,21 @@ impl FvideoClient {
                     }
                 };
 
-                let mut p_x = evt.gx[idx];
-                let mut p_y = evt.gy[idx];
+                let d_x = evt.gx[idx];
+                let d_y = evt.gy[idx];
 
                 let pa = evt.pa[idx];
 
                 // Make sure pupil is present
-                if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
+                if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
                     // Scale from display to video resolution
-                    p_x *= self.bg_width as f32 / self.disp_width as f32;
-                    p_y *= self.bg_height as f32 / self.disp_height as f32;
+                    let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
+                    let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
                     let gaze = GazeSample {
                         time: Instant::now(),
+                        d_x: d_x / self.disp_width as f32,
+                        d_y: d_y / self.disp_height as f32,
                         p_x: p_x.round() as u32,
                         p_y: p_y.round() as u32,
                         m_x: (p_x / 16.0).round() as u32,
@@ -295,19 +299,21 @@ impl FvideoClient {
             GazeSource::Mouse => {
                 // Grab mouse position using SDL2.
                 if self.event_pump.poll_iter().last().is_some() {
-                    let mut p_x = self.event_pump.mouse_state().x() as u32;
-                    let mut p_y = self.event_pump.mouse_state().y() as u32;
+                    let d_x = self.event_pump.mouse_state().x() as f32;
+                    let d_y = self.event_pump.mouse_state().y() as f32;
 
                     // Scale from display to video resolution
-                    p_x = (p_x as f64 * (self.bg_width as f64 / self.disp_width as f64)) as u32;
-                    p_y = (p_y as f64 * (self.bg_height as f64 / self.disp_height as f64)) as u32;
+                    let p_x = d_x * (self.bg_width as f32 / self.disp_width as f32);
+                    let p_y = d_y * (self.bg_height as f32 / self.disp_height as f32);
 
                     self.last_gaze_sample = GazeSample {
                         time: Instant::now(),
-                        p_x,
-                        p_y,
-                        m_x: p_x / 16,
-                        m_y: p_y / 16,
+                        d_x: d_x / self.disp_width as f32,
+                        d_y: d_y / self.disp_height as f32,
+                        p_x: p_x.round() as u32,
+                        p_y: p_y.round() as u32,
+                        m_x: (p_x / 16.0).round() as u32,
+                        m_y: (p_y / 16.0).round() as u32,
                     };
                 }
             }
@@ -323,19 +329,21 @@ impl FvideoClient {
                         }
                     };
 
-                    let mut p_x = evt.gx[idx];
-                    let mut p_y = evt.gy[idx];
+                    let d_x = evt.gx[idx];
+                    let d_y = evt.gy[idx];
 
                     let pa = evt.pa[idx];
 
                     // Make sure pupil is present
-                    if p_x as i32 != MISSING_DATA && p_y as i32 != MISSING_DATA && pa > 0.0 {
+                    if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
                         // Scale from display to video resolution
-                        p_x *= self.bg_width as f32 / self.disp_width as f32;
-                        p_y *= self.bg_height as f32 / self.disp_height as f32;
+                        let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
+                        let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
+                            d_x: d_x / self.disp_width as f32,
+                            d_y: d_y / self.disp_height as f32,
                             p_x: p_x.round() as u32,
                             p_y: p_y.round() as u32,
                             m_x: (p_x / 16.0).round() as u32,
