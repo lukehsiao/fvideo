@@ -26,10 +26,10 @@ name = "latency"
 name = "minlatency"
 
 [dependencies]
-anyhow = "1.0.34"
+anyhow = "1.0.35"
 chrono = "0.4.19"
 eyelink-rs = {path = "../eyelink-rs"}
-ffmpeg-next = "4.3.7"
+ffmpeg-next = "4.3.8"
 lazy_static = "1.4.0"
 log = "0.4.11"
 num-rational = "0.3.2"
