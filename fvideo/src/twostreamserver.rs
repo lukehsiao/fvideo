@@ -214,10 +214,6 @@ impl FvideoTwoStreamServer {
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
-    ///
-    /// TODO(lukehsiao): Currently two bugs. First, the position needs to be scaled for the display
-    /// (like the background image is). Second, the crop has a weird duplicate image thing going
-    /// on, as if it's horizontally squished.
     fn crop_x264_pic(
         &mut self,
         gaze: &GazeSample,
@@ -249,29 +245,29 @@ impl FvideoTwoStreamServer {
 
         // Shift the plane pointers down 'top' rows and right 'left' columns
         for i in 0..3 {
-            let mut offset: isize =
-                (self.orig_pic.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i]) as isize;
-            offset += (left as f32 * csp_width[i] * self.orig_pic.pic.img.i_csp as f32) as isize;
+            let mut offset: f32 =
+                self.orig_pic.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i];
+            offset += left as f32 * csp_width[i];
 
             // grab the offset ptrs
             // Copy data into fg_pic
             unsafe {
-                offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset);
+                offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset.round() as isize);
 
                 // Manually copying over. Is this too slow?
                 let mut src_ptr: *mut u8 = offset_plane[i];
                 let mut dst_ptr: *mut u8 = self.fg_pic.pic.img.plane[i];
 
-                for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]) as u32 {
+                for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]).round() as u32 {
                     ptr::copy_nonoverlapping(
                         src_ptr,
                         dst_ptr,
-                        self.fg_pic.pic.img.i_stride[i] as usize,
+                        self.fg_pic.pic.img.i_stride[i].try_into().unwrap(),
                     );
 
                     // Advance a full row
-                    src_ptr = src_ptr.offset(self.orig_pic.pic.img.i_stride[i] as isize);
-                    dst_ptr = dst_ptr.offset(self.fg_pic.pic.img.i_stride[i] as isize);
+                    src_ptr = src_ptr.offset(self.orig_pic.pic.img.i_stride[i].try_into().unwrap());
+                    dst_ptr = dst_ptr.offset(self.fg_pic.pic.img.i_stride[i].try_into().unwrap());
                 }
             }
         }

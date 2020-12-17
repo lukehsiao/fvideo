@@ -268,7 +268,7 @@ fn main() -> Result<()> {
         elapsed.as_secs_f64(),
         frame_index as f64 / elapsed.as_secs_f64()
     );
-    info!("Total Encoded Size: {} bytes", total_bytes);
+    info!("Total Encoded Size: {} bytes\n", total_bytes);
 
     // TODO(lukehsiao): This is kind of hack-y. Should probably have the client
     // do this.
