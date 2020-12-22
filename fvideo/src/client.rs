@@ -522,8 +522,8 @@ impl FvideoClient {
                 );
 
                 // TODO(lukehsiao): Is this copy slow?
-                let p_x: i32 = self.event_pump.mouse_state().x();
-                let p_y: i32 = self.event_pump.mouse_state().y();
+                let p_x: i32 = (self.last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
+                let p_y: i32 = (self.last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
                 fg_rect.center_on((p_x, p_y));
                 self.canvas.clear();
                 let _ = self.canvas.copy(&bg_texture, None, None);
