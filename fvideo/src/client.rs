@@ -17,7 +17,7 @@ use log::{debug, error, info};
 use sdl2::event::EventType;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, TextureCreator};
+use sdl2::render::{BlendMode, Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 
@@ -479,6 +479,11 @@ impl FvideoClient {
             .texture_creator
             .create_texture_streaming(PixelFormatEnum::YV12, self.fg_width, self.fg_height)
             .unwrap();
+        // TODO(lukehsiao): Create a new texture mask the same size as fg_texture with the 2d
+        // gaussian, then blend the fg_texture with that one in additive(?) mode to get the 2d alpha
+        // channels set correctly, then just copy to the renderer as normal.
+        // fg_texture.set_blend_mode(BlendMode::Blend);
+        // fg_texture.set_alpha_mod(200);
 
         let mut bg_texture = self
             .texture_creator
