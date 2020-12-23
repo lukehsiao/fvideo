@@ -21,7 +21,7 @@ use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 
-use crate::twostreamserver::{CROP_HEIGHT, CROP_WIDTH, RESCALE_HEIGHT, RESCALE_WIDTH};
+use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
 use crate::{Calibrate, FoveationAlg, GazeSample, GazeSource, Record, EDF_FILE};
 use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
@@ -83,6 +83,7 @@ impl Drop for FvideoClient {
 impl FvideoClient {
     pub fn new<T: Into<Option<PathBuf>>>(
         alg: FoveationAlg,
+        fovea: u32,
         width: u32,
         height: u32,
         gaze_source: GazeSource,
@@ -216,8 +217,14 @@ impl FvideoClient {
             m_y: height / 2 / 16,
         };
 
+        let fovea_size = match fovea {
+            n if n * 16 > height => height,
+            0 => panic!("Error"), // this is "no foveation"
+            n => n * 16,
+        };
+
         let (fg_width, fg_height, bg_width, bg_height) = match alg {
-            FoveationAlg::TwoStream => (CROP_WIDTH, CROP_HEIGHT, RESCALE_WIDTH, RESCALE_HEIGHT),
+            FoveationAlg::TwoStream => (fovea_size, fovea_size, RESCALE_WIDTH, RESCALE_HEIGHT),
             _ => (width, height, width, height),
         };
 

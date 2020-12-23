@@ -90,7 +90,8 @@ struct Opt {
     /// The parameter for the size of the foveal region (0 = disable foveation).
     ///
     /// The meaning of this value depends on the Foveation Algorithm.
-    #[structopt(short, long, default_value = "0")]
+    /// TODO(lukehsiao): explain the differences.
+    #[structopt(short, long, default_value = "1")]
     fovea: u32,
 
     /// The method used for foveation.
@@ -146,6 +147,7 @@ fn main() -> Result<()> {
 
     let mut client = FvideoClient::new(
         opt.alg,
+        opt.fovea,
         width,
         height,
         gaze_source,
@@ -186,7 +188,7 @@ fn main() -> Result<()> {
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
-                let mut server = FvideoTwoStreamServer::new(opt.fovea as i32, opt.video.clone())?;
+                let mut server = FvideoTwoStreamServer::new(opt.fovea, opt.video.clone())?;
 
                 for current_gaze in gaze_rx {
                     // Only look at latest available gaze sample

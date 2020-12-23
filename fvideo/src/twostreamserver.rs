@@ -20,7 +20,7 @@ use crate::{FvideoServerError, GazeSample};
 
 /// Server/Encoder Struct
 pub struct FvideoTwoStreamServer {
-    _fovea: i32,
+    fovea: u32,
     video_in: BufReader<File>,
     bg_pic: Picture,
     fg_pic: Picture,
@@ -37,13 +37,11 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const CROP_WIDTH: u32 = 160;
-pub const CROP_HEIGHT: u32 = 160;
 pub const RESCALE_WIDTH: u32 = 1024;
 pub const RESCALE_HEIGHT: u32 = 576;
 
 impl FvideoTwoStreamServer {
-    pub fn new(fovea: i32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
+    pub fn new(fovea: u32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
         let video_in = File::open(video)?;
         let mut video_in = BufReader::new(video_in);
 
@@ -54,13 +52,23 @@ impl FvideoTwoStreamServer {
         video_in.read_line(&mut hdr).unwrap();
         let (width, height, fps) = crate::parse_y4m_header(&hdr)?;
 
+        let fovea_size = match fovea {
+            n if n * 16 > height => height,
+            0 => {
+                return Err(FvideoServerError::TwoStreamError(
+                    "TwoStream requires fovea to be non-zero.".to_string(),
+                ))
+            }
+            n => n * 16,
+        };
+
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
         let orig_par = crate::setup_x264_params(width, height, 24)?;
         let orig_pic = Picture::from_param(&orig_par)?;
 
         // foreground stream is cropped
-        let mut fg_par = crate::setup_x264_params(CROP_WIDTH, CROP_HEIGHT, 24)?;
+        let mut fg_par = crate::setup_x264_params(fovea_size, fovea_size, 24)?;
         let fg_pic = Picture::from_param(&fg_par)?;
         let fg_encoder = Encoder::open(&mut fg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -84,7 +92,7 @@ impl FvideoTwoStreamServer {
         let frame_time = Instant::now();
 
         Ok(FvideoTwoStreamServer {
-            _fovea: fovea,
+            fovea: fovea_size,
             video_in,
             bg_pic,
             fg_pic,
@@ -163,7 +171,7 @@ impl FvideoTwoStreamServer {
         // };
 
         // Crop section into fg_pic
-        self.crop_x264_pic(&gaze, CROP_WIDTH, CROP_HEIGHT)?;
+        self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
 
         // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
         // fast_bilinear rather than bilinear gives about 800fps.
@@ -258,7 +266,7 @@ impl FvideoTwoStreamServer {
                 let mut src_ptr: *mut u8 = offset_plane[i];
                 let mut dst_ptr: *mut u8 = self.fg_pic.pic.img.plane[i];
 
-                for _ in 0..(CROP_HEIGHT as f32 * csp_height[i]).round() as u32 {
+                for _ in 0..(self.fovea as f32 * csp_height[i]).round() as u32 {
                     ptr::copy_nonoverlapping(
                         src_ptr,
                         dst_ptr,

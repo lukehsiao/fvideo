@@ -60,6 +60,8 @@ pub enum FvideoServerError {
     EncoderError(String),
     #[error("Invalid Foveation Algorithm: {self}")]
     InvalidAlgError(String),
+    #[error("TwoStream Error: {self}")]
+    TwoStreamError(String),
 }
 
 // TODO(lukehsiao): "test.edf" works, but this breaks for unknown reasons for
