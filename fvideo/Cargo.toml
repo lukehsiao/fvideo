@@ -26,7 +26,7 @@ name = "latency"
 name = "minlatency"
 
 [dependencies]
-anyhow = "1.0.35"
+anyhow = "1.0.36"
 chrono = "0.4.19"
 eyelink-rs = {path = "../eyelink-rs"}
 ffmpeg-next = "4.3.8"
@@ -37,7 +37,7 @@ pretty_env_logger = "0.4.0"
 regex = "1.4.2"
 # This must be statically linked so that libeyelink_sys's use of SDL doesn't conflict.
 sdl2 = { version = "0.34.3", features = ["bundled", "static-link"] }
-serialport = "3.3.0"
+serialport = "4.0.0"
 structopt = "0.3.21"
 thiserror = "1.0.22"
 x264 = {path = "../x264-rs"}

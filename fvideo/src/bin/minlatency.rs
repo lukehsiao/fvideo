@@ -12,8 +12,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use log::{error, info};
-use serialport::prelude::{DataBits, FlowControl, Parity, StopBits};
-use serialport::{ClearBuffer, SerialPortSettings};
+use serialport::{ClearBuffer, DataBits, FlowControl, Parity, StopBits};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -69,15 +68,13 @@ fn main() -> Result<()> {
     let mut port = match opt.gaze_source {
         GazeSource::Eyelink => {
             // Setup serial port connection
-            let s = SerialPortSettings {
-                baud_rate: opt.baud,
-                data_bits: DataBits::Eight,
-                flow_control: FlowControl::None,
-                parity: Parity::None,
-                stop_bits: StopBits::One,
-                timeout: Duration::from_millis(100),
-            };
-            let p = serialport::open_with_settings(&opt.serial, &s)?;
+            let p = serialport::new(opt.serial.to_str().unwrap(), opt.baud)
+                .data_bits(DataBits::Eight)
+                .flow_control(FlowControl::None)
+                .parity(Parity::None)
+                .stop_bits(StopBits::One)
+                .timeout(Duration::from_millis(100))
+                .open()?;
 
             // Sleep to give arduino time to reboot.
             // This is needed since Arduino uses DTR line to trigger a reset.
