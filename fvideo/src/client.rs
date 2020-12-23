@@ -39,6 +39,8 @@ pub struct FvideoClient {
     fg_height: u32,
     bg_width: u32,
     bg_height: u32,
+    src_width: u32,
+    src_height: u32,
     disp_width: u32,
     disp_height: u32,
     total_bytes: u64,
@@ -230,6 +232,8 @@ impl FvideoClient {
             fg_height,
             bg_width,
             bg_height,
+            src_width: width,
+            src_height: height,
             disp_width,
             disp_height,
             total_bytes: 0,
@@ -499,7 +503,7 @@ impl FvideoClient {
                 }
 
                 let time = Instant::now();
-                let mut fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
+                let fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
                 let bg_rect = Rect::new(0, 0, bg_frame.width(), bg_frame.height());
                 let _ = fg_texture.update_yuv(
                     fg_rect,
@@ -521,13 +525,18 @@ impl FvideoClient {
                     bg_frame.stride(2),
                 );
 
-                // TODO(lukehsiao): Is this copy slow?
-                let p_x: i32 = (self.last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
-                let p_y: i32 = (self.last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
-                fg_rect.center_on((p_x, p_y));
+                // Scale fg square to match the bg scaling.
+                let c_x: i32 = (self.last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
+                let c_y: i32 = (self.last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
+                let scaled_fg_rect = Rect::from_center(
+                    (c_x, c_y),
+                    fg_rect.width() * self.disp_width / self.src_width,
+                    fg_rect.height() * self.disp_height / self.src_height,
+                );
+
                 self.canvas.clear();
                 let _ = self.canvas.copy(&bg_texture, None, None);
-                let _ = self.canvas.copy(&fg_texture, None, fg_rect);
+                let _ = self.canvas.copy(&fg_texture, None, scaled_fg_rect);
                 self.canvas.present();
 
                 self.frame_idx += 1;
