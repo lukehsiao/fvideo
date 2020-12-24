@@ -80,6 +80,7 @@ impl Drop for FvideoClient {
     }
 }
 
+// TODO(lukehsiao): Switch to the builder pattern?
 impl FvideoClient {
     pub fn new<T: Into<Option<PathBuf>>>(
         alg: FoveationAlg,

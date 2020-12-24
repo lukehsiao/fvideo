@@ -1,4 +1,4 @@
-//! A binary for measuring e2e latency of the fvideo stack.
+//! A binary for measuring e2e latency of the full fvideo stack.
 //!
 //! Meant to be used with the eyelink-latency hardware found here:
 //! <https://github.com/lukehsiao/eyelink-latency>
@@ -20,7 +20,7 @@ use structopt::StructOpt;
 
 // use eyelink_rs::eyelink;
 use fvideo::client::FvideoClient;
-use fvideo::dummyserver::{FvideoDummyServer, DIFF_THRESH};
+use fvideo::dummyserver::{FvideoDummyServer, FvideoDummyTwoStreamServer, DIFF_THRESH};
 use fvideo::{Calibrate, FoveationAlg, GazeSource, Record};
 
 #[derive(StructOpt, Debug)]
@@ -121,59 +121,119 @@ fn main() -> Result<()> {
     let now = Instant::now();
 
     // Create encoder thread
-    let t_enc = thread::spawn(move || -> Result<()> {
-        let mut server = FvideoDummyServer::new(opt.width, opt.height)?;
+    let alg_clone = opt.alg.clone();
+    let t_enc = match opt.alg {
+        FoveationAlg::TwoStream => {
+            thread::spawn(move || -> Result<()> {
+                let mut server = FvideoDummyTwoStreamServer::new(opt.width, opt.height, 10)?;
 
-        for current_gaze in gaze_rx {
-            // Only look at latest available gaze sample
-            let time = Instant::now();
-            let nals = match server.encode_frame(current_gaze) {
-                Ok(n) => n,
-                Err(_) => break,
-            };
+                for current_gaze in gaze_rx {
+                    // Only look at latest available gaze sample
+                    let time = Instant::now();
+                    let nals = match server.encode_frame(current_gaze) {
+                        Ok(n) => n,
+                        Err(_) => break,
+                    };
 
-            for nal in nals {
-                nal_tx.send(nal)?;
-            }
-            if server.triggered() {
-                info!("Total encode_frame: {:#?}", time.elapsed());
-            } else {
-                debug!("Total encode_frame: {:#?}", time.elapsed());
-            }
+                    for nal in nals {
+                        nal_tx.send(nal)?;
+                    }
+
+                    if server.triggered() {
+                        info!("Total encode_frame: {:#?}", time.elapsed());
+                    } else {
+                        debug!("Total encode_frame: {:#?}", time.elapsed());
+                    }
+                }
+                Ok(())
+            })
         }
-        Ok(())
-    });
+        _ => {
+            thread::spawn(move || -> Result<()> {
+                let mut server = FvideoDummyServer::new(opt.width, opt.height)?;
+
+                for current_gaze in gaze_rx {
+                    // Only look at latest available gaze sample
+                    let time = Instant::now();
+                    let nals = match server.encode_frame(current_gaze) {
+                        Ok(n) => n,
+                        Err(_) => break,
+                    };
+
+                    for nal in nals {
+                        nal_tx.send(nal)?;
+                    }
+
+                    if server.triggered() {
+                        info!("Total encode_frame: {:#?}", time.elapsed());
+                    } else {
+                        debug!("Total encode_frame: {:#?}", time.elapsed());
+                    }
+                }
+                Ok(())
+            })
+        }
+    };
 
     // Continuously display until channel is closed.
     let mut triggered = false;
-    for nal in nal_rx {
-        let mut gaze = client.gaze_sample();
+    match alg_clone {
+        FoveationAlg::TwoStream => {
+            for nal in nal_rx {
+                let mut gaze = client.gaze_sample();
+                // After a delay, trigger the ASG.
+                if let Some(ref mut p) = port {
+                    // Trigger ASG movement
+                    if !triggered && now.elapsed() > Duration::from_millis(1500) {
+                        p.clear(ClearBuffer::All)?;
+                        info!("Triggered Arduino!");
+                        p.write_all(GO_CMD.as_bytes())?;
+                        triggered = true;
+                        let time = Instant::now();
+                        gaze = client.triggered_gaze_sample(DIFF_THRESH);
+                        info!("Gaze update time: {:#?}", time.elapsed());
+                    }
+                }
+                gaze_tx.send(gaze)?;
+                debug!("Sent gaze.");
 
-        // After a delay, trigger the ASG.
-        if let Some(ref mut p) = port {
-            // Trigger ASG movement
-            if !triggered && now.elapsed() > Duration::from_millis(1500) {
-                p.clear(ClearBuffer::All)?;
-                info!("Triggered Arduino!");
-                p.write_all(GO_CMD.as_bytes())?;
-                triggered = true;
                 let time = Instant::now();
-                gaze = client.triggered_gaze_sample(DIFF_THRESH);
-                info!("Gaze update time: {:#?}", time.elapsed());
+                client.display_frame(nal.0.as_ref().unwrap(), &nal.1);
+                if triggered {
+                    info!("Total display_frame: {:#?}", time.elapsed());
+                } else {
+                    debug!("Total display_frame: {:#?}", time.elapsed());
+                }
             }
         }
+        _ => {
+            for nal in nal_rx {
+                let mut gaze = client.gaze_sample();
 
-        gaze_tx.send(gaze)?;
-        debug!("Sent gaze.");
+                // After a delay, trigger the ASG and send the updated gaze sample immediately
+                if let Some(ref mut p) = port {
+                    // Trigger ASG movement
+                    if !triggered && now.elapsed() > Duration::from_millis(1500) {
+                        p.clear(ClearBuffer::All)?;
+                        info!("Triggered Arduino!");
+                        p.write_all(GO_CMD.as_bytes())?;
+                        triggered = true;
+                        let time = Instant::now();
+                        gaze = client.triggered_gaze_sample(DIFF_THRESH);
+                        info!("Gaze update time: {:#?}", time.elapsed());
+                    }
+                }
+                gaze_tx.send(gaze)?;
+                debug!("Sent gaze.");
 
-        let time = Instant::now();
-
-        // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-        client.display_frame(None, &nal);
-        if triggered {
-            info!("Total display_frame: {:#?}", time.elapsed());
-        } else {
-            debug!("Total display_frame: {:#?}", time.elapsed());
+                let time = Instant::now();
+                client.display_frame(None, &nal.1);
+                if triggered {
+                    info!("Total display_frame: {:#?}", time.elapsed());
+                } else {
+                    debug!("Total display_frame: {:#?}", time.elapsed());
+                }
+            }
         }
     }
 

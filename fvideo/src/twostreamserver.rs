@@ -2,13 +2,12 @@
 
 extern crate ffmpeg_next as ffmpeg;
 
-use std::cmp;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::ptr;
 use std::time::{Duration, Instant};
+use std::{cmp, ptr};
 
 use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
