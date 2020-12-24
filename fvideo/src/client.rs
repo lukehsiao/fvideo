@@ -47,6 +47,7 @@ pub struct FvideoClient {
     frame_idx: u64,
     gaze_source: GazeSource,
     last_gaze_sample: GazeSample,
+    last_last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
     record: Record,
@@ -217,6 +218,15 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
+        let last_last_gaze_sample = GazeSample {
+            time: Instant::now(),
+            d_x: 0.5,
+            d_y: 0.5,
+            p_x: width / 2,
+            p_y: height / 2,
+            m_x: width / 2 / 16,
+            m_y: height / 2 / 16,
+        };
 
         let fovea_size = match fovea {
             n if n * 16 > height => height,
@@ -248,6 +258,7 @@ impl FvideoClient {
             frame_idx: 0,
             gaze_source,
             last_gaze_sample,
+            last_last_gaze_sample,
             eye_used,
             trace_samples,
             record,
@@ -293,10 +304,12 @@ impl FvideoClient {
                     if (gaze.p_x as i32 - self.last_gaze_sample.p_x as i32).abs() > thresh
                         || (gaze.p_y as i32 - self.last_gaze_sample.p_y as i32).abs() > thresh
                     {
+                        self.last_last_gaze_sample = self.last_gaze_sample;
                         self.last_gaze_sample = gaze;
                         self.triggered = true;
                         return self.last_gaze_sample;
                     }
+                    self.last_last_gaze_sample = self.last_gaze_sample;
                     self.last_gaze_sample = gaze;
                 }
             }
@@ -318,6 +331,7 @@ impl FvideoClient {
                     let p_x = d_x * (self.bg_width as f32 / self.disp_width as f32);
                     let p_y = d_y * (self.bg_height as f32 / self.disp_height as f32);
 
+                    self.last_last_gaze_sample = self.last_gaze_sample;
                     self.last_gaze_sample = GazeSample {
                         time: Instant::now(),
                         d_x: d_x / self.disp_width as f32,
@@ -352,6 +366,7 @@ impl FvideoClient {
                         let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
                         let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
+                        self.last_last_gaze_sample = self.last_gaze_sample;
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
                             d_x: d_x / self.disp_width as f32,
@@ -539,8 +554,10 @@ impl FvideoClient {
                 );
 
                 // Scale fg square to match the bg scaling.
-                let c_x: i32 = (self.last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
-                let c_y: i32 = (self.last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
+                let c_x: i32 =
+                    (self.last_last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
+                let c_y: i32 =
+                    (self.last_last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
                 let scaled_fg_rect = Rect::from_center(
                     (c_x, c_y),
                     fg_rect.width() * self.disp_width / self.src_width,
