@@ -102,9 +102,9 @@ fn main() -> Result<()> {
     // Toggle a couple times to get these in cache.
     for _ in 0..3 {
         client.clear();
-        thread::sleep(Duration::from_secs(2));
+        thread::sleep(Duration::from_millis(100));
         client.display_white(opt.height, opt.width / 19);
-        thread::sleep(Duration::from_secs(2));
+        thread::sleep(Duration::from_millis(100));
     }
     client.clear();
 
