@@ -7,9 +7,10 @@ managed using Poetry_.
 Setup
 -----
 
-Assuming you have installed Poetry_ and configured it to use Python3, you can
-install the dependencies by running::
+Assuming you have installed Poetry_ and Python3, you can install the
+dependencies by running::
 
+    poetry env use python3
     poetry shell
     poetry install
 
