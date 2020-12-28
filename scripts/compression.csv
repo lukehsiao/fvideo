@@ -1,0 +1,9 @@
+latency,filesize,kind
+43,10,guassian
+53,20,guassian
+53,21,guassian
+53,25,guassian
+33,10,twostream
+43,20,twostream
+23,21,twostream
+23,25,twostream
