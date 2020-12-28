@@ -1,5 +1,7 @@
 /target
 /.gdb_history
+**/*.csv
+**/*.pdf
 **/*.svg
 **/*.h264
 **/*.mp4
