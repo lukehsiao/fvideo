@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     let now = Instant::now();
 
     // Create encoder thread
-    let alg_clone = opt.alg.clone();
+    let alg_clone = opt.alg;
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {

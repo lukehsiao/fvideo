@@ -184,7 +184,7 @@ fn main() -> Result<()> {
     gaze_tx.send(client.gaze_sample())?;
 
     // Create server thread
-    let alg_clone = opt.alg.clone();
+    let alg_clone = opt.alg;
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
