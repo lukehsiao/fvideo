@@ -184,6 +184,7 @@ fn main() -> Result<()> {
     gaze_tx.send(client.gaze_sample())?;
 
     // Create server thread
+    let record = opt.record;
     let alg_clone = opt.alg;
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
@@ -274,7 +275,7 @@ fn main() -> Result<()> {
 
     // TODO(lukehsiao): This is kind of hack-y. Should probably have the client
     // do this.
-    if let GazeSource::Eyelink = gaze_source {
+    if GazeSource::Eyelink == gaze_source && record {
         let edf_dest: PathBuf = [&outdir, &PathBuf::from("eyetrace.edf")].iter().collect();
         if let Err(e) = fs::rename(EDF_FILE, edf_dest) {
             warn!("{}", e);
