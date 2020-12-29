@@ -43,6 +43,7 @@ def _plot(datafile, outfile):
     sns.despine(bottom=True, left=True)
     plot.set(xlabel="motion-to-photon latency (ms)")
     plot.set(ylabel="percent of normal filseize")
+    plot._legend.set_title("technique")
     #  plot.set(xlim=(0, 100))
     plot.set(ylim=(0, 100))
     pp = PdfPages(outfile)
