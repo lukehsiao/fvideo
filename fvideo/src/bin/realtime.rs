@@ -192,6 +192,16 @@ fn main() -> Result<()> {
     let outfile: PathBuf = [&outdir, &PathBuf::from("video.h264")].iter().collect();
     let mut outfile = BufWriter::new(fs::File::create(outfile)?);
 
+    let mut fgfile = match opt.alg {
+        FoveationAlg::TwoStream => {
+            let tmp: PathBuf = [&outdir, &PathBuf::from("foreground.h264")]
+                .iter()
+                .collect();
+            Some(BufWriter::new(fs::File::create(tmp)?))
+        }
+        _ => None,
+    };
+
     let (nal_tx, nal_rx) = mpsc::channel();
     let (gaze_tx, gaze_rx) = mpsc::channel();
 
@@ -257,8 +267,15 @@ fn main() -> Result<()> {
                 client.display_frame(nal.0.as_ref().unwrap(), &nal.1);
                 debug!("Total display_frame: {:#?}", time.elapsed());
 
-                // Also save to file
-                outfile.write_all(nal.0.as_ref().unwrap().as_bytes())?;
+                // Also save both streams to file
+                // TODO(lukehsiao): this would probably be more useful if it was
+                // actually the overlayed video. But for now, at least we can
+                // see both streams directly.
+                outfile.write_all(nal.1.as_bytes())?;
+                fgfile
+                    .as_mut()
+                    .unwrap()
+                    .write_all(nal.0.as_ref().unwrap().as_bytes())?;
             }
         }
         _ => {
