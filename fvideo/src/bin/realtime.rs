@@ -173,6 +173,22 @@ fn main() -> Result<()> {
         info!("{}", e);
     }
 
+    let cfg_dest: PathBuf = [&outdir, &PathBuf::from("config.csv")].iter().collect();
+    let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
+    write!(
+        cfg_dest,
+        "alg,fovea,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes\n",
+    )?;
+    write!(
+        cfg_dest,
+        "{},{},{},{},{},",
+        opt.alg,
+        opt.fovea,
+        opt.qo_max,
+        opt.gaze_source,
+        opt.video.display()
+    )?;
+
     let outfile: PathBuf = [&outdir, &PathBuf::from("video.h264")].iter().collect();
     let mut outfile = BufWriter::new(fs::File::create(outfile)?);
 
@@ -272,6 +288,15 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!("Total Encoded Size: {} bytes\n", total_bytes);
+
+    write!(
+        cfg_dest,
+        "{},{},{},{}",
+        frame_index,
+        elapsed.as_secs_f64(),
+        frame_index as f64 / elapsed.as_secs_f64(),
+        total_bytes,
+    )?;
 
     // TODO(lukehsiao): This is kind of hack-y. Should probably have the client
     // do this.
