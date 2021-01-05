@@ -26,7 +26,7 @@ name = "latency"
 name = "minlatency"
 
 [dependencies]
-anyhow = "1.0.36"
+anyhow = "1.0.37"
 chrono = "0.4.19"
 eyelink-rs = {path = "../eyelink-rs"}
 ffmpeg-next = "4.3.8"
@@ -39,5 +39,5 @@ regex = "1.4.2"
 sdl2 = { version = "0.34.3", features = ["bundled", "static-link"] }
 serialport = "4.0.0"
 structopt = "0.3.21"
-thiserror = "1.0.22"
+thiserror = "1.0.23"
 x264 = {path = "../x264-rs"}

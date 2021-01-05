@@ -15,7 +15,7 @@ libeyelink-sys = "0.1.4"
 log = "0.4.11"
 regex = "1.4.2"
 sdl2 = "0.34.3"
-thiserror = "1.0.22"
+thiserror = "1.0.23"
 
 [dev-dependencies]
 serial_test = "0.5.1"
