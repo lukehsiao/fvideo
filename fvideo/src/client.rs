@@ -5,19 +5,21 @@
 
 extern crate ffmpeg_next as ffmpeg;
 
+use std::cmp;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::path::PathBuf;
 use std::process;
 use std::time::Instant;
 
+use ffmpeg::util::format::pixel::Pixel;
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
 use log::{debug, error, info};
 use sdl2::event::EventType;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, TextureCreator};
+use sdl2::render::{BlendMode, Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 
@@ -493,13 +495,9 @@ impl FvideoClient {
 
         let mut fg_texture = self
             .texture_creator
-            .create_texture_streaming(PixelFormatEnum::YV12, self.fg_width, self.fg_height)
+            .create_texture_streaming(PixelFormatEnum::RGBA8888, self.fg_width, self.fg_height)
             .unwrap();
-        // TODO(lukehsiao): Create a new texture mask the same size as fg_texture with the 2d
-        // gaussian, then blend the fg_texture with that one in additive(?) mode to get the 2d alpha
-        // channels set correctly, then just copy to the renderer as normal.
-        // fg_texture.set_blend_mode(BlendMode::Blend);
-        // fg_texture.set_alpha_mod(200);
+        fg_texture.set_blend_mode(BlendMode::Blend);
 
         let mut bg_texture = self
             .texture_creator
@@ -518,6 +516,7 @@ impl FvideoClient {
         self.total_bytes += fg_packet.size() as u64 + bg_packet.size() as u64;
         // self.total_bytes += fg_packet.size() as u64;
         let mut fg_frame = Video::empty();
+        let mut fg_frame_rgba = Video::empty();
         let mut bg_frame = Video::empty();
         match (
             self.fg_decoder.decode(&fg_packet, &mut fg_frame),
@@ -533,15 +532,34 @@ impl FvideoClient {
                 let time = Instant::now();
                 let fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
                 let bg_rect = Rect::new(0, 0, bg_frame.width(), bg_frame.height());
-                let _ = fg_texture.update_yuv(
-                    fg_rect,
-                    fg_frame.data(0),
-                    fg_frame.stride(0),
-                    fg_frame.data(1),
-                    fg_frame.stride(1),
-                    fg_frame.data(2),
-                    fg_frame.stride(2),
-                );
+
+                let mut converter = fg_frame.converter(Pixel::ABGR).unwrap();
+                converter.run(&fg_frame, &mut fg_frame_rgba).unwrap();
+
+                // Manipulate the alpha channel to give blend at the edges
+                let height = fg_frame_rgba.height();
+                let width = fg_frame_rgba.stride(0);
+                let rgba_data = fg_frame_rgba.data_mut(0);
+
+                // Set the alpha values based on a circular 2D Gaussian. These constants right now
+                // are just tuned to what seems to look OK to me. See commit msg for details.
+                for j in 0..height {
+                    for i in (0..width).step_by(4) {
+                        rgba_data[(width * j as usize) + i] = cmp::min(
+                            255,
+                            (512.0
+                                * (-1.0
+                                    * ((((i / 4) as i32 - (height / 2) as i32).pow(2)
+                                        + (j as i32 - (height / 2) as i32).pow(2))
+                                        as f32
+                                        / (2.0 * (height as f32 / 3.5).powi(2))))
+                                .exp())
+                            .round() as u8,
+                        );
+                    }
+                }
+
+                let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
 
                 let _ = bg_texture.update_yuv(
                     bg_rect,
