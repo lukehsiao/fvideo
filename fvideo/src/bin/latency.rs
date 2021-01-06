@@ -101,9 +101,10 @@ fn main() -> Result<()> {
         _ => None,
     };
 
+    let fovea = 10;
     let mut client = FvideoClient::new(
         opt.alg,
-        1,
+        fovea,
         opt.width,
         opt.height,
         gaze_source,
@@ -125,7 +126,7 @@ fn main() -> Result<()> {
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
-                let mut server = FvideoDummyTwoStreamServer::new(opt.width, opt.height, 10)?;
+                let mut server = FvideoDummyTwoStreamServer::new(opt.width, opt.height, fovea)?;
 
                 for current_gaze in gaze_rx {
                     // Only look at latest available gaze sample

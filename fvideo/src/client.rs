@@ -54,6 +54,7 @@ pub struct FvideoClient {
     trace_samples: Option<VecDeque<EyeSample>>,
     record: Record,
     triggered: bool,
+    alpha_blend: Vec<u8>,
 }
 
 impl Drop for FvideoClient {
@@ -241,6 +242,25 @@ impl FvideoClient {
             _ => (width, height, width, height),
         };
 
+        // Set the alpha values based on a circular 2D Gaussian. These constants right now
+        // are just tuned to what seems to look OK to me. See commit msg for details.
+        let mut alpha_blend: Vec<u8> = vec![];
+        for j in 0..fg_width {
+            for i in 0..fg_width {
+                alpha_blend.push(cmp::min(
+                    255,
+                    (512.0
+                        * (-1.0
+                            * (((i as i32 - (fg_width / 2) as i32).pow(2)
+                                + (j as i32 - (fg_width / 2) as i32).pow(2))
+                                as f32
+                                / (2.0 * (fg_width as f32 / 3.5).powi(2))))
+                        .exp())
+                    .round() as u8,
+                ));
+            }
+        }
+
         FvideoClient {
             alg,
             fg_decoder,
@@ -265,6 +285,7 @@ impl FvideoClient {
             trace_samples,
             record,
             triggered: false,
+            alpha_blend,
         }
     }
 
@@ -541,21 +562,10 @@ impl FvideoClient {
                 let width = fg_frame_rgba.stride(0);
                 let rgba_data = fg_frame_rgba.data_mut(0);
 
-                // Set the alpha values based on a circular 2D Gaussian. These constants right now
-                // are just tuned to what seems to look OK to me. See commit msg for details.
+                let mut alpha_iter = self.alpha_blend.iter();
                 for j in 0..height {
                     for i in (0..width).step_by(4) {
-                        rgba_data[(width * j as usize) + i] = cmp::min(
-                            255,
-                            (512.0
-                                * (-1.0
-                                    * ((((i / 4) as i32 - (height / 2) as i32).pow(2)
-                                        + (j as i32 - (height / 2) as i32).pow(2))
-                                        as f32
-                                        / (2.0 * (height as f32 / 3.5).powi(2))))
-                                .exp())
-                            .round() as u8,
-                        );
+                        rgba_data[(width * j as usize) + i] = *alpha_iter.next().unwrap();
                     }
                 }
 
