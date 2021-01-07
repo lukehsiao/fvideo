@@ -6,8 +6,8 @@ use std::convert::TryInto;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
+use std::ptr;
 use std::time::{Duration, Instant};
-use std::{cmp, ptr};
 
 use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
@@ -226,16 +226,20 @@ impl FvideoTwoStreamServer {
         let p_y = gaze.d_y * self.height as f32;
         let p_x = gaze.d_x * self.width as f32;
 
+        // TODO(lukehsiao): This is unsafe in particular in that right now I allow the copies to
+        // reach into random data off the edges of the picture. This garbage data is essentially
+        // hidden when it is displayed, but it could be better to be safer about this.
+
         // Keep the "cropped" window contained in the frame.
         // Only allow multiples of 2 to maintain integer values after division
-        let top: u32 = match cmp::max(p_y.round() as i32 - height as i32 / 2, 0) {
-            n if n > 0 && n % 2 == 0 => n as u32,
-            n if n > 0 && n % 2 != 0 => n as u32 + 1,
+        let top: i32 = match p_y.round() as i32 - height as i32 / 2 {
+            n if n % 2 == 0 => n,
+            n if n % 2 != 0 => n + 1,
             _ => 0,
         };
-        let left: u32 = match cmp::max(p_x.round() as i32 - width as i32 / 2, 0) {
-            n if n > 0 && n % 2 == 0 => n as u32,
-            n if n > 0 && n % 2 != 0 => n as u32 + 1,
+        let left: i32 = match p_x.round() as i32 - width as i32 / 2 {
+            n if n % 2 == 0 => n,
+            n if n % 2 != 0 => n + 1,
             _ => 0,
         };
 
