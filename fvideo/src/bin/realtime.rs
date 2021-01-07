@@ -175,9 +175,9 @@ fn main() -> Result<()> {
 
     let cfg_dest: PathBuf = [&outdir, &PathBuf::from("config.csv")].iter().collect();
     let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
-    write!(
+    writeln!(
         cfg_dest,
-        "alg,fovea,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes\n",
+        "alg,fovea,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
     )?;
     write!(
         cfg_dest,
@@ -264,18 +264,19 @@ fn main() -> Result<()> {
 
                 // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
                 let time = Instant::now();
-                client.display_frame(nal.0.as_ref().unwrap(), &nal.1);
+                client.display_frame(nal.0.as_ref(), nal.1.as_ref());
                 debug!("Total display_frame: {:#?}", time.elapsed());
 
                 // Also save both streams to file
                 // TODO(lukehsiao): this would probably be more useful if it was
                 // actually the overlayed video. But for now, at least we can
                 // see both streams directly.
-                outfile.write_all(nal.1.as_bytes())?;
-                fgfile
-                    .as_mut()
-                    .unwrap()
-                    .write_all(nal.0.as_ref().unwrap().as_bytes())?;
+                if let Some(bg_nal) = nal.1 {
+                    outfile.write_all(bg_nal.as_bytes())?;
+                }
+                if let Some(fg_nal) = nal.0 {
+                    fgfile.as_mut().unwrap().write_all(fg_nal.as_bytes())?;
+                }
             }
         }
         _ => {
@@ -284,11 +285,11 @@ fn main() -> Result<()> {
 
                 // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
                 let time = Instant::now();
-                client.display_frame(None, &nal.1);
+                client.display_frame(None, nal.1.as_ref());
                 debug!("Total display_frame: {:#?}", time.elapsed());
 
                 // Also save to file
-                outfile.write_all(nal.1.as_bytes())?;
+                outfile.write_all(nal.1.as_ref().unwrap().as_bytes())?;
             }
         }
     }

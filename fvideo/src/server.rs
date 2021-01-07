@@ -121,7 +121,7 @@ impl FvideoServer {
     pub fn encode_frame(
         &mut self,
         gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, NalData)>, FvideoServerError> {
+    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
         let time = Instant::now();
         self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
@@ -193,11 +193,11 @@ impl FvideoServer {
         let mut nals = vec![];
 
         if let Some((nal, _, _)) = self.encoder.encode(&self.pic).unwrap() {
-            nals.push((None, nal));
+            nals.push((None, Some(nal)));
         }
         while self.encoder.delayed_frames() {
             if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
-                nals.push((None, nal));
+                nals.push((None, Some(nal)));
             }
         }
 

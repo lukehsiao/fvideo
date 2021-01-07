@@ -36,8 +36,8 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const RESCALE_WIDTH: u32 = 1024;
-pub const RESCALE_HEIGHT: u32 = 576;
+pub const RESCALE_WIDTH: u32 = 896;
+pub const RESCALE_HEIGHT: u32 = 504;
 
 impl FvideoTwoStreamServer {
     pub fn new(fovea: u32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
@@ -73,7 +73,7 @@ impl FvideoTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params(RESCALE_WIDTH, RESCALE_HEIGHT, 32)?;
+        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 33)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -117,9 +117,10 @@ impl FvideoTwoStreamServer {
         self.height
     }
 
-    fn read_frame(&mut self) -> Result<(), FvideoServerError> {
+    fn read_frame(&mut self) -> Result<bool, FvideoServerError> {
         // Advance source frame based on frame time.
-        if (self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur)
+        if self.frame_cnt == 0
+            || (self.frame_time.elapsed() - self.last_frame_time >= self.frame_dur)
             || (self.frame_time.elapsed().as_millis() / self.frame_dur.as_millis()
                 > self.frame_cnt.into())
         {
@@ -139,9 +140,10 @@ impl FvideoTwoStreamServer {
                 let mut buf = self.orig_pic.as_mut_slice(plane).unwrap();
                 self.video_in.read_exact(&mut buf)?;
             }
+            Ok(true)
+        } else {
+            Ok(false)
         }
-
-        Ok(())
     }
 
     // TODO(lukehsiao): I don't like this return type. At some point we should pull this into a
@@ -149,61 +151,54 @@ impl FvideoTwoStreamServer {
     pub fn encode_frame(
         &mut self,
         gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, NalData)>, FvideoServerError> {
+    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
         let time = Instant::now();
-        self.read_frame()?;
+        let advanced = self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
-
-        //TODO(lukehsiao): Need to scale back up the gaze sample for for the original picture, or
-        //only contain display coordinates and scale before use.
-        // Scale gaze sample back up to original
-        // Scale from display to video resolution
-        // p_x *= self.bg_width as f32 / self.disp_width as f32;
-        // p_y *= self.bg_height as f32 / self.disp_height as f32;
-        //
-        // let gaze = GazeSample {
-        //     time: Instant::now(),
-        //     p_x: p_x.round() as u32,
-        //     p_y: p_y.round() as u32,
-        //     m_x: (p_x / 16.0).round() as u32,
-        //     m_y: (p_y / 16.0).round() as u32,
-        // };
-
-        // Crop section into fg_pic
-        self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
-
-        // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
-        // fast_bilinear rather than bilinear gives about 800fps.
-        unsafe {
-            ffmpeg_sys_next::sws_scale(
-                self.scaler.as_mut_ptr(),
-                self.orig_pic.pic.img.plane.as_ptr() as *const *const _,
-                self.orig_pic.pic.img.i_stride.as_ptr(),
-                0,
-                self.height.try_into()?,
-                self.bg_pic.pic.img.plane.as_ptr(),
-                self.bg_pic.pic.img.i_stride.as_ptr(),
-            );
-        }
-
-        self.bg_pic.set_timestamp(self.timestamp);
-        self.fg_pic.set_timestamp(self.timestamp);
-        self.timestamp += 1;
 
         let time = Instant::now();
         let mut nals = vec![];
 
+        let mut bg_nal = None;
+        if advanced {
+            // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
+            // fast_bilinear rather than bilinear gives about 800fps.
+            unsafe {
+                ffmpeg_sys_next::sws_scale(
+                    self.scaler.as_mut_ptr(),
+                    self.orig_pic.pic.img.plane.as_ptr() as *const *const _,
+                    self.orig_pic.pic.img.i_stride.as_ptr(),
+                    0,
+                    self.height.try_into()?,
+                    self.bg_pic.pic.img.plane.as_ptr(),
+                    self.bg_pic.pic.img.i_stride.as_ptr(),
+                );
+            }
+
+            self.bg_pic.set_timestamp(self.timestamp);
+
+            match self.bg_encoder.encode(&self.bg_pic).unwrap() {
+                Some((bg, _, _)) => {
+                    bg_nal = Some(bg);
+                }
+                _ => warn!("Didn't encode a nal?"),
+            }
+        }
+
+        // Crop section into fg_pic
+        self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
+
+        self.fg_pic.set_timestamp(self.timestamp);
+        self.timestamp += 1;
+
         // TODO(lukehsiao): These is trying to encode both streams in sync. In reality, the whole
-        // low quality stream could be sent beforehand, perhaps in lower FPS. Only the foreground
-        // high quality stream needs to be high FPS.
-        match (
-            self.fg_encoder.encode(&self.fg_pic).unwrap(),
-            self.bg_encoder.encode(&self.bg_pic).unwrap(),
-        ) {
-            (Some((fg_nal, _, _)), Some((bg_nal, _, _))) => {
+        // low quality stream could be sent beforehand, or in lower FPS. Only the foreground high
+        // quality stream needs to be high FPS.
+        match self.fg_encoder.encode(&self.fg_pic).unwrap() {
+            Some((fg_nal, _, _)) => {
                 nals.push((Some(fg_nal), bg_nal));
             }
-            (_, _) => {
+            _ => {
                 warn!("Didn't encode a nal?");
             }
         }

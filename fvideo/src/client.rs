@@ -55,6 +55,7 @@ pub struct FvideoClient {
     record: Record,
     triggered: bool,
     alpha_blend: Vec<u8>,
+    bg_frame: Video,
 }
 
 impl Drop for FvideoClient {
@@ -286,6 +287,7 @@ impl FvideoClient {
             record,
             triggered: false,
             alpha_blend,
+            bg_frame: Video::empty(),
         }
     }
 
@@ -511,7 +513,7 @@ impl FvideoClient {
         }
     }
 
-    fn display_twostream_frame(&mut self, fg_nal: &NalData, bg_nal: &NalData) {
+    fn display_twostream_frame(&mut self, fg_nal: &NalData, bg_nal: Option<&NalData>) {
         let time = Instant::now();
 
         let mut fg_texture = self
@@ -519,11 +521,6 @@ impl FvideoClient {
             .create_texture_streaming(PixelFormatEnum::ABGR8888, self.fg_width, self.fg_height)
             .unwrap();
         fg_texture.set_blend_mode(BlendMode::Blend);
-
-        let mut bg_texture = self
-            .texture_creator
-            .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
-            .unwrap();
 
         if self.triggered {
             info!("    init texture: {:#?}", time.elapsed());
@@ -533,17 +530,25 @@ impl FvideoClient {
 
         let dec_time = Instant::now();
         let fg_packet = Packet::copy(fg_nal.as_bytes());
-        let bg_packet = Packet::copy(bg_nal.as_bytes());
-        self.total_bytes += fg_packet.size() as u64 + bg_packet.size() as u64;
-        // self.total_bytes += fg_packet.size() as u64;
+        self.total_bytes += fg_packet.size() as u64;
         let mut fg_frame = Video::empty();
         let mut fg_frame_rgba = Video::empty();
-        let mut bg_frame = Video::empty();
-        match (
-            self.fg_decoder.decode(&fg_packet, &mut fg_frame),
-            self.bg_decoder.decode(&bg_packet, &mut bg_frame),
-        ) {
-            (Ok(true), Ok(true)) => {
+
+        // If there is a new bg frame, update it
+        if let Some(bg) = bg_nal {
+            let bg_packet = Packet::copy(bg.as_bytes());
+            self.total_bytes += bg_packet.size() as u64;
+            match self.bg_decoder.decode(&bg_packet, &mut self.bg_frame) {
+                Ok(true) => (),
+                Ok(false) => unimplemented!(),
+                Err(_) => {
+                    error!("Error occured while decoding packet.");
+                }
+            }
+        }
+
+        match self.fg_decoder.decode(&fg_packet, &mut fg_frame) {
+            Ok(true) => {
                 if self.triggered {
                     info!("    decode nal: {:?}", dec_time.elapsed());
                 } else {
@@ -552,7 +557,6 @@ impl FvideoClient {
 
                 let time = Instant::now();
                 let fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
-                let bg_rect = Rect::new(0, 0, bg_frame.width(), bg_frame.height());
 
                 let mut converter = fg_frame.converter(Pixel::RGBA).unwrap();
                 converter.run(&fg_frame, &mut fg_frame_rgba).unwrap();
@@ -571,14 +575,20 @@ impl FvideoClient {
 
                 let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
 
+                let mut bg_texture = self
+                    .texture_creator
+                    .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
+                    .unwrap();
+
+                let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
                 let _ = bg_texture.update_yuv(
                     bg_rect,
-                    bg_frame.data(0),
-                    bg_frame.stride(0),
-                    bg_frame.data(1),
-                    bg_frame.stride(1),
-                    bg_frame.data(2),
-                    bg_frame.stride(2),
+                    self.bg_frame.data(0),
+                    self.bg_frame.stride(0),
+                    self.bg_frame.data(1),
+                    self.bg_frame.stride(1),
+                    self.bg_frame.data(2),
+                    self.bg_frame.stride(2),
                 );
 
                 // Scale fg square to match the bg scaling.
@@ -604,21 +614,23 @@ impl FvideoClient {
                     debug!("    display new frame: {:?}", time.elapsed());
                 }
             }
-            (Ok(false), Ok(_)) | (Ok(_), Ok(false)) => (),
-            (Err(_), _) | (_, Err(_)) => {
+            Ok(false) => (),
+            Err(_) => {
                 error!("Error occured while decoding packet.");
             }
         }
     }
 
     /// Decode and display the provided frame.
-    pub fn display_frame<'a, T>(&mut self, fg_nal: T, bg_nal: &NalData)
+    pub fn display_frame<'a, T>(&mut self, fg_nal: T, bg_nal: T)
     where
         T: Into<Option<&'a NalData>>,
     {
         match self.alg {
-            FoveationAlg::TwoStream => self.display_twostream_frame(fg_nal.into().unwrap(), bg_nal),
-            _ => self.display_onestream_frame(bg_nal),
+            FoveationAlg::TwoStream => {
+                self.display_twostream_frame(fg_nal.into().unwrap(), bg_nal.into())
+            }
+            _ => self.display_onestream_frame(bg_nal.into().unwrap()),
         }
     }
 

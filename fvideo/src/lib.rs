@@ -135,6 +135,19 @@ fn parse_y4m_header(src: &str) -> Result<(u32, u32, f64), FvideoServerError> {
     Ok((width, height, fps))
 }
 
+fn setup_x264_params_bg(width: u32, height: u32, qp: i32) -> Result<Param, FvideoServerError> {
+    let mut par = Param::default_preset("faster", "zerolatency")
+        .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+    // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
+    par = par.set_dimension(width as i32, height as i32);
+    par = par.set_min_keyint(i32::MAX);
+    par = par.set_no_scenecut();
+    par = par.set_qp(qp);
+
+    Ok(par)
+}
+
 fn setup_x264_params(width: u32, height: u32, qp: i32) -> Result<Param, FvideoServerError> {
     let mut par = Param::default_preset("superfast", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
