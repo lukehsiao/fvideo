@@ -351,8 +351,8 @@ impl FvideoClient {
                     let d_y = self.event_pump.mouse_state().y() as f32;
 
                     // Scale from display to video resolution
-                    let p_x = d_x * (self.bg_width as f32 / self.disp_width as f32);
-                    let p_y = d_y * (self.bg_height as f32 / self.disp_height as f32);
+                    let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
+                    let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
                     self.last_last_gaze_sample = self.last_gaze_sample;
                     self.last_gaze_sample = GazeSample {
