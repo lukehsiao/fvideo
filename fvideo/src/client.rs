@@ -250,12 +250,12 @@ impl FvideoClient {
             for i in 0..fg_width {
                 alpha_blend.push(cmp::min(
                     255,
-                    (512.0
+                    (768.0
                         * (-1.0
                             * (((i as i32 - (fg_width / 2) as i32).pow(2)
                                 + (j as i32 - (fg_width / 2) as i32).pow(2))
                                 as f32
-                                / (2.0 * (fg_width as f32 / 3.5).powi(2))))
+                                / (2.0 * (fg_width as f32 / 5.0).powi(2))))
                         .exp())
                     .round() as u8,
                 ));
