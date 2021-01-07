@@ -88,7 +88,7 @@ impl FvideoDummyServer {
     pub fn encode_frame(
         &mut self,
         gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, NalData)>, FvideoServerError> {
+    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
@@ -122,12 +122,12 @@ impl FvideoDummyServer {
 
         let mut nals = vec![];
         if let Some((nal, _, _)) = self.encoder.encode(pic).unwrap() {
-            nals.push((None, nal));
+            nals.push((None, Some(nal)));
         }
 
         while self.encoder.delayed_frames() {
             if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
-                nals.push((None, nal));
+                nals.push((None, Some(nal)));
             }
         }
 
@@ -207,7 +207,7 @@ impl FvideoDummyTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params(RESCALE_WIDTH, RESCALE_HEIGHT, 32)?;
+        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 33)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -249,7 +249,7 @@ impl FvideoDummyTwoStreamServer {
     pub fn encode_frame(
         &mut self,
         gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, NalData)>, FvideoServerError> {
+    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             info!("Finished.");
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
@@ -311,7 +311,7 @@ impl FvideoDummyTwoStreamServer {
             self.bg_encoder.encode(&self.bg_pic).unwrap(),
         ) {
             (Some((fg_nal, _, _)), Some((bg_nal, _, _))) => {
-                nals.push((Some(fg_nal), bg_nal));
+                nals.push((Some(fg_nal), Some(bg_nal)));
             }
             (_, _) => {
                 warn!("Didn't encode a nal?");

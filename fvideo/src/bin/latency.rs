@@ -199,7 +199,7 @@ fn main() -> Result<()> {
                 debug!("Sent gaze.");
 
                 let time = Instant::now();
-                client.display_frame(nal.0.as_ref().unwrap(), &nal.1);
+                client.display_frame(nal.0.as_ref(), nal.1.as_ref());
                 if triggered {
                     info!("Total display_frame: {:#?}", time.elapsed());
                 } else {
@@ -228,7 +228,7 @@ fn main() -> Result<()> {
                 debug!("Sent gaze.");
 
                 let time = Instant::now();
-                client.display_frame(None, Some(&nal.1));
+                client.display_frame(None, nal.1.as_ref());
                 if triggered {
                     info!("Total display_frame: {:#?}", time.elapsed());
                 } else {
