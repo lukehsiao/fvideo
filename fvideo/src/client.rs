@@ -342,8 +342,6 @@ impl FvideoClient {
     }
 
     /// Get the latest gaze sample, if one is available.
-    ///
-    /// Note: This currently uses mouse position as a substitute for Eyelink data.
     pub fn gaze_sample(&mut self) -> GazeSample {
         match self.gaze_source {
             GazeSource::Mouse => {
