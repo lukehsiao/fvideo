@@ -23,6 +23,7 @@ pub mod twostreamserver;
 #[derive(Copy, Clone, Debug)]
 pub struct GazeSample {
     pub time: Instant, // time of the sample
+    pub seqno: u64,    // sequence number (will wrap around)
     pub d_width: u32,  // display width in px
     pub d_height: u32, // display height in px
     pub d_x: u32,      // x position in disp px

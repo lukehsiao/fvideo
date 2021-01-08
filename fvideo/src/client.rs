@@ -56,6 +56,7 @@ pub struct FvideoClient {
     triggered: bool,
     alpha_blend: Vec<u8>,
     bg_frame: Video,
+    seqno: u64,
 }
 
 impl Drop for FvideoClient {
@@ -213,19 +214,10 @@ impl FvideoClient {
 
         let texture_creator = canvas.texture_creator();
 
-        let last_gaze_sample = GazeSample {
-            time: Instant::now(),
-            d_width: disp_width,
-            d_height: disp_height,
-            d_x: disp_width / 2,
-            d_y: disp_height / 2,
-            p_x: width / 2,
-            p_y: height / 2,
-            m_x: width / 2 / 16,
-            m_y: height / 2 / 16,
-        };
+        let mut seqno = 0;
         let last_last_gaze_sample = GazeSample {
             time: Instant::now(),
+            seqno,
             d_width: disp_width,
             d_height: disp_height,
             d_x: disp_width / 2,
@@ -235,6 +227,20 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
+        seqno += 1;
+        let last_gaze_sample = GazeSample {
+            time: Instant::now(),
+            seqno,
+            d_width: disp_width,
+            d_height: disp_height,
+            d_x: disp_width / 2,
+            d_y: disp_height / 2,
+            p_x: width / 2,
+            p_y: height / 2,
+            m_x: width / 2 / 16,
+            m_y: height / 2 / 16,
+        };
+        seqno += 1;
 
         let fovea_size = match fovea {
             n if n * 16 > height => height,
@@ -292,6 +298,7 @@ impl FvideoClient {
             triggered: false,
             alpha_blend,
             bg_frame: Video::empty(),
+            seqno,
         }
     }
 
@@ -322,6 +329,7 @@ impl FvideoClient {
 
                     let gaze = GazeSample {
                         time: Instant::now(),
+                        seqno: self.seqno,
                         d_width: self.disp_width,
                         d_height: self.disp_height,
                         d_x: d_x as u32,
@@ -338,6 +346,7 @@ impl FvideoClient {
                         self.last_last_gaze_sample = self.last_gaze_sample;
                         self.last_gaze_sample = gaze;
                         self.triggered = true;
+                        self.seqno += 1;
                         return self.last_gaze_sample;
                     }
                     self.last_last_gaze_sample = self.last_gaze_sample;
@@ -363,6 +372,7 @@ impl FvideoClient {
                     self.last_last_gaze_sample = self.last_gaze_sample;
                     self.last_gaze_sample = GazeSample {
                         time: Instant::now(),
+                        seqno: self.seqno,
                         d_width: self.disp_width,
                         d_height: self.disp_height,
                         d_x,
@@ -372,6 +382,7 @@ impl FvideoClient {
                         m_x: (p_x / 16.0).round() as u32,
                         m_y: (p_y / 16.0).round() as u32,
                     };
+                    self.seqno += 1;
                 }
             }
             GazeSource::Eyelink => {
@@ -400,6 +411,7 @@ impl FvideoClient {
                         self.last_last_gaze_sample = self.last_gaze_sample;
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
+                            seqno: self.seqno,
                             d_width: self.disp_width,
                             d_height: self.disp_height,
                             d_x: d_x.round() as u32,
@@ -409,6 +421,7 @@ impl FvideoClient {
                             m_x: (p_x / 16.0).round() as u32,
                             m_y: (p_y / 16.0).round() as u32,
                         };
+                        self.seqno += 1;
                     }
                 }
             }
