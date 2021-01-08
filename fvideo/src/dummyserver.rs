@@ -333,8 +333,8 @@ impl FvideoDummyTwoStreamServer {
         height: u32,
     ) -> Result<(), FvideoServerError> {
         // Scale from disp coordinates to original video coordinates
-        let p_y = gaze.d_y * self.height as f32;
-        let p_x = gaze.d_x * self.width as f32;
+        let p_y = gaze.d_y as f32 * self.height as f32 / gaze.d_height as f32;
+        let p_x = gaze.d_x as f32 * self.width as f32 / gaze.d_width as f32;
 
         // Keep the "cropped" window contained in the frame.
         // Only allow multiples of 2 to maintain integer values after division

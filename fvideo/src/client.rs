@@ -215,8 +215,10 @@ impl FvideoClient {
 
         let last_gaze_sample = GazeSample {
             time: Instant::now(),
-            d_x: 0.5,
-            d_y: 0.5,
+            d_width: disp_width,
+            d_height: disp_height,
+            d_x: disp_width / 2,
+            d_y: disp_height / 2,
             p_x: width / 2,
             p_y: height / 2,
             m_x: width / 2 / 16,
@@ -224,8 +226,10 @@ impl FvideoClient {
         };
         let last_last_gaze_sample = GazeSample {
             time: Instant::now(),
-            d_x: 0.5,
-            d_y: 0.5,
+            d_width: disp_width,
+            d_height: disp_height,
+            d_x: disp_width / 2,
+            d_y: disp_height / 2,
             p_x: width / 2,
             p_y: height / 2,
             m_x: width / 2 / 16,
@@ -318,8 +322,10 @@ impl FvideoClient {
 
                     let gaze = GazeSample {
                         time: Instant::now(),
-                        d_x: d_x / self.disp_width as f32,
-                        d_y: d_y / self.disp_height as f32,
+                        d_width: self.disp_width,
+                        d_height: self.disp_height,
+                        d_x: d_x as u32,
+                        d_y: d_y as u32,
                         p_x: p_x.round() as u32,
                         p_y: p_y.round() as u32,
                         m_x: (p_x / 16.0).round() as u32,
@@ -347,18 +353,20 @@ impl FvideoClient {
             GazeSource::Mouse => {
                 // Grab mouse position using SDL2.
                 if self.event_pump.poll_iter().last().is_some() {
-                    let d_x = self.event_pump.mouse_state().x() as f32;
-                    let d_y = self.event_pump.mouse_state().y() as f32;
+                    let d_x = self.event_pump.mouse_state().x() as u32;
+                    let d_y = self.event_pump.mouse_state().y() as u32;
 
                     // Scale from display to video resolution
-                    let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
-                    let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
+                    let p_x = d_x as f32 * self.bg_width as f32 / self.disp_width as f32;
+                    let p_y = d_y as f32 * self.bg_height as f32 / self.disp_height as f32;
 
                     self.last_last_gaze_sample = self.last_gaze_sample;
                     self.last_gaze_sample = GazeSample {
                         time: Instant::now(),
-                        d_x: d_x / self.disp_width as f32,
-                        d_y: d_y / self.disp_height as f32,
+                        d_width: self.disp_width,
+                        d_height: self.disp_height,
+                        d_x,
+                        d_y,
                         p_x: p_x.round() as u32,
                         p_y: p_y.round() as u32,
                         m_x: (p_x / 16.0).round() as u32,
@@ -392,8 +400,10 @@ impl FvideoClient {
                         self.last_last_gaze_sample = self.last_gaze_sample;
                         self.last_gaze_sample = GazeSample {
                             time: Instant::now(),
-                            d_x: d_x / self.disp_width as f32,
-                            d_y: d_y / self.disp_height as f32,
+                            d_width: self.disp_width,
+                            d_height: self.disp_height,
+                            d_x: d_x.round() as u32,
+                            d_y: d_y.round() as u32,
                             p_x: p_x.round() as u32,
                             p_y: p_y.round() as u32,
                             m_x: (p_x / 16.0).round() as u32,
@@ -590,10 +600,8 @@ impl FvideoClient {
                 );
 
                 // Scale fg square to match the bg scaling.
-                let c_x: i32 =
-                    (self.last_last_gaze_sample.d_x * self.disp_width as f32).round() as i32;
-                let c_y: i32 =
-                    (self.last_last_gaze_sample.d_y * self.disp_height as f32).round() as i32;
+                let c_x = self.last_last_gaze_sample.d_x as i32;
+                let c_y = self.last_last_gaze_sample.d_y as i32;
                 let scaled_fg_rect = Rect::from_center(
                     (c_x, c_y),
                     fg_rect.width() * self.disp_width / self.src_width,
