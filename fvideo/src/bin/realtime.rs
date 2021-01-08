@@ -207,6 +207,8 @@ fn main() -> Result<()> {
 
     let now = Instant::now();
 
+    // Prime with real gaze samples
+    client.gaze_sample();
     gaze_tx.send(client.gaze_sample())?;
 
     // Create server thread
@@ -260,6 +262,7 @@ fn main() -> Result<()> {
     match alg_clone {
         FoveationAlg::TwoStream => {
             for nal in nal_rx {
+                // Send first to pipeline encode/decode, otherwise it would be in serial.
                 gaze_tx.send(client.gaze_sample())?;
 
                 // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
@@ -281,6 +284,7 @@ fn main() -> Result<()> {
         }
         _ => {
             for nal in nal_rx {
+                // Send first to pipeline encode/decode, otherwise it would be in serial.
                 gaze_tx.send(client.gaze_sample())?;
 
                 // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?

@@ -214,10 +214,9 @@ impl FvideoClient {
 
         let texture_creator = canvas.texture_creator();
 
-        let mut seqno = 0;
         let last_last_gaze_sample = GazeSample {
             time: Instant::now(),
-            seqno,
+            seqno: 0,
             d_width: disp_width,
             d_height: disp_height,
             d_x: disp_width / 2,
@@ -227,10 +226,9 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
-        seqno += 1;
         let last_gaze_sample = GazeSample {
             time: Instant::now(),
-            seqno,
+            seqno: 0,
             d_width: disp_width,
             d_height: disp_height,
             d_x: disp_width / 2,
@@ -240,7 +238,6 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
-        seqno += 1;
 
         let fovea_size = match fovea {
             n if n * 16 > height => height,
@@ -298,7 +295,7 @@ impl FvideoClient {
             triggered: false,
             alpha_blend,
             bg_frame: Video::empty(),
-            seqno,
+            seqno: 0,
         }
     }
 
@@ -383,6 +380,10 @@ impl FvideoClient {
                         m_y: (p_y / 16.0).round() as u32,
                     };
                     self.seqno += 1;
+                } else {
+                    self.last_last_gaze_sample = self.last_gaze_sample;
+                    self.last_gaze_sample.seqno = self.seqno;
+                    self.seqno += 1;
                 }
             }
             GazeSource::Eyelink => {
@@ -423,6 +424,10 @@ impl FvideoClient {
                         };
                         self.seqno += 1;
                     }
+                } else {
+                    self.last_last_gaze_sample = self.last_gaze_sample;
+                    self.last_gaze_sample.seqno = self.seqno;
+                    self.seqno += 1;
                 }
             }
             GazeSource::TraceFile => {
