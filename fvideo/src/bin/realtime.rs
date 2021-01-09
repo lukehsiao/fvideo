@@ -318,8 +318,8 @@ fn main() -> Result<()> {
         cfg_dest,
         "{},{},{},{}",
         frame_index,
-        elapsed.as_secs_f64(),
-        frame_index as f64 / elapsed.as_secs_f64(),
+        elapsed.as_secs_f32(),
+        frame_index as f32 / elapsed.as_secs_f32(),
         total_bytes,
     )?;
 

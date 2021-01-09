@@ -47,9 +47,10 @@ fn main() {
     pretty_env_logger::init();
     let opt = Opt::from_args();
 
-    let mode = match opt.debug {
-        true => eyelink_rs::OpenMode::Dummy,
-        false => eyelink_rs::OpenMode::Real,
+    let mode = if opt.debug {
+        eyelink_rs::OpenMode::Dummy
+    } else {
+        eyelink_rs::OpenMode::Real
     };
 
     if let Err(e) = eyelink::initialize_eyelink(mode) {
