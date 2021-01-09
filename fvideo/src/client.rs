@@ -48,8 +48,8 @@ pub struct FvideoClient {
     total_bytes: u64,
     frame_idx: u64,
     gaze_source: GazeSource,
+    curr_gaze_sample: GazeSample,
     last_gaze_sample: GazeSample,
-    last_last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
     record: Record,
@@ -214,7 +214,7 @@ impl FvideoClient {
 
         let texture_creator = canvas.texture_creator();
 
-        let last_last_gaze_sample = GazeSample {
+        let last_gaze_sample = GazeSample {
             time: Instant::now(),
             seqno: 0,
             d_width: disp_width,
@@ -226,7 +226,7 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
-        let last_gaze_sample = GazeSample {
+        let curr_gaze_sample = GazeSample {
             time: Instant::now(),
             seqno: 0,
             d_width: disp_width,
@@ -287,8 +287,8 @@ impl FvideoClient {
             total_bytes: 0,
             frame_idx: 0,
             gaze_source,
+            curr_gaze_sample,
             last_gaze_sample,
-            last_last_gaze_sample,
             eye_used,
             trace_samples,
             record,
@@ -337,17 +337,17 @@ impl FvideoClient {
                         m_y: (p_y / 16.0).round() as u32,
                     };
 
-                    if (gaze.p_x as i32 - self.last_gaze_sample.p_x as i32).abs() > thresh
-                        || (gaze.p_y as i32 - self.last_gaze_sample.p_y as i32).abs() > thresh
+                    if (gaze.p_x as i32 - self.curr_gaze_sample.p_x as i32).abs() > thresh
+                        || (gaze.p_y as i32 - self.curr_gaze_sample.p_y as i32).abs() > thresh
                     {
-                        self.last_last_gaze_sample = self.last_gaze_sample;
-                        self.last_gaze_sample = gaze;
+                        self.last_gaze_sample = self.curr_gaze_sample;
+                        self.curr_gaze_sample = gaze;
                         self.triggered = true;
                         self.seqno += 1;
-                        return self.last_gaze_sample;
+                        return self.curr_gaze_sample;
                     }
-                    self.last_last_gaze_sample = self.last_gaze_sample;
-                    self.last_gaze_sample = gaze;
+                    self.last_gaze_sample = self.curr_gaze_sample;
+                    self.curr_gaze_sample = gaze;
                 }
             }
         }
@@ -366,8 +366,8 @@ impl FvideoClient {
                     let p_x = d_x as f32 * self.bg_width as f32 / self.disp_width as f32;
                     let p_y = d_y as f32 * self.bg_height as f32 / self.disp_height as f32;
 
-                    self.last_last_gaze_sample = self.last_gaze_sample;
-                    self.last_gaze_sample = GazeSample {
+                    self.last_gaze_sample = self.curr_gaze_sample;
+                    self.curr_gaze_sample = GazeSample {
                         time: Instant::now(),
                         seqno: self.seqno,
                         d_width: self.disp_width,
@@ -381,8 +381,8 @@ impl FvideoClient {
                     };
                     self.seqno += 1;
                 } else {
-                    self.last_last_gaze_sample = self.last_gaze_sample;
-                    self.last_gaze_sample.seqno = self.seqno;
+                    self.last_gaze_sample = self.curr_gaze_sample;
+                    self.curr_gaze_sample.seqno = self.seqno;
                     self.seqno += 1;
                 }
             }
@@ -409,8 +409,8 @@ impl FvideoClient {
                         let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
                         let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
-                        self.last_last_gaze_sample = self.last_gaze_sample;
-                        self.last_gaze_sample = GazeSample {
+                        self.last_gaze_sample = self.curr_gaze_sample;
+                        self.curr_gaze_sample = GazeSample {
                             time: Instant::now(),
                             seqno: self.seqno,
                             d_width: self.disp_width,
@@ -425,8 +425,8 @@ impl FvideoClient {
                         self.seqno += 1;
                     }
                 } else {
-                    self.last_last_gaze_sample = self.last_gaze_sample;
-                    self.last_gaze_sample.seqno = self.seqno;
+                    self.last_gaze_sample = self.curr_gaze_sample;
+                    self.curr_gaze_sample.seqno = self.seqno;
                     self.seqno += 1;
                 }
             }
@@ -441,7 +441,7 @@ impl FvideoClient {
                 //
                 // for sample in self.trace_samples.unwrap() {
                 //     self.trace_samples.pop_front();
-                //     self.last_gaze_sample = GazeSample {
+                //     self.curr_gaze_sample = GazeSample {
                 //         time: Instant::now(),
                 //         p_x: p_x.round() as u32,
                 //         p_y: p_y.round() as u32,
@@ -452,7 +452,7 @@ impl FvideoClient {
             }
         }
 
-        self.last_gaze_sample
+        self.curr_gaze_sample
     }
 
     /// Utility function for immediately drawing a white square to the bottom
@@ -618,8 +618,8 @@ impl FvideoClient {
                 );
 
                 // Scale fg square to match the bg scaling.
-                let c_x = self.last_last_gaze_sample.d_x as i32;
-                let c_y = self.last_last_gaze_sample.d_y as i32;
+                let c_x = self.last_gaze_sample.d_x as i32;
+                let c_y = self.last_gaze_sample.d_y as i32;
                 let scaled_fg_rect = Rect::from_center(
                     (c_x, c_y),
                     fg_rect.width() * self.disp_width / self.src_width,
