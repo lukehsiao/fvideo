@@ -516,7 +516,7 @@ impl FvideoClient {
 
         let mut fg_texture = self
             .texture_creator
-            .create_texture_streaming(PixelFormatEnum::RGBA8888, self.fg_width, self.fg_height)
+            .create_texture_streaming(PixelFormatEnum::ABGR8888, self.fg_width, self.fg_height)
             .unwrap();
         fg_texture.set_blend_mode(BlendMode::Blend);
 
@@ -554,7 +554,7 @@ impl FvideoClient {
                 let fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
                 let bg_rect = Rect::new(0, 0, bg_frame.width(), bg_frame.height());
 
-                let mut converter = fg_frame.converter(Pixel::ABGR).unwrap();
+                let mut converter = fg_frame.converter(Pixel::RGBA).unwrap();
                 converter.run(&fg_frame, &mut fg_frame_rgba).unwrap();
 
                 // Manipulate the alpha channel to give blend at the edges
@@ -565,7 +565,7 @@ impl FvideoClient {
                 let mut alpha_iter = self.alpha_blend.iter();
                 for j in 0..height {
                     for i in (0..width).step_by(4) {
-                        rgba_data[(width * j as usize) + i] = *alpha_iter.next().unwrap();
+                        rgba_data[(width * j as usize) + i + 3] = *alpha_iter.next().unwrap();
                     }
                 }
 
