@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::path::PathBuf;
 use std::process;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use ffmpeg::util::format::pixel::Pixel;
 use ffmpeg::util::frame::video::Video;
@@ -48,7 +48,7 @@ pub struct FvideoClient {
     total_bytes: u64,
     frame_idx: u64,
     gaze_source: GazeSource,
-    curr_gaze_sample: GazeSample,
+    gaze_samples: VecDeque<GazeSample>,
     last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
@@ -57,6 +57,7 @@ pub struct FvideoClient {
     alpha_blend: Vec<u8>,
     bg_frame: Video,
     seqno: u64,
+    delay: Option<Duration>,
 }
 
 impl Drop for FvideoClient {
@@ -93,6 +94,7 @@ impl FvideoClient {
         fovea: u32,
         width: u32,
         height: u32,
+        delay: u64,
         gaze_source: GazeSource,
         cal: Calibrate,
         record: Record,
@@ -226,7 +228,9 @@ impl FvideoClient {
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
         };
-        let curr_gaze_sample = GazeSample {
+        let mut gaze_samples = VecDeque::new();
+        gaze_samples.reserve(256);
+        gaze_samples.push_back(GazeSample {
             time: Instant::now(),
             seqno: 0,
             d_width: disp_width,
@@ -237,7 +241,7 @@ impl FvideoClient {
             p_y: height / 2,
             m_x: width / 2 / 16,
             m_y: height / 2 / 16,
-        };
+        });
 
         let fovea_size = match fovea {
             n if n * 16 > height => height,
@@ -287,7 +291,7 @@ impl FvideoClient {
             total_bytes: 0,
             frame_idx: 0,
             gaze_source,
-            curr_gaze_sample,
+            gaze_samples,
             last_gaze_sample,
             eye_used,
             trace_samples,
@@ -296,6 +300,11 @@ impl FvideoClient {
             alpha_blend,
             bg_frame: Video::empty(),
             seqno: 0,
+            delay: if delay > 0 {
+                Some(Duration::from_millis(delay))
+            } else {
+                None
+            },
         }
     }
 
@@ -337,17 +346,18 @@ impl FvideoClient {
                         m_y: (p_y / 16.0).round() as u32,
                     };
 
-                    if (gaze.p_x as i32 - self.curr_gaze_sample.p_x as i32).abs() > thresh
-                        || (gaze.p_y as i32 - self.curr_gaze_sample.p_y as i32).abs() > thresh
+                    let curr_gaze_sample = *self.gaze_samples.front().unwrap();
+                    if (gaze.p_x as i32 - curr_gaze_sample.p_x as i32).abs() > thresh
+                        || (gaze.p_y as i32 - curr_gaze_sample.p_y as i32).abs() > thresh
                     {
-                        self.last_gaze_sample = self.curr_gaze_sample;
-                        self.curr_gaze_sample = gaze;
+                        self.gaze_samples.push_back(gaze);
+                        self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
                         self.triggered = true;
                         self.seqno += 1;
-                        return self.curr_gaze_sample;
+                        return curr_gaze_sample;
                     }
-                    self.last_gaze_sample = self.curr_gaze_sample;
-                    self.curr_gaze_sample = gaze;
+                    self.gaze_samples.push_back(gaze);
+                    self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
                 }
             }
         }
@@ -355,7 +365,7 @@ impl FvideoClient {
 
     /// Get the latest gaze sample, if one is available.
     pub fn gaze_sample(&mut self) -> GazeSample {
-        match self.gaze_source {
+        let mut gaze = match self.gaze_source {
             GazeSource::Mouse => {
                 // Grab mouse position using SDL2.
                 if self.event_pump.poll_iter().last().is_some() {
@@ -366,8 +376,7 @@ impl FvideoClient {
                     let p_x = d_x as f32 * self.bg_width as f32 / self.disp_width as f32;
                     let p_y = d_y as f32 * self.bg_height as f32 / self.disp_height as f32;
 
-                    self.last_gaze_sample = self.curr_gaze_sample;
-                    self.curr_gaze_sample = GazeSample {
+                    GazeSample {
                         time: Instant::now(),
                         seqno: self.seqno,
                         d_width: self.disp_width,
@@ -378,12 +387,9 @@ impl FvideoClient {
                         p_y: p_y.round() as u32,
                         m_x: (p_x / 16.0).round() as u32,
                         m_y: (p_y / 16.0).round() as u32,
-                    };
-                    self.seqno += 1;
+                    }
                 } else {
-                    self.last_gaze_sample = self.curr_gaze_sample;
-                    self.curr_gaze_sample.seqno = self.seqno;
-                    self.seqno += 1;
+                    *self.gaze_samples.back().unwrap()
                 }
             }
             GazeSource::Eyelink => {
@@ -409,8 +415,7 @@ impl FvideoClient {
                         let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
                         let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
 
-                        self.last_gaze_sample = self.curr_gaze_sample;
-                        self.curr_gaze_sample = GazeSample {
+                        GazeSample {
                             time: Instant::now(),
                             seqno: self.seqno,
                             d_width: self.disp_width,
@@ -421,13 +426,12 @@ impl FvideoClient {
                             p_y: p_y.round() as u32,
                             m_x: (p_x / 16.0).round() as u32,
                             m_y: (p_y / 16.0).round() as u32,
-                        };
-                        self.seqno += 1;
+                        }
+                    } else {
+                        *self.gaze_samples.back().unwrap()
                     }
                 } else {
-                    self.last_gaze_sample = self.curr_gaze_sample;
-                    self.curr_gaze_sample.seqno = self.seqno;
-                    self.seqno += 1;
+                    *self.gaze_samples.back().unwrap()
                 }
             }
             GazeSource::TraceFile => {
@@ -450,9 +454,23 @@ impl FvideoClient {
                 //     }
                 // }
             }
+        };
+        gaze.time = Instant::now();
+        gaze.seqno = self.seqno;
+        self.seqno += 1;
+        self.gaze_samples.push_back(gaze);
+
+        // Allow artificial delay to determine when to release the next gaze sample
+        match self.delay {
+            Some(delay) => {
+                if self.gaze_samples.front().unwrap().time.elapsed() >= delay {
+                    self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
+                }
+            }
+            None => self.last_gaze_sample = self.gaze_samples.pop_front().unwrap(),
         }
 
-        self.curr_gaze_sample
+        *self.gaze_samples.front().unwrap()
     }
 
     /// Utility function for immediately drawing a white square to the bottom

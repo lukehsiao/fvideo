@@ -107,6 +107,7 @@ fn main() -> Result<()> {
         fovea,
         opt.width,
         opt.height,
+        0,
         gaze_source,
         Calibrate::No,
         Record::No,

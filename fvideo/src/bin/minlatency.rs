@@ -92,6 +92,7 @@ fn main() -> Result<()> {
         1,
         opt.width,
         opt.height,
+        0,
         opt.gaze_source,
         Calibrate::No,
         Record::No,

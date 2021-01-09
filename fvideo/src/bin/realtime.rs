@@ -134,6 +134,10 @@ struct Opt {
     /// Whether to record an eye trace or not.
     #[structopt(short, long)]
     record: bool,
+
+    /// Amount of artificial latency to add (ms).
+    #[structopt(short, long, default_value = "0")]
+    delay: u64,
 }
 
 fn main() -> Result<()> {
@@ -150,6 +154,7 @@ fn main() -> Result<()> {
         opt.fovea,
         width,
         height,
+        opt.delay,
         gaze_source,
         if opt.skip_cal {
             Calibrate::No
@@ -218,7 +223,6 @@ fn main() -> Result<()> {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
                 let mut server = FvideoTwoStreamServer::new(opt.fovea, opt.video.clone())?;
-
                 for current_gaze in gaze_rx {
                     // Only look at latest available gaze sample
                     let time = Instant::now();
@@ -287,7 +291,6 @@ fn main() -> Result<()> {
                 // Send first to pipeline encode/decode, otherwise it would be in serial.
                 gaze_tx.send(client.gaze_sample())?;
 
-                // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
                 let time = Instant::now();
                 client.display_frame(None, nal.1.as_ref());
                 debug!("Total display_frame: {:#?}", time.elapsed());
