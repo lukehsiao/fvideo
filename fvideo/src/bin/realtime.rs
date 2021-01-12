@@ -50,13 +50,12 @@
 //! ```
 extern crate ffmpeg_next as ffmpeg;
 
-use std::fs;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc;
-use std::thread;
 use std::time::Instant;
+use std::{fs, process, thread};
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
@@ -143,6 +142,14 @@ struct Opt {
 fn main() -> Result<()> {
     pretty_env_logger::init();
     ffmpeg::init().unwrap();
+
+    // Catch SIGINT to allow early exit.
+    ctrlc::set_handler(|| {
+        debug!("Exiting from SIGINT");
+        process::exit(1)
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let opt = Opt::from_args();
 
     let gaze_source = opt.gaze_source;
