@@ -370,9 +370,7 @@ checksum = "89203f3fba0a3795506acaad8ebce3c80c0af93f994d5a1d7a0b1eeb23271929"
 
 [[package]]
 name = "libeyelink-sys"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9513e1f22056299e2d163b72e9829d698e2d706e193ae71c9c6da818b847d0"
+version = "0.1.5-alpha.0"
 dependencies = [
  "libc",
  "pkg-config",

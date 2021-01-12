@@ -1,0 +1,31 @@
+[package]
+name = "libeyelink-sys"
+version = "0.1.5-alpha.0"
+authors = ["Luke Hsiao <lwhsiao@stanford.edu>"]
+description = "Rust FFI bindings for the Linux SR Research Eyelink SDK."
+repository = "https://github.com/lukehsiao/libeyelink-sys"
+edition = "2018"
+license = "Apache-2.0 OR MIT"
+build = "build.rs"
+links = "eyelink"
+readme = "README.md"
+keywords = ["eyelink"]
+categories = ["external-ffi-bindings"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[badges]
+maintenance = { status = "experimental" }
+
+[dependencies]
+libc = "0.2.82"
+
+[features]
+sdl-graphics = []
+
+[build-dependencies]
+pkg-config = "0.3.19"
+
+[package.metadata.release]
+pre-release-commit-message = "chore: version {{version}}"
+post-release-commit-message = "chore: bump development version to {{next_version}}"
+tag-message = "{{crate_name}} {{version}}"
