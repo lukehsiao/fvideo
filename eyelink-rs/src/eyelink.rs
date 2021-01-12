@@ -165,8 +165,10 @@ pub fn stop_recording<'a, T: Into<Option<&'a str>>>(edf: T) -> Result<(), Fvideo
 
 /// Start an eyetrace recording.
 ///
-/// TODO(lukehsiao): `edf` should be "test.edf" for now. There is an untriaged
-/// bug for other file names.
+/// If edf = None, only record to the link, and not to an EDF file.
+///
+/// TODO(lukehsiao): `edf` should be "test.edf" for now. It doesn't work for other filenames, and I
+/// haven't tracked down why.
 pub fn start_recording<'a, T: Into<Option<&'a str>>>(edf: T) -> Result<(), FvideoEyelinkError> {
     if let Some(edf) = edf.into() {
         match eyelink_rs::open_data_file(edf) {

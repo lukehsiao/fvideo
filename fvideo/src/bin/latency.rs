@@ -21,7 +21,7 @@ use structopt::StructOpt;
 // use eyelink_rs::eyelink;
 use fvideo::client::FvideoClient;
 use fvideo::dummyserver::{FvideoDummyServer, FvideoDummyTwoStreamServer, DIFF_THRESH};
-use fvideo::{Calibrate, FoveationAlg, GazeSource, Record};
+use fvideo::{Dims, EyelinkOptions, FoveationAlg, GazeSource};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -105,12 +105,16 @@ fn main() -> Result<()> {
     let mut client = FvideoClient::new(
         opt.alg,
         fovea,
-        opt.width,
-        opt.height,
+        Dims {
+            width: opt.width,
+            height: opt.height,
+        },
         0,
         gaze_source,
-        Calibrate::No,
-        Record::No,
+        EyelinkOptions {
+            calibrate: false,
+            record: false,
+        },
         None,
     );
 

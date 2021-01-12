@@ -24,7 +24,7 @@ use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 
 use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
-use crate::{Calibrate, FoveationAlg, GazeSample, GazeSource, Record, EDF_FILE};
+use crate::{Dims, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
 use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
@@ -52,7 +52,7 @@ pub struct FvideoClient {
     last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
-    record: Record,
+    eyelink_options: EyelinkOptions,
     triggered: bool,
     alpha_blend: Vec<u8>,
     bg_frame: Video,
@@ -63,19 +63,14 @@ pub struct FvideoClient {
 impl Drop for FvideoClient {
     fn drop(&mut self) {
         if self.gaze_source == GazeSource::Eyelink {
-            match self.record {
-                Record::Yes => {
-                    if let Err(e) = eyelink::stop_recording(EDF_FILE) {
-                        error!("Failed stopping recording: {}", e);
-                        process::exit(1);
-                    }
+            if self.eyelink_options.record {
+                if let Err(e) = eyelink::stop_recording(EDF_FILE) {
+                    error!("Failed stopping recording: {}", e);
+                    process::exit(1);
                 }
-                Record::No => {
-                    if let Err(e) = eyelink::stop_recording(None) {
-                        error!("Failed stopping recording: {}", e);
-                        process::exit(1);
-                    }
-                }
+            } else if let Err(e) = eyelink::stop_recording(None) {
+                error!("Failed stopping recording: {}", e);
+                process::exit(1);
             }
 
             eyelink_rs::close_eyelink_connection();
@@ -92,12 +87,10 @@ impl FvideoClient {
     pub fn new<T: Into<Option<PathBuf>>>(
         alg: FoveationAlg,
         fovea: u32,
-        width: u32,
-        height: u32,
+        dims: Dims,
         delay: u64,
         gaze_source: GazeSource,
-        cal: Calibrate,
-        record: Record,
+        eyelink_options: EyelinkOptions,
         trace: T,
     ) -> FvideoClient {
         let mut eye_used = None;
@@ -109,32 +102,24 @@ impl FvideoClient {
                     process::exit(1);
                 }
 
-                match cal {
-                    Calibrate::Yes => {
-                        if let Err(e) = eyelink::run_calibration() {
-                            error!("Failed Eyelink Calibration: {}", e);
-                            process::exit(1);
-                        }
+                if eyelink_options.calibrate {
+                    if let Err(e) = eyelink::run_calibration() {
+                        error!("Failed Eyelink Calibration: {}", e);
+                        process::exit(1);
                     }
-                    Calibrate::No => {
-                        info!("Skipping calibration.");
-                    }
+                } else {
+                    info!("Skipping calibration.");
                 }
 
-                match record {
-                    Record::Yes => {
-                        info!("Recording eye-trace to {}.", EDF_FILE);
-                        if let Err(e) = eyelink::start_recording(EDF_FILE) {
-                            error!("Failed starting recording: {}", e);
-                            process::exit(1);
-                        }
+                if eyelink_options.record {
+                    info!("Recording eye-trace to {}.", EDF_FILE);
+                    if let Err(e) = eyelink::start_recording(EDF_FILE) {
+                        error!("Failed starting recording: {}", e);
+                        process::exit(1);
                     }
-                    Record::No => {
-                        if let Err(e) = eyelink::start_recording(None) {
-                            error!("Failed starting recording: {}", e);
-                            process::exit(1);
-                        }
-                    }
+                } else if let Err(e) = eyelink::start_recording(None) {
+                    error!("Failed starting recording: {}", e);
+                    process::exit(1);
                 }
 
                 if let Err(e) = eyelink_rs::eyelink_wait_for_block_start(100, 1, 0) {
@@ -223,10 +208,10 @@ impl FvideoClient {
             d_height: disp_height,
             d_x: disp_width / 2,
             d_y: disp_height / 2,
-            p_x: width / 2,
-            p_y: height / 2,
-            m_x: width / 2 / 16,
-            m_y: height / 2 / 16,
+            p_x: dims.width / 2,
+            p_y: dims.height / 2,
+            m_x: dims.width / 2 / 16,
+            m_y: dims.height / 2 / 16,
         };
         let mut gaze_samples = VecDeque::new();
         gaze_samples.reserve(256);
@@ -237,21 +222,21 @@ impl FvideoClient {
             d_height: disp_height,
             d_x: disp_width / 2,
             d_y: disp_height / 2,
-            p_x: width / 2,
-            p_y: height / 2,
-            m_x: width / 2 / 16,
-            m_y: height / 2 / 16,
+            p_x: dims.width / 2,
+            p_y: dims.height / 2,
+            m_x: dims.width / 2 / 16,
+            m_y: dims.height / 2 / 16,
         });
 
         let fovea_size = match fovea {
-            n if n * 16 > height => height,
+            n if n * 16 > dims.height => dims.height,
             0 => panic!("Error"), // this is "no foveation"
             n => n * 16,
         };
 
         let (fg_width, fg_height, bg_width, bg_height) = match alg {
             FoveationAlg::TwoStream => (fovea_size, fovea_size, RESCALE_WIDTH, RESCALE_HEIGHT),
-            _ => (width, height, width, height),
+            _ => (dims.width, dims.height, dims.width, dims.height),
         };
 
         // Set the alpha values based on a circular 2D Gaussian. These constants right now
@@ -284,8 +269,8 @@ impl FvideoClient {
             fg_height,
             bg_width,
             bg_height,
-            src_width: width,
-            src_height: height,
+            src_width: dims.width,
+            src_height: dims.height,
             disp_width,
             disp_height,
             total_bytes: 0,
@@ -295,7 +280,7 @@ impl FvideoClient {
             last_gaze_sample,
             eye_used,
             trace_samples,
-            record,
+            eyelink_options,
             triggered: false,
             alpha_blend,
             bg_frame: Video::empty(),

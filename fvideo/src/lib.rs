@@ -21,7 +21,14 @@ pub mod twostreamserver;
 
 pub type EncodedFrames = Vec<(Option<NalData>, Option<NalData>)>;
 
-/// Structure of a single gaze sample.
+/// Source video dimensions for initializing a client.
+#[derive(Copy, Clone, Debug)]
+pub struct Dims {
+    pub width: u32,
+    pub height: u32,
+}
+
+/// A gaze sample.
 #[derive(Copy, Clone, Debug)]
 pub struct GazeSample {
     pub time: Instant, // time of the sample
@@ -92,16 +99,11 @@ pub enum FvideoClientError {
     EyelinkError(#[from] eyelink_rs::EyelinkError),
 }
 
-#[derive(Debug)]
-pub enum Calibrate {
-    Yes,
-    No,
-}
-
-#[derive(Debug)]
-pub enum Record {
-    Yes,
-    No,
+/// Collection of options for interacting with the Eyelink.
+#[derive(Copy, Clone, Debug)]
+pub struct EyelinkOptions {
+    pub calibrate: bool,
+    pub record: bool,
 }
 
 /// Parse the width, height, and frame rate from the Y4M header.
@@ -144,7 +146,6 @@ fn setup_x264_params_bg(width: u32, height: u32, qp: i32) -> Result<Param, Fvide
     let mut par = Param::default_preset("faster", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
-    // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
     par = par.set_dimension(width as i32, height as i32);
     par = par.set_min_keyint(i32::MAX);
     par = par.set_no_scenecut();
@@ -157,7 +158,7 @@ fn setup_x264_params(width: u32, height: u32, qp: i32) -> Result<Param, FvideoSe
     let mut par = Param::default_preset("superfast", "zerolatency")
         .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
-    // TODO(lukehsiao): this is hacky, and shoould probably be cleaned up.
+    // TODO(lukehsiao): this is hacky, and should probably be cleaned up.
     par = par.set_x264_defaults();
     par = par.set_dimension(width as i32, height as i32);
     par = par.set_min_keyint(i32::MAX);
