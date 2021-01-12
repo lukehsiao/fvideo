@@ -1,4 +1,4 @@
-//! Implementation for the two-stream foveated video encoding server.
+//! Foveated video encoding server using two streams.
 
 extern crate ffmpeg_next as ffmpeg;
 

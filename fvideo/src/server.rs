@@ -1,4 +1,4 @@
-//! Struct for the foveated video encoding server.
+//! Foveated video encoding server using QP offsets.
 //!
 //! The server is responsible for encoding frames using the latest gaze data available from the
 //! client.

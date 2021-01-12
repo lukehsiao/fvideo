@@ -1,4 +1,4 @@
-//! Struct for the video client.
+//! Foveated video compression client.
 //!
 //! The client is responsible for gathering gaze data to send to the
 //! server/encoder, and decoding/displaying the resulting frames.

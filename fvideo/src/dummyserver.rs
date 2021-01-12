@@ -1,3 +1,7 @@
+//! Dummy foveated video encoding server.
+//!
+//! Unlike the real servers, the dummy server generates a black video, and then a frame with a white
+//! square in the bottom left once the gaze is triggered.
 extern crate ffmpeg_next as ffmpeg;
 
 use std::convert::TryInto;
