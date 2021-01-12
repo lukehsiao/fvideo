@@ -73,7 +73,7 @@ impl FvideoTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 33)?;
+        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 28)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;

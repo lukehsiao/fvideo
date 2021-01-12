@@ -130,14 +130,9 @@ fn parse_y4m_header(src: &str) -> Result<(u32, u32, f64), FvideoServerError> {
     let width = caps["width"].parse()?;
     let height = caps["height"].parse()?;
 
-    let fps = match &caps["frame"] {
-        "30:1" => 30.0,
-        "25:1" => 25.0,
-        "24:1" => 24.0,
-        "30000:1001" => 29.97,
-        "24000:1001" => 23.976,
-        _ => return Err(FvideoServerError::ParseY4MError(src.to_string())),
-    };
+    let ratio: Vec<&str> = caps["frame"].split(':').collect();
+
+    let fps = ratio[0].parse::<f64>()? / ratio[1].parse::<f64>()?;
 
     Ok((width, height, fps))
 }
@@ -194,5 +189,19 @@ mod tests {
         assert_eq!(width, 3840);
         assert_eq!(height, 2160);
         assert_eq!(fps, 24.0);
+
+        let hdr = "YUV4MPEG2 W1920 H1080 F60:1 Ip A0:0 C420jpeg\n";
+
+        let (width, height, fps) = parse_y4m_header(&hdr).unwrap();
+        assert_eq!(width, 1920);
+        assert_eq!(height, 1080);
+        assert_eq!(fps, 60.0);
+
+        let hdr = "YUV4MPEG2 W1920 H1080 F24000:1001 Ip A0:0 C420jpeg\n";
+
+        let (width, height, fps) = parse_y4m_header(&hdr).unwrap();
+        assert_eq!(width, 1920);
+        assert_eq!(height, 1080);
+        assert_eq!(fps, 24000.0 / 1001.0);
     }
 }
