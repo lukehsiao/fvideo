@@ -18,7 +18,7 @@ use crate::{EncodedFrames, FvideoServerError, GazeSample};
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
-pub const DIFF_THRESH: i32 = 100;
+pub const DIFF_THRESH: i32 = 50;
 const LINGER_FRAMES: i64 = 1;
 
 /// Dummy server used for single-stream e2e latency measurements
