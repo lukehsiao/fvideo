@@ -89,13 +89,13 @@ mod tests {
 
     #[test]
     fn test_parse_asc() {
-        let mut samples = parse_asc(PathBuf::from("../data/shibuya_trim.asc")).unwrap();
-        assert_eq!(samples.len(), 17901);
+        let mut samples = parse_asc(PathBuf::from("../data/test.asc")).unwrap();
+        assert_eq!(samples.len(), 9070);
         let sample = samples.pop().unwrap();
-        assert_eq!(sample.time, 4071986);
-        assert_eq!(sample.x, 168.5);
-        assert_eq!(sample.y, 471.9);
-        assert_eq!(sample.p, 898.0);
+        assert_eq!(sample.time, 2228960);
+        assert_eq!(sample.x, 720.3);
+        assert_eq!(sample.y, 415.3);
+        assert_eq!(sample.p, 1271.0);
     }
 
     #[test]
