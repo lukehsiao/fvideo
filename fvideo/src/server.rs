@@ -12,9 +12,9 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use log::debug;
-use x264::{Encoder, NalData, Picture};
+use x264::{Encoder, Picture};
 
-use crate::{FoveationAlg, FvideoServerError, GazeSample};
+use crate::{EncodedFrames, FoveationAlg, FvideoServerError, GazeSample};
 
 /// Server/Encoder Struct
 pub struct FvideoServer {
@@ -118,10 +118,7 @@ impl FvideoServer {
         Ok(())
     }
 
-    pub fn encode_frame(
-        &mut self,
-        gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
+    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
         let time = Instant::now();
         self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());

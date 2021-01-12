@@ -12,12 +12,14 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use structopt::clap::arg_enum;
 use thiserror::Error;
-use x264::Param;
+use x264::{NalData, Param};
 
 pub mod client;
 pub mod dummyserver;
 pub mod server;
 pub mod twostreamserver;
+
+pub type EncodedFrames = Vec<(Option<NalData>, Option<NalData>)>;
 
 /// Structure of a single gaze sample.
 #[derive(Copy, Clone, Debug)]

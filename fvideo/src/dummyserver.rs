@@ -11,10 +11,10 @@ use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
 use ffmpeg::sys as ffmpeg_sys_next;
 use log::{debug, info, warn};
-use x264::{Encoder, NalData, Picture};
+use x264::{Encoder, Picture};
 
 use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
-use crate::{FvideoServerError, GazeSample};
+use crate::{EncodedFrames, FvideoServerError, GazeSample};
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
@@ -89,10 +89,7 @@ impl FvideoDummyServer {
 
     /// Read frame from dummy video which will include a white square at the
     /// bottom left when the gaze position has changed beyond a threshold.
-    pub fn encode_frame(
-        &mut self,
-        gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
+    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
@@ -250,10 +247,7 @@ impl FvideoDummyTwoStreamServer {
 
     /// Read frame from dummy video which will include a white square at the
     /// bottom left when the gaze position has changed beyond a threshold.
-    pub fn encode_frame(
-        &mut self,
-        gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
+    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             info!("Finished.");
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));

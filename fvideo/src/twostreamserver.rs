@@ -13,9 +13,9 @@ use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
 use ffmpeg::sys as ffmpeg_sys_next;
 use log::{debug, warn};
-use x264::{Encoder, NalData, Picture};
+use x264::{Encoder, Picture};
 
-use crate::{FvideoServerError, GazeSample};
+use crate::{EncodedFrames, FvideoServerError, GazeSample};
 
 /// Server/Encoder Struct
 pub struct FvideoTwoStreamServer {
@@ -148,10 +148,7 @@ impl FvideoTwoStreamServer {
 
     // TODO(lukehsiao): I don't like this return type. At some point we should pull this into a
     // trait or something to have a more clear interface.
-    pub fn encode_frame(
-        &mut self,
-        gaze: GazeSample,
-    ) -> Result<Vec<(Option<NalData>, Option<NalData>)>, FvideoServerError> {
+    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
         let time = Instant::now();
         let advanced = self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
