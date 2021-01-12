@@ -71,7 +71,7 @@ use fvideo::{Calibrate, FoveationAlg, GazeSource, Record, EDF_FILE};
 /// Make sure the qp offset option is in a valid range.
 fn parse_qo_max(src: &str) -> Result<f32> {
     let qo_max = f32::from_str(src)?;
-    if qo_max < 0.0 || qo_max > 81.0 {
+    if !(0.0..=81.0).contains(&qo_max) {
         Err(anyhow!("QO max offset not in valid range [0, 81]."))
     } else {
         Ok(qo_max)
