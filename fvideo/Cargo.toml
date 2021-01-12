@@ -28,6 +28,8 @@ name = "minlatency"
 [dependencies]
 anyhow = "1.0.38"
 chrono = "0.4.19"
+crossbeam = "0.8.0"
+crossbeam-channel = "0.5.0"
 ctrlc = "3.1.7"
 eyelink-rs = {path = "../eyelink-rs"}
 ffmpeg-next = "4.3.8"

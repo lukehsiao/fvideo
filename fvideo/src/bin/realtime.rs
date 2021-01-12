@@ -53,12 +53,12 @@ extern crate ffmpeg_next as ffmpeg;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::mpsc;
 use std::time::Instant;
 use std::{fs, process, thread};
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
+use crossbeam_channel::unbounded;
 use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -214,8 +214,8 @@ fn main() -> Result<()> {
         _ => None,
     };
 
-    let (nal_tx, nal_rx) = mpsc::channel();
-    let (gaze_tx, gaze_rx) = mpsc::channel();
+    let (nal_tx, nal_rx) = unbounded();
+    let (gaze_tx, gaze_rx) = unbounded();
 
     let now = Instant::now();
 
