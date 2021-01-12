@@ -14,7 +14,7 @@ Low-latency foveated video encoding.
 following system dependencies:
 
 ```
-sudo apt install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev
+sudo apt install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
 ```
 
 Next, you must install Eyelink's libraries.
