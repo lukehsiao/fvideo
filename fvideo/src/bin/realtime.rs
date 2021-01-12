@@ -181,7 +181,7 @@ fn main() -> Result<()> {
         info!("{}", e);
     }
 
-    let cfg_dest: PathBuf = [&outdir, &PathBuf::from("config.csv")].iter().collect();
+    let cfg_dest: PathBuf = [&outdir, &PathBuf::from("results.csv")].iter().collect();
     let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
     writeln!(
         cfg_dest,
