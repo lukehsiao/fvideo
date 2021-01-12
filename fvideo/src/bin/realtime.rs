@@ -53,7 +53,6 @@ extern crate ffmpeg_next as ffmpeg;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::mpsc;
 use std::time::Instant;
 use std::{fs, process, thread};
 
@@ -214,8 +213,8 @@ fn main() -> Result<()> {
         _ => None,
     };
 
-    let (nal_tx, nal_rx) = mpsc::channel();
-    let (gaze_tx, gaze_rx) = mpsc::channel();
+    let (nal_tx, nal_rx) = flume::bounded(16);
+    let (gaze_tx, gaze_rx) = flume::bounded(16);
 
     let now = Instant::now();
 
