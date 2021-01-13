@@ -36,8 +36,8 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const RESCALE_WIDTH: u32 = 896;
-pub const RESCALE_HEIGHT: u32 = 504;
+pub const RESCALE_WIDTH: u32 = 640;
+pub const RESCALE_HEIGHT: u32 = 360;
 
 impl FvideoTwoStreamServer {
     pub fn new(fovea: u32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
@@ -73,7 +73,7 @@ impl FvideoTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 28)?;
+        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 26)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -85,7 +85,7 @@ impl FvideoTwoStreamServer {
             Pixel::YUV420P,
             RESCALE_WIDTH,
             RESCALE_HEIGHT,
-            Flags::FAST_BILINEAR,
+            Flags::BILINEAR,
         )?;
 
         let frame_time = Instant::now();
