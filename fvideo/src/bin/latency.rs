@@ -7,10 +7,9 @@ extern crate ffmpeg_next as ffmpeg;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
-use std::str;
 use std::sync::mpsc;
-use std::thread;
 use std::time::{Duration, Instant};
+use std::{process, str, thread};
 
 use anyhow::Result;
 use log::{debug, error, info, warn};
@@ -72,6 +71,13 @@ const GO_CMD: &str = "g";
 fn main() -> Result<()> {
     pretty_env_logger::init_timed();
     ffmpeg::init().unwrap();
+    // Catch SIGINT to allow early exit.
+    ctrlc::set_handler(|| {
+        debug!("Exiting from SIGINT");
+        process::exit(1)
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let opt = Opt::from_args();
 
     let mut logfile = OpenOptions::new()
