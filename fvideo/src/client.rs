@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::process;
 use std::time::{Duration, Instant};
 
+use ffmpeg::filter::{self, graph::Graph};
 use ffmpeg::util::format::pixel::Pixel;
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
@@ -58,6 +59,7 @@ pub struct FvideoClient {
     bg_frame: Video,
     seqno: u64,
     delay: Option<Duration>,
+    filter: Graph,
 }
 
 impl Drop for FvideoClient {
@@ -77,6 +79,7 @@ impl Drop for FvideoClient {
         }
 
         // Make sure to flush decoder.
+        self.filter.get("in").unwrap().source().flush().unwrap();
         self.fg_decoder.flush();
         self.bg_decoder.flush();
     }
@@ -264,6 +267,55 @@ impl FvideoClient {
             }
         }
 
+        let buffer_params = format!(
+            "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
+            bg_width, bg_height, "yuv420p", 1, 24
+        );
+
+        // TODO(lukehsiao): another option is something like
+        // let filter_descr = "unsharp=luma_msize_x=7:luma_msize_y=7:luma_amount=0.5";
+        let filter_descr = "smartblur=lr=1.0:ls=-1.0";
+
+        let filter = {
+            let mut filter = filter::Graph::new();
+
+            filter
+                .add(
+                    &filter::find("buffer").unwrap(),
+                    "in",           // name
+                    &buffer_params, // params
+                )
+                .unwrap();
+
+            filter
+                .add(
+                    &filter::find("buffersink").unwrap(),
+                    "out", // name
+                    "",    // params
+                )
+                .unwrap();
+
+            let mut inp = filter.get("in").unwrap();
+            inp.set_pixel_format(Pixel::YUV420P);
+
+            let mut out = filter.get("out").unwrap();
+            out.set_pixel_format(Pixel::YUV420P);
+
+            filter
+                .output("in", 0)
+                .unwrap()
+                .input("out", 0)
+                .unwrap()
+                .parse(filter_descr)
+                .unwrap();
+
+            filter.validate().unwrap();
+
+            info!("{}", filter.dump());
+
+            filter
+        };
+
         FvideoClient {
             alg,
             fg_decoder,
@@ -296,6 +348,7 @@ impl FvideoClient {
             } else {
                 None
             },
+            filter,
         }
     }
 
@@ -574,7 +627,25 @@ impl FvideoClient {
             let bg_packet = Packet::copy(bg.as_bytes());
             self.total_bytes += bg_packet.size() as u64;
             match self.bg_decoder.decode(&bg_packet, &mut self.bg_frame) {
-                Ok(true) => (),
+                Ok(true) => {
+                    let mut filtered = Video::empty();
+                    // Apply sharpening filter
+                    self.filter
+                        .get("in")
+                        .unwrap()
+                        .source()
+                        .add(&self.bg_frame)
+                        .unwrap();
+                    match self.filter.get("out").unwrap().sink().frame(&mut filtered) {
+                        Ok(_) => {
+                            self.bg_frame = filtered;
+                        }
+                        Err(e) => {
+                            error!("{}", e);
+                            unimplemented!()
+                        }
+                    }
+                }
                 Ok(false) => unimplemented!(),
                 Err(_) => {
                     error!("Error occured while decoding packet.");
