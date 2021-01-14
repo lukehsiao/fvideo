@@ -749,5 +749,24 @@ impl FvideoClient {
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
+
+    #[test]
+    fn test_init_client() {
+        let _client = FvideoClient::new(
+            FoveationAlg::TwoStream,
+            10,
+            Dims {
+                width: 3840,
+                height: 2160,
+            },
+            0,
+            GazeSource::Mouse,
+            EyelinkOptions {
+                calibrate: false,
+                record: false,
+            },
+            None,
+        );
+    }
 }
