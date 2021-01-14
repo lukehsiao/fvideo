@@ -21,7 +21,7 @@ use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
-use sdl2::EventPump;
+use sdl2::{hint, EventPump};
 
 use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
 use crate::{Dims, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
@@ -172,6 +172,12 @@ impl FvideoClient {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let mut event_pump = sdl_context.event_pump().unwrap();
+
+        // Changes the algorithm used to upscale on display
+        if !hint::set("SDL_RENDER_SCALE_QUALITY", "2") {
+            error!("Unable to set SDL_RENDER_SCALE_QUALITY");
+            panic!();
+        }
 
         let (disp_width, disp_height) = {
             let disp_rect = video_subsystem.display_bounds(0).unwrap();
