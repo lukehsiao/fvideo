@@ -24,8 +24,7 @@ use sdl2::render::{BlendMode, Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::{hint, EventPump};
 
-use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
-use crate::{Dims, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
+use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
 use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
@@ -90,8 +89,9 @@ impl FvideoClient {
     pub fn new<T: Into<Option<PathBuf>>>(
         alg: FoveationAlg,
         fovea: u32,
-        dims: Dims,
-        delay: u64,
+        src_dims: Dims,
+        rescale_dims: Dims,
+        display_options: DisplayOptions,
         gaze_source: GazeSource,
         eyelink_options: EyelinkOptions,
         trace: T,
@@ -217,10 +217,10 @@ impl FvideoClient {
             d_height: disp_height,
             d_x: disp_width / 2,
             d_y: disp_height / 2,
-            p_x: dims.width / 2,
-            p_y: dims.height / 2,
-            m_x: dims.width / 2 / 16,
-            m_y: dims.height / 2 / 16,
+            p_x: src_dims.width / 2,
+            p_y: src_dims.height / 2,
+            m_x: src_dims.width / 2 / 16,
+            m_y: src_dims.height / 2 / 16,
         };
         let mut gaze_samples = VecDeque::new();
         gaze_samples.reserve(256);
@@ -231,21 +231,31 @@ impl FvideoClient {
             d_height: disp_height,
             d_x: disp_width / 2,
             d_y: disp_height / 2,
-            p_x: dims.width / 2,
-            p_y: dims.height / 2,
-            m_x: dims.width / 2 / 16,
-            m_y: dims.height / 2 / 16,
+            p_x: src_dims.width / 2,
+            p_y: src_dims.height / 2,
+            m_x: src_dims.width / 2 / 16,
+            m_y: src_dims.height / 2 / 16,
         });
 
         let fovea_size = match fovea {
-            n if n * 16 > dims.height => dims.height,
+            n if n * 16 > src_dims.height => src_dims.height,
             0 => panic!("Error"), // this is "no foveation"
             n => n * 16,
         };
 
         let (fg_width, fg_height, bg_width, bg_height) = match alg {
-            FoveationAlg::TwoStream => (fovea_size, fovea_size, RESCALE_WIDTH, RESCALE_HEIGHT),
-            _ => (dims.width, dims.height, dims.width, dims.height),
+            FoveationAlg::TwoStream => (
+                fovea_size,
+                fovea_size,
+                rescale_dims.width,
+                rescale_dims.height,
+            ),
+            _ => (
+                src_dims.width,
+                src_dims.height,
+                src_dims.width,
+                src_dims.height,
+            ),
         };
 
         // Set the alpha values based on a circular 2D Gaussian. These constants right now
@@ -271,10 +281,6 @@ impl FvideoClient {
             "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
             bg_width, bg_height, "yuv420p", 1, 24
         );
-
-        // TODO(lukehsiao): another option is something like
-        // let filter_descr = "unsharp=luma_msize_x=7:luma_msize_y=7:luma_amount=0.5";
-        let filter_descr = "smartblur=lr=1.0:ls=-1.0";
 
         let filter = {
             let mut filter = filter::Graph::new();
@@ -306,7 +312,7 @@ impl FvideoClient {
                 .unwrap()
                 .input("out", 0)
                 .unwrap()
-                .parse(filter_descr)
+                .parse(display_options.filter.as_str())
                 .unwrap();
 
             filter.validate().unwrap();
@@ -327,8 +333,8 @@ impl FvideoClient {
             fg_height,
             bg_width,
             bg_height,
-            src_width: dims.width,
-            src_height: dims.height,
+            src_width: src_dims.width,
+            src_height: src_dims.height,
             disp_width,
             disp_height,
             total_bytes: 0,
@@ -343,8 +349,8 @@ impl FvideoClient {
             alpha_blend,
             bg_frame: Video::empty(),
             seqno: 0,
-            delay: if delay > 0 {
-                Some(Duration::from_millis(delay))
+            delay: if display_options.delay > 0 {
+                Some(Duration::from_millis(display_options.delay))
             } else {
                 None
             },

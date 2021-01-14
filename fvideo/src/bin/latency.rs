@@ -20,7 +20,7 @@ use structopt::StructOpt;
 // use eyelink_rs::eyelink;
 use fvideo::client::FvideoClient;
 use fvideo::dummyserver::{FvideoDummyServer, FvideoDummyTwoStreamServer, DIFF_THRESH};
-use fvideo::{Dims, EyelinkOptions, FoveationAlg, GazeSource};
+use fvideo::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -58,6 +58,18 @@ struct Opt {
     /// Baud rate for ASG.
     #[structopt(short, long, default_value = "115200")]
     baud: u32,
+
+    /// Width to rescale the bg video stream.
+    #[structopt(short, long, default_value = "512")]
+    rescale_width: u32,
+
+    /// Height to rescale the bg video stream.
+    #[structopt(short, long, default_value = "288")]
+    rescale_height: u32,
+
+    /// FFmpeg-style filter to apply to the decoded bg frames.
+    #[structopt(short, long, default_value = "smartblur=lr=1.0:ls=-1.0")]
+    filter: String,
 
     /// Path to append results of each run.
     ///
@@ -115,7 +127,14 @@ fn main() -> Result<()> {
             width: opt.width,
             height: opt.height,
         },
-        0,
+        Dims {
+            width: opt.rescale_width,
+            height: opt.rescale_height,
+        },
+        DisplayOptions {
+            delay: 0,
+            filter: opt.filter.clone(),
+        },
         gaze_source,
         EyelinkOptions {
             calibrate: false,
@@ -137,7 +156,17 @@ fn main() -> Result<()> {
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
-                let mut server = FvideoDummyTwoStreamServer::new(opt.width, opt.height, fovea)?;
+                let mut server = FvideoDummyTwoStreamServer::new(
+                    Dims {
+                        width: opt.width,
+                        height: opt.height,
+                    },
+                    Dims {
+                        width: opt.rescale_width,
+                        height: opt.rescale_height,
+                    },
+                    fovea,
+                )?;
 
                 for current_gaze in gaze_rx {
                     // Only look at latest available gaze sample

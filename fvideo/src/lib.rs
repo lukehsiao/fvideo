@@ -106,6 +106,13 @@ pub struct EyelinkOptions {
     pub record: bool,
 }
 
+/// Collection of options for modifying the display of the video.
+#[derive(Debug)]
+pub struct DisplayOptions {
+    pub delay: u64,
+    pub filter: String,
+}
+
 /// Parse the width, height, and frame rate from the Y4M header.
 ///
 /// See https://wiki.multimedia.cx/index.php/YUV4MPEG2 for details.

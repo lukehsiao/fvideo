@@ -18,7 +18,7 @@ use structopt::StructOpt;
 
 use fvideo::client::FvideoClient;
 use fvideo::dummyserver::DIFF_THRESH;
-use fvideo::{Dims, EyelinkOptions, FoveationAlg, GazeSource};
+use fvideo::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -52,6 +52,18 @@ struct Opt {
     /// Path for serial connection to ASG.
     #[structopt(short, long, default_value = "/dev/ttyACM0", parse(from_os_str))]
     serial: PathBuf,
+
+    /// Width to rescale the bg video stream.
+    #[structopt(short, long, default_value = "512")]
+    rescale_width: u32,
+
+    /// Height to rescale the bg video stream.
+    #[structopt(short, long, default_value = "288")]
+    rescale_height: u32,
+
+    /// FFmpeg-style filter to apply to the decoded bg frames.
+    #[structopt(short, long, default_value = "smartblur=lr=1.0:ls=-1.0")]
+    filter: String,
 
     /// Baud rate for ASG.
     #[structopt(short, long, default_value = "115200")]
@@ -94,7 +106,14 @@ fn main() -> Result<()> {
             width: opt.width,
             height: opt.height,
         },
-        0,
+        Dims {
+            width: opt.rescale_width,
+            height: opt.rescale_height,
+        },
+        DisplayOptions {
+            delay: 0,
+            filter: opt.filter,
+        },
         opt.gaze_source,
         EyelinkOptions {
             calibrate: false,

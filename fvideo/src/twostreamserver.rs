@@ -15,7 +15,7 @@ use ffmpeg::sys as ffmpeg_sys_next;
 use log::{debug, warn};
 use x264::{Encoder, Picture};
 
-use crate::{EncodedFrames, FvideoServerError, GazeSample};
+use crate::{Dims, EncodedFrames, FvideoServerError, GazeSample};
 
 /// Server/Encoder Struct
 pub struct FvideoTwoStreamServer {
@@ -36,11 +36,13 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const RESCALE_WIDTH: u32 = 512;
-pub const RESCALE_HEIGHT: u32 = 288;
-
 impl FvideoTwoStreamServer {
-    pub fn new(fovea: u32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
+    pub fn new(
+        fovea: u32,
+        rescale: Dims,
+        bg_qp: i32,
+        video: PathBuf,
+    ) -> Result<FvideoTwoStreamServer, FvideoServerError> {
         let video_in = File::open(video)?;
         let mut video_in = BufReader::new(video_in);
 
@@ -67,13 +69,13 @@ impl FvideoTwoStreamServer {
         let orig_pic = Picture::from_param(&orig_par)?;
 
         // foreground stream is cropped
-        let mut fg_par = crate::setup_x264_params(fovea_size, fovea_size, 24)?;
+        let mut fg_par = crate::setup_x264_params(fovea_size, fovea_size, bg_qp)?;
         let fg_pic = Picture::from_param(&fg_par)?;
         let fg_encoder = Encoder::open(&mut fg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 24)?;
+        let mut bg_par = crate::setup_x264_params_bg(rescale.width, rescale.height, 24)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -83,8 +85,8 @@ impl FvideoTwoStreamServer {
             width,
             height,
             Pixel::YUV420P,
-            RESCALE_WIDTH,
-            RESCALE_HEIGHT,
+            rescale.width,
+            rescale.height,
             Flags::BILINEAR,
         )?;
 

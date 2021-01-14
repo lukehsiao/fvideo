@@ -13,8 +13,7 @@ use ffmpeg::sys as ffmpeg_sys_next;
 use log::{debug, info, warn};
 use x264::{Encoder, Picture};
 
-use crate::twostreamserver::{RESCALE_HEIGHT, RESCALE_WIDTH};
-use crate::{EncodedFrames, FvideoServerError, GazeSample};
+use crate::{Dims, EncodedFrames, FvideoServerError, GazeSample};
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
@@ -157,12 +156,12 @@ pub struct FvideoDummyTwoStreamServer {
 impl FvideoDummyTwoStreamServer {
     /// Used to create a dummy video server for measuring e2e latency.
     pub fn new(
-        width: u32,
-        height: u32,
+        src_dims: Dims,
+        rescale_dims: Dims,
         fovea: u32,
     ) -> Result<FvideoDummyTwoStreamServer, FvideoServerError> {
         let fovea_size = match fovea {
-            n if n * 16 > height => height,
+            n if n * 16 > src_dims.height => src_dims.height,
             0 => {
                 return Err(FvideoServerError::TwoStreamError(
                     "TwoStream requires fovea to be non-zero.".to_string(),
@@ -170,7 +169,7 @@ impl FvideoDummyTwoStreamServer {
             }
             n => n * 16,
         };
-        let par = crate::setup_x264_params(width, height, 24)?;
+        let par = crate::setup_x264_params(src_dims.width, src_dims.height, 24)?;
         let mut pic_black = Picture::from_param(&par)?;
         let mut pic_white = Picture::from_param(&par)?;
 
@@ -185,15 +184,16 @@ impl FvideoDummyTwoStreamServer {
         // init white
         // But, only a small portion in the bottom left of the frame. Otherwise
         // a whole screen of white adds a lot of latency.
-        let box_dim = width / 19;
+        let box_dim = src_dims.width / 19;
         let buf = pic_white.as_mut_slice(0).unwrap();
-        for c in 0..height {
-            for r in 0..width {
-                buf[(width * c + r) as usize] = if c > (height - box_dim) && r < (box_dim) {
-                    WHITE
-                } else {
-                    BLACK
-                };
+        for c in 0..src_dims.height {
+            for r in 0..src_dims.width {
+                buf[(src_dims.width * c + r) as usize] =
+                    if c > (src_dims.height - box_dim) && r < (box_dim) {
+                        WHITE
+                    } else {
+                        BLACK
+                    };
             }
         }
         for plane in 1..3 {
@@ -208,18 +208,18 @@ impl FvideoDummyTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 33)?;
+        let mut bg_par = crate::setup_x264_params_bg(rescale_dims.width, rescale_dims.height, 33)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         let scaler = Context::get(
             Pixel::YUV420P,
-            width,
-            height,
+            src_dims.width,
+            src_dims.height,
             Pixel::YUV420P,
-            RESCALE_WIDTH,
-            RESCALE_HEIGHT,
+            rescale_dims.width,
+            rescale_dims.height,
             Flags::FAST_BILINEAR,
         )?;
 
@@ -232,8 +232,8 @@ impl FvideoDummyTwoStreamServer {
             bg_encoder,
             fg_encoder,
             scaler,
-            width,
-            height,
+            width: src_dims.width,
+            height: src_dims.height,
             timestamp: 0,
             triggered_buff: 0,
             triggered: false,

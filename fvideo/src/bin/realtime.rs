@@ -65,7 +65,7 @@ use structopt::StructOpt;
 use fvideo::client::FvideoClient;
 use fvideo::server::FvideoServer;
 use fvideo::twostreamserver::FvideoTwoStreamServer;
-use fvideo::{Dims, EyelinkOptions, FoveationAlg, GazeSource, EDF_FILE};
+use fvideo::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource, EDF_FILE};
 
 /// Make sure the qp offset option is in a valid range.
 fn parse_qo_max(src: &str) -> Result<f32> {
@@ -133,6 +133,22 @@ struct Opt {
     #[structopt(short, long)]
     record: bool,
 
+    /// Width to rescale the bg video stream.
+    #[structopt(short, long, default_value = "512")]
+    rescale_width: u32,
+
+    /// Height to rescale the bg video stream.
+    #[structopt(short, long, default_value = "288")]
+    rescale_height: u32,
+
+    /// QP setting for the background
+    #[structopt(short, long, default_value = "24")]
+    bg_qp: i32,
+
+    /// FFmpeg-style filter to apply to the decoded bg frames.
+    #[structopt(short, long, default_value = "smartblur=lr=1.0:ls=-1.0")]
+    filter: String,
+
     /// Amount of artificial latency to add (ms).
     #[structopt(short, long, default_value = "0")]
     delay: u64,
@@ -159,7 +175,14 @@ fn main() -> Result<()> {
         opt.alg,
         opt.fovea,
         Dims { width, height },
-        opt.delay,
+        Dims {
+            width: opt.rescale_width,
+            height: opt.rescale_height,
+        },
+        DisplayOptions {
+            delay: opt.delay,
+            filter: opt.filter.clone(),
+        },
         gaze_source,
         EyelinkOptions {
             calibrate: !opt.skip_cal,
@@ -225,7 +248,15 @@ fn main() -> Result<()> {
     let t_enc = match opt.alg {
         FoveationAlg::TwoStream => {
             thread::spawn(move || -> Result<()> {
-                let mut server = FvideoTwoStreamServer::new(opt.fovea, opt.video.clone())?;
+                let mut server = FvideoTwoStreamServer::new(
+                    opt.fovea,
+                    Dims {
+                        width: opt.rescale_width,
+                        height: opt.rescale_height,
+                    },
+                    opt.bg_qp,
+                    opt.video.clone(),
+                )?;
                 for current_gaze in gaze_rx {
                     // Only look at latest available gaze sample
                     let time = Instant::now();
