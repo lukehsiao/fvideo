@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: deps
-        run: sudo apt-get update && sudo apt-get install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
+        run: sudo add-apt-repository -y ppa:jonathonf/ffmpeg-4 && sudo apt-get update && sudo apt-get install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
       - id: eyelink1
         run: wget -O - "http://download.sr-support.com/software/dists/SRResearch/SRResearch_key" | sudo apt-key add -
       - id: eyelink2
