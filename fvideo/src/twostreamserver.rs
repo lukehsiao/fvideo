@@ -36,8 +36,8 @@ pub struct FvideoTwoStreamServer {
     timestamp: i64,
 }
 
-pub const RESCALE_WIDTH: u32 = 640;
-pub const RESCALE_HEIGHT: u32 = 360;
+pub const RESCALE_WIDTH: u32 = 512;
+pub const RESCALE_HEIGHT: u32 = 288;
 
 impl FvideoTwoStreamServer {
     pub fn new(fovea: u32, video: PathBuf) -> Result<FvideoTwoStreamServer, FvideoServerError> {
@@ -73,7 +73,7 @@ impl FvideoTwoStreamServer {
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 26)?;
+        let mut bg_par = crate::setup_x264_params_bg(RESCALE_WIDTH, RESCALE_HEIGHT, 24)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
@@ -158,8 +158,7 @@ impl FvideoTwoStreamServer {
 
         let mut bg_nal = None;
         if advanced {
-            // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
-            // fast_bilinear rather than bilinear gives about 800fps.
+            // Rescale to bg_pic.
             unsafe {
                 ffmpeg_sys_next::sws_scale(
                     self.scaler.as_mut_ptr(),
