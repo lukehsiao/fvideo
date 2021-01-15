@@ -154,7 +154,7 @@ struct Opt {
     /// Both width and height must be a multiple of 16 (the size of a macroblock). Height will
     /// automatically be calculated to keep a 16:9 ratio. Only used by the TwoStream foveation
     /// algorithm.
-    #[structopt(short, long, default_value = "512", parse(try_from_str = parse_bg_width))]
+    #[structopt(short= "w", long, default_value = "512", parse(try_from_str = parse_bg_width))]
     bg_width: u32,
 
     /// QP setting for the background.
@@ -164,7 +164,7 @@ struct Opt {
     bg_qp: i32,
 
     /// FFmpeg-style filter to apply to the decoded bg frames.
-    #[structopt(short, long, default_value = "smartblur=lr=1.0:ls=-1.0")]
+    #[structopt(short = "s", long, default_value = "smartblur=lr=1.0:ls=-1.0")]
     filter: String,
 
     /// Amount of artificial latency to add (ms).
