@@ -77,6 +77,20 @@ fn parse_qo_max(src: &str) -> Result<f32> {
     }
 }
 
+/// Make sure the bg_width option is a multiple of 16.
+fn parse_bg_width(src: &str) -> Result<u32> {
+    let bg_width = u32::from_str(src)?;
+    let bg_height = bg_width * 9 / 16;
+    if !(bg_width % 16 == 0) || !(bg_height % 16 == 0) {
+        Err(anyhow!(
+            "Background width (and implied height: {}) must be a multiple of 16.",
+            bg_height
+        ))
+    } else {
+        Ok(bg_width)
+    }
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(
     name("realtime"),
@@ -108,6 +122,8 @@ struct Opt {
     gaze_source: GazeSource,
 
     /// The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
+    ///
+    /// Only used for the Guassian or SquareStep foveation algorithms.
     #[structopt(short, long, default_value = "35.0", parse(try_from_str = parse_qo_max))]
     qo_max: f32,
 
@@ -133,15 +149,17 @@ struct Opt {
     #[structopt(short, long)]
     record: bool,
 
-    /// Width to rescale the bg video stream.
-    #[structopt(short, long, default_value = "512")]
-    rescale_width: u32,
+    /// Width to rescale the background video stream.
+    ///
+    /// Both width and height must be a multiple of 16 (the size of a macroblock). Height will
+    /// automatically be calculated to keep a 16:9 ratio. Only used by the TwoStream foveation
+    /// algorithm.
+    #[structopt(short, long, default_value = "512", parse(try_from_str = parse_bg_width))]
+    bg_width: u32,
 
-    /// Height to rescale the bg video stream.
-    #[structopt(short, long, default_value = "288")]
-    rescale_height: u32,
-
-    /// QP setting for the background
+    /// QP setting for the background.
+    ///
+    /// Only used for the TwoStream foveation algorithm.
     #[structopt(short, long, default_value = "24")]
     bg_qp: i32,
 
@@ -176,8 +194,8 @@ fn main() -> Result<()> {
         opt.fovea,
         Dims { width, height },
         Dims {
-            width: opt.rescale_width,
-            height: opt.rescale_height,
+            width: opt.bg_width,
+            height: opt.bg_width * 9 / 16,
         },
         DisplayOptions {
             delay: opt.delay,
@@ -251,8 +269,8 @@ fn main() -> Result<()> {
                 let mut server = FvideoTwoStreamServer::new(
                     opt.fovea,
                     Dims {
-                        width: opt.rescale_width,
-                        height: opt.rescale_height,
+                        width: opt.bg_width,
+                        height: opt.bg_width * 9 / 16,
                     },
                     opt.bg_qp,
                     opt.video.clone(),

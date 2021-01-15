@@ -59,13 +59,13 @@ struct Opt {
     #[structopt(short, long, default_value = "115200")]
     baud: u32,
 
-    /// Width to rescale the bg video stream.
+    /// Width to rescale the background video stream.
+    ///
+    /// Both width and height must be a multiple of 16 (the size of a macroblock). Height will
+    /// automatically be calculated to keep a 16:9 ratio. Only used by the TwoStream foveation
+    /// algorithm.
     #[structopt(short, long, default_value = "512")]
-    rescale_width: u32,
-
-    /// Height to rescale the bg video stream.
-    #[structopt(short, long, default_value = "288")]
-    rescale_height: u32,
+    bg_width: u32,
 
     /// FFmpeg-style filter to apply to the decoded bg frames.
     #[structopt(short, long, default_value = "smartblur=lr=1.0:ls=-1.0")]
@@ -128,8 +128,8 @@ fn main() -> Result<()> {
             height: opt.height,
         },
         Dims {
-            width: opt.rescale_width,
-            height: opt.rescale_height,
+            width: opt.bg_width,
+            height: opt.bg_width * 9 / 16,
         },
         DisplayOptions {
             delay: 0,
@@ -162,8 +162,8 @@ fn main() -> Result<()> {
                         height: opt.height,
                     },
                     Dims {
-                        width: opt.rescale_width,
-                        height: opt.rescale_height,
+                        width: opt.bg_width,
+                        height: opt.bg_width * 9 / 16,
                     },
                     fovea,
                 )?;
