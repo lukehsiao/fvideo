@@ -56,6 +56,7 @@ pub struct FvideoClient {
     triggered: bool,
     alpha_blend: Vec<u8>,
     bg_frame: Video,
+    filtered: Video,
     seqno: u64,
     delay: Option<Duration>,
     filter: Graph,
@@ -348,6 +349,7 @@ impl FvideoClient {
             triggered: false,
             alpha_blend,
             bg_frame: Video::empty(),
+            filtered: Video::empty(),
             seqno: 0,
             delay: if display_options.delay > 0 {
                 Some(Duration::from_millis(display_options.delay))
@@ -616,6 +618,11 @@ impl FvideoClient {
             .unwrap();
         fg_texture.set_blend_mode(BlendMode::Blend);
 
+        let mut bg_texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, self.disp_width, self.disp_height)
+            .unwrap();
+
         if self.triggered {
             info!("    init texture: {:#?}", time.elapsed());
         } else {
@@ -634,8 +641,8 @@ impl FvideoClient {
             self.total_bytes += bg_packet.size() as u64;
             match self.bg_decoder.decode(&bg_packet, &mut self.bg_frame) {
                 Ok(true) => {
+                    // Apply filters
                     let mut filtered = Video::empty();
-                    // Apply sharpening filter
                     self.filter
                         .get("in")
                         .unwrap()
@@ -644,7 +651,7 @@ impl FvideoClient {
                         .unwrap();
                     match self.filter.get("out").unwrap().sink().frame(&mut filtered) {
                         Ok(_) => {
-                            self.bg_frame = filtered;
+                            self.filtered = filtered;
                         }
                         Err(e) => {
                             error!("{}", e);
@@ -687,20 +694,15 @@ impl FvideoClient {
 
                 let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
 
-                let mut bg_texture = self
-                    .texture_creator
-                    .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
-                    .unwrap();
-
-                let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
+                let bg_rect = Rect::new(0, 0, self.filtered.width(), self.filtered.height());
                 let _ = bg_texture.update_yuv(
                     bg_rect,
-                    self.bg_frame.data(0),
-                    self.bg_frame.stride(0),
-                    self.bg_frame.data(1),
-                    self.bg_frame.stride(1),
-                    self.bg_frame.data(2),
-                    self.bg_frame.stride(2),
+                    self.filtered.data(0),
+                    self.filtered.stride(0),
+                    self.filtered.data(1),
+                    self.filtered.stride(1),
+                    self.filtered.data(2),
+                    self.filtered.stride(2),
                 );
 
                 // Scale fg square to match the bg scaling.

@@ -1,53 +1,4 @@
 //! A binary for real-time foveated video encoding and display.
-//!
-//! # Usage
-//! ```
-//! realtime 0.1.0
-//! A tool for foveated encoding an input Y4M and decoding/displaying the results.
-//!
-//! USAGE:
-//!     realtime [FLAGS] [OPTIONS] <VIDEO>
-//!
-//! FLAGS:
-//!     -h, --help
-//!             Prints help information
-//!
-//!     -r, --record
-//!             Whether to record an eye trace or not
-//!
-//!     -s, --skip-cal
-//!             Whether to run eyelink calibration or not
-//!
-//!     -V, --version
-//!             Prints version information
-//!
-//!
-//! OPTIONS:
-//!     -a, --alg <alg>
-//!             The method used to calculate QP offsets for foveation [default: Gaussian]  [possible values:
-//!             SquareStep, Gaussian, TwoStream]
-//!     -f, --fovea <fovea>
-//!             The parameter for the size of the foveal region (0 = disable foveation).
-//!
-//!             The meaning of this value depends on the Foveation Algorithm. [default: 0]
-//!     -g, --gaze-source <gaze-source>
-//!             Source for gaze data [default: Mouse]  [possible values: Mouse, Eyelink,
-//!             TraceFile]
-//!     -o, --output <output>
-//!             Where to save the foveated h264 bitstream and tracefile.
-//!
-//!             Defaults to output/%Y-%m-%d-%H-%M-%S/.
-//!     -q, --qo-max <qo-max>
-//!             The maximum qp offset outside of the foveal region (only range 0 to 81 valid) [default: 35.0]
-//!
-//!     -t, --trace <trace>
-//!             The trace file to use, if a trace file is the gaze source
-//!
-//!
-//! ARGS:
-//!     <VIDEO>
-//!             The video to encode and display
-//! ```
 extern crate ffmpeg_next as ffmpeg;
 
 use std::io::{BufWriter, Write};
@@ -164,7 +115,11 @@ struct Opt {
     bg_qp: i32,
 
     /// FFmpeg-style filter to apply to the decoded bg frames.
-    #[structopt(short = "s", long, default_value = "smartblur=lr=1.0:ls=-1.0")]
+    #[structopt(
+        short = "s",
+        long,
+        default_value = "scale=flags=bicubic:3440:1440,smartblur=lr=1.0:ls=-1.0"
+    )]
     filter: String,
 
     /// Amount of artificial latency to add (ms).
