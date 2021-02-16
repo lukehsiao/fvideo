@@ -226,13 +226,13 @@ impl FvideoTwoStreamServer {
             //         fg_nals.push(nal);
             //     }
             // }
+
+            self.last_gaze_sample = gaze;
         }
 
         nals.push((fg_nal, bg_nal));
 
         debug!("    x264.encode_frame: {:#?}", time.elapsed());
-
-        self.last_gaze_sample = gaze;
 
         Ok(nals)
     }
