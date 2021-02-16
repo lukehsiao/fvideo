@@ -759,9 +759,15 @@ impl FvideoClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
 
     #[test]
     fn test_init_client() {
+        // Skip this test on Github Actions
+        if let Ok(_) = env::var("CI") {
+            return;
+        }
+
         let _client = FvideoClient::new(
             FoveationAlg::TwoStream,
             10,
