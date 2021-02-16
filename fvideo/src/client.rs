@@ -766,7 +766,14 @@ mod tests {
                 width: 3840,
                 height: 2160,
             },
-            0,
+            Dims {
+                width: 512,
+                height: 512 * 9 / 16,
+            },
+            DisplayOptions {
+                delay: 0,
+                filter: "smartblur=lr=1.0:ls=-1.0".to_string(),
+            },
             GazeSource::Mouse,
             EyelinkOptions {
                 calibrate: false,
