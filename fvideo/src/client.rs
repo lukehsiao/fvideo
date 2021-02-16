@@ -37,14 +37,10 @@ pub struct FvideoClient {
     texture_creator: TextureCreator<WindowContext>,
     canvas: Canvas<Window>,
     event_pump: EventPump,
-    fg_width: u32,
-    fg_height: u32,
-    bg_width: u32,
-    bg_height: u32,
-    src_width: u32,
-    src_height: u32,
-    disp_width: u32,
-    disp_height: u32,
+    fg: Dims,
+    bg: Dims,
+    src: Dims,
+    disp: Dims,
     total_bytes: u64,
     frame_idx: u64,
     gaze_source: GazeSource,
@@ -329,14 +325,19 @@ impl FvideoClient {
             texture_creator,
             canvas,
             event_pump,
-            fg_width,
-            fg_height,
-            bg_width,
-            bg_height,
-            src_width: src_dims.width,
-            src_height: src_dims.height,
-            disp_width,
-            disp_height,
+            fg: Dims {
+                width: fg_width,
+                height: fg_height,
+            },
+            bg: Dims {
+                width: bg_width,
+                height: bg_height,
+            },
+            src: src_dims,
+            disp: Dims {
+                width: disp_width,
+                height: disp_height,
+            },
             total_bytes: 0,
             frame_idx: 0,
             gaze_source,
@@ -380,14 +381,14 @@ impl FvideoClient {
                 // Make sure pupil is present
                 if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
                     // Scale from display to video resolution
-                    let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
-                    let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
+                    let p_x = d_x * self.bg.width as f32 / self.disp.width as f32;
+                    let p_y = d_y * self.bg.height as f32 / self.disp.height as f32;
 
                     let gaze = GazeSample {
                         time: Instant::now(),
                         seqno: self.seqno,
-                        d_width: self.disp_width,
-                        d_height: self.disp_height,
+                        d_width: self.disp.width,
+                        d_height: self.disp.height,
                         d_x: d_x as u32,
                         d_y: d_y as u32,
                         p_x: p_x.round() as u32,
@@ -423,14 +424,14 @@ impl FvideoClient {
                     let d_y = self.event_pump.mouse_state().y() as u32;
 
                     // Scale from display to video resolution
-                    let p_x = d_x as f32 * self.bg_width as f32 / self.disp_width as f32;
-                    let p_y = d_y as f32 * self.bg_height as f32 / self.disp_height as f32;
+                    let p_x = d_x as f32 * self.bg.width as f32 / self.disp.width as f32;
+                    let p_y = d_y as f32 * self.bg.height as f32 / self.disp.height as f32;
 
                     GazeSample {
                         time: Instant::now(),
                         seqno: self.seqno,
-                        d_width: self.disp_width,
-                        d_height: self.disp_height,
+                        d_width: self.disp.width,
+                        d_height: self.disp.height,
                         d_x,
                         d_y,
                         p_x: p_x.round() as u32,
@@ -462,14 +463,14 @@ impl FvideoClient {
                     // Make sure pupil is present
                     if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
                         // Scale from display to video resolution
-                        let p_x = d_x * self.bg_width as f32 / self.disp_width as f32;
-                        let p_y = d_y * self.bg_height as f32 / self.disp_height as f32;
+                        let p_x = d_x * self.bg.width as f32 / self.disp.width as f32;
+                        let p_y = d_y * self.bg.height as f32 / self.disp.height as f32;
 
                         GazeSample {
                             time: Instant::now(),
                             seqno: self.seqno,
-                            d_width: self.disp_width,
-                            d_height: self.disp_height,
+                            d_width: self.disp.width,
+                            d_height: self.disp.height,
                             d_x: d_x.round() as u32,
                             d_y: d_y.round() as u32,
                             p_x: p_x.round() as u32,
@@ -558,7 +559,7 @@ impl FvideoClient {
 
         let mut texture = self
             .texture_creator
-            .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
+            .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
             .unwrap();
 
         if self.triggered {
@@ -617,7 +618,7 @@ impl FvideoClient {
 
         let mut fg_texture = self
             .texture_creator
-            .create_texture_streaming(PixelFormatEnum::ABGR8888, self.fg_width, self.fg_height)
+            .create_texture_streaming(PixelFormatEnum::ABGR8888, self.fg.width, self.fg.height)
             .unwrap();
         fg_texture.set_blend_mode(BlendMode::Blend);
 
@@ -694,7 +695,7 @@ impl FvideoClient {
 
                 let mut bg_texture = self
                     .texture_creator
-                    .create_texture_streaming(PixelFormatEnum::YV12, self.bg_width, self.bg_height)
+                    .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
                     .unwrap();
 
                 let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
@@ -713,8 +714,8 @@ impl FvideoClient {
                 let c_y = self.last_gaze_sample.d_y as i32;
                 let scaled_fg_rect = Rect::from_center(
                     (c_x, c_y),
-                    fg_rect.width() * self.disp_width / self.src_width,
-                    fg_rect.height() * self.disp_height / self.src_height,
+                    fg_rect.width() * self.disp.width / self.src.width,
+                    fg_rect.height() * self.disp.height / self.src.height,
                 );
 
                 self.canvas.clear();
