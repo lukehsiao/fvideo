@@ -205,7 +205,7 @@ impl FvideoTwoStreamServer {
                 || ((self.last_gaze_sample.d_x as i64 - gaze.d_x as i64).abs() > diff_thresh))
         {
             // Crop section into fg_pic
-            self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
+            self.crop_x264_pic(&gaze, self.fovea, self.fovea);
 
             self.fg_pic.set_timestamp(self.timestamp);
             self.timestamp += 1;
@@ -238,12 +238,7 @@ impl FvideoTwoStreamServer {
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
-    fn crop_x264_pic(
-        &mut self,
-        gaze: &GazeSample,
-        width: u32,
-        height: u32,
-    ) -> Result<(), FvideoServerError> {
+    fn crop_x264_pic(&mut self, gaze: &GazeSample, width: u32, height: u32) {
         // Scale from disp coordinates to original video coordinates
         let p_y = gaze.d_y as f32 * self.height as f32 / gaze.d_height as f32;
         let p_x = gaze.d_x as f32 * self.width as f32 / gaze.d_width as f32;
@@ -299,6 +294,5 @@ impl FvideoTwoStreamServer {
                 }
             }
         }
-        Ok(())
     }
 }
