@@ -33,6 +33,7 @@ pub struct FvideoTwoStreamServer {
     frame_time: Instant,
     frame_cnt: u32,
     last_frame_time: Duration,
+    last_gaze_sample: GazeSample,
     timestamp: i64,
 }
 
@@ -92,6 +93,19 @@ impl FvideoTwoStreamServer {
 
         let frame_time = Instant::now();
 
+        let last_gaze_sample = GazeSample {
+            time: Instant::now(),
+            seqno: 0,
+            d_width: 0,
+            d_height: 0,
+            d_x: 0,
+            d_y: 0,
+            p_x: 0,
+            p_y: 0,
+            m_x: 0,
+            m_y: 0,
+        };
+
         Ok(FvideoTwoStreamServer {
             fovea: fovea_size,
             video_in,
@@ -107,6 +121,7 @@ impl FvideoTwoStreamServer {
             frame_time,
             frame_cnt: 0,
             last_frame_time: frame_time.elapsed(),
+            last_gaze_sample,
             timestamp: 0,
         })
     }
@@ -151,6 +166,7 @@ impl FvideoTwoStreamServer {
     // TODO(lukehsiao): I don't like this return type. At some point we should pull this into a
     // trait or something to have a more clear interface.
     pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
+        let diff_thresh = 10;
         let time = Instant::now();
         let advanced = self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());
@@ -159,6 +175,7 @@ impl FvideoTwoStreamServer {
         let mut nals = vec![];
 
         let mut bg_nal = None;
+        let mut fg_nal = None;
         if advanced {
             // Rescale to bg_pic.
             unsafe {
@@ -183,32 +200,39 @@ impl FvideoTwoStreamServer {
             }
         }
 
-        // Crop section into fg_pic
-        self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
+        if advanced
+            || (((self.last_gaze_sample.d_y as i64 - gaze.d_y as i64).abs() > diff_thresh)
+                || ((self.last_gaze_sample.d_x as i64 - gaze.d_x as i64).abs() > diff_thresh))
+        {
+            // Crop section into fg_pic
+            self.crop_x264_pic(&gaze, self.fovea, self.fovea)?;
 
-        self.fg_pic.set_timestamp(self.timestamp);
-        self.timestamp += 1;
+            self.fg_pic.set_timestamp(self.timestamp);
+            self.timestamp += 1;
 
-        // TODO(lukehsiao): These is trying to encode both streams in sync. In reality, the whole
-        // low quality stream could be sent beforehand, or in lower FPS. Only the foreground high
-        // quality stream needs to be high FPS.
-        match self.fg_encoder.encode(&self.fg_pic).unwrap() {
-            Some((fg_nal, _, _)) => {
-                nals.push((Some(fg_nal), bg_nal));
+            // TODO(lukehsiao): These is trying to encode both streams in sync. In reality, the whole
+            // low quality stream could be sent beforehand, or in lower FPS. Only the foreground high
+            // quality stream needs to be high FPS.
+            match self.fg_encoder.encode(&self.fg_pic).unwrap() {
+                Some((fg, _, _)) => fg_nal = Some(fg),
+                _ => {
+                    warn!("Didn't encode a nal?");
+                }
             }
-            _ => {
-                warn!("Didn't encode a nal?");
-            }
-        }
 
-        while self.fg_encoder.delayed_frames() {
-            todo!();
-            // if let Some((nal, _, _)) = self.fg_encoder.encode(None).unwrap() {
-            //     fg_nals.push(nal);
+            // while self.fg_encoder.delayed_frames() {
+            //     todo!();
+            //     if let Some((nal, _, _)) = self.fg_encoder.encode(None).unwrap() {
+            //         fg_nals.push(nal);
+            //     }
             // }
         }
 
+        nals.push((fg_nal, bg_nal));
+
         debug!("    x264.encode_frame: {:#?}", time.elapsed());
+
+        self.last_gaze_sample = gaze;
 
         Ok(nals)
     }
