@@ -15,7 +15,7 @@ libeyelink-sys = { version="0.1.5-alpha.0", path="libeyelink-sys" }
 log = "0.4.14"
 regex = "1.4.3"
 sdl2 = "0.34.3"
-thiserror = "1.0.23"
+thiserror = "1.0.24"
 
 [dev-dependencies]
 serial_test = "0.5.1"
