@@ -608,12 +608,7 @@ impl FvideoClient {
         }
     }
 
-    fn display_twostream_frame(&mut self, fg_nal: Option<&NalData>, bg_nal: Option<&NalData>) {
-        let fg_nal = match fg_nal {
-            Some(fg) => fg,
-            None => return,
-        };
-
+    fn display_twostream_frame(&mut self, fg_nal: &NalData, bg_nal: Option<&NalData>) {
         let time = Instant::now();
 
         let mut fg_texture = self
@@ -743,7 +738,9 @@ impl FvideoClient {
         T: Into<Option<&'a NalData>>,
     {
         match self.alg {
-            FoveationAlg::TwoStream => self.display_twostream_frame(fg_nal.into(), bg_nal.into()),
+            FoveationAlg::TwoStream => {
+                self.display_twostream_frame(fg_nal.into().unwrap(), bg_nal.into())
+            }
             _ => self.display_onestream_frame(bg_nal.into().unwrap()),
         }
     }
