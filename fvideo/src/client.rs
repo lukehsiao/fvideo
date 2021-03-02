@@ -39,7 +39,7 @@ pub struct FvideoClient {
     event_pump: EventPump,
     fg: Dims,
     bg: Dims,
-    src: Dims,
+    _src: Dims,
     disp: Dims,
     total_bytes: u64,
     frame_idx: u64,
@@ -189,12 +189,23 @@ impl FvideoClient {
             .build()
             .unwrap();
 
-        let canvas = window
+        let mut canvas = window
             .into_canvas()
             .accelerated()
             .target_texture()
             .build()
             .unwrap();
+
+        // Clip the drawn area to the resolution of the source video.
+        //
+        // The goal is to avoid any scaling when displaying a video. Note that this means that it
+        // will no longer make sense to do development on a display that has a lower resolution than
+        // the source video itself (need a 4k display to work on 4k video).
+        canvas.set_clip_rect(Rect::from_center(
+            (disp_width as i32 / 2, disp_height as i32 / 2),
+            src_dims.width,
+            src_dims.height,
+        ));
 
         event_pump.enable_event(EventType::MouseMotion);
         event_pump.pump_events();
@@ -333,7 +344,7 @@ impl FvideoClient {
                 width: bg_width,
                 height: bg_height,
             },
-            src: src_dims,
+            _src: src_dims,
             disp: Dims {
                 width: disp_width,
                 height: disp_height,
@@ -414,6 +425,30 @@ impl FvideoClient {
         }
     }
 
+    // Take a gaze position in display pixels and take it to video coordinates.
+    //
+    // This assumes that the client is displaying the video at source resolution (no scaling) in the
+    // center of the screen with black bars elsewhere. It is essentially "clipping" the gaze
+    // coordinates to only care about when the viewer is looking at the video itself.
+    fn to_video_coords(&self, d_x: u32, d_y: u32) -> (u32, u32) {
+        let clip_rect = self.canvas.clip_rect().unwrap();
+
+        let p_x = {
+            let mut tmp = d_x as i32 - clip_rect.x();
+            tmp = cmp::min(tmp, clip_rect.width() as i32);
+            tmp = cmp::max(tmp, 0);
+            tmp
+        };
+        let p_y = {
+            let mut tmp = d_y as i32 - clip_rect.y();
+            tmp = cmp::min(tmp, clip_rect.height() as i32);
+            tmp = cmp::max(tmp, 0);
+            tmp
+        };
+
+        (p_x as u32, p_y as u32)
+    }
+
     /// Get the latest gaze sample, if one is available.
     pub fn gaze_sample(&mut self) -> GazeSample {
         let mut gaze = match self.gaze_source {
@@ -423,9 +458,7 @@ impl FvideoClient {
                     let d_x = self.event_pump.mouse_state().x() as u32;
                     let d_y = self.event_pump.mouse_state().y() as u32;
 
-                    // Scale from display to video resolution
-                    let p_x = d_x as f32 * self.bg.width as f32 / self.disp.width as f32;
-                    let p_y = d_y as f32 * self.bg.height as f32 / self.disp.height as f32;
+                    let (p_x, p_y) = self.to_video_coords(d_x, d_y);
 
                     GazeSample {
                         time: Instant::now(),
@@ -434,10 +467,10 @@ impl FvideoClient {
                         d_height: self.disp.height,
                         d_x,
                         d_y,
-                        p_x: p_x.round() as u32,
-                        p_y: p_y.round() as u32,
-                        m_x: (p_x / 16.0).round() as u32,
-                        m_y: (p_y / 16.0).round() as u32,
+                        p_x,
+                        p_y,
+                        m_x: p_x / 16,
+                        m_y: p_y / 16,
                     }
                 } else {
                     *self.gaze_samples.back().unwrap()
@@ -462,9 +495,8 @@ impl FvideoClient {
 
                     // Make sure pupil is present
                     if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
-                        // Scale from display to video resolution
-                        let p_x = d_x * self.bg.width as f32 / self.disp.width as f32;
-                        let p_y = d_y * self.bg.height as f32 / self.disp.height as f32;
+                        let (p_x, p_y) =
+                            self.to_video_coords(d_x.round() as u32, d_y.round() as u32);
 
                         GazeSample {
                             time: Instant::now(),
@@ -473,10 +505,10 @@ impl FvideoClient {
                             d_height: self.disp.height,
                             d_x: d_x.round() as u32,
                             d_y: d_y.round() as u32,
-                            p_x: p_x.round() as u32,
-                            p_y: p_y.round() as u32,
-                            m_x: (p_x / 16.0).round() as u32,
-                            m_y: (p_y / 16.0).round() as u32,
+                            p_x,
+                            p_y,
+                            m_x: p_x / 16,
+                            m_y: p_y / 16,
                         }
                     } else {
                         *self.gaze_samples.back().unwrap()
@@ -669,7 +701,7 @@ impl FvideoClient {
                 }
 
                 let time = Instant::now();
-                let fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
+                let mut fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
 
                 let mut converter = fg_frame.converter(Pixel::RGBA).unwrap();
                 converter.run(&fg_frame, &mut fg_frame_rgba).unwrap();
@@ -704,18 +736,17 @@ impl FvideoClient {
                     self.bg_frame.stride(2),
                 );
 
-                // Scale fg square to match the bg scaling.
-                let c_x = self.last_gaze_sample.d_x as i32;
-                let c_y = self.last_gaze_sample.d_y as i32;
-                let scaled_fg_rect = Rect::from_center(
-                    (c_x, c_y),
-                    fg_rect.width() * self.disp.width / self.src.width,
-                    fg_rect.height() * self.disp.height / self.src.height,
-                );
+                // position the fg square correctly on the canvas
+                let bg_rect = self.canvas.clip_rect().unwrap();
+                let c_y = self.last_gaze_sample.p_y as i32 + bg_rect.y();
+                let c_x = self.last_gaze_sample.p_x as i32 + bg_rect.x();
+
+                fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
 
                 self.canvas.clear();
-                let _ = self.canvas.copy(&bg_texture, None, None);
-                let _ = self.canvas.copy(&fg_texture, None, scaled_fg_rect);
+                // Stretches the bg_texture to fill the entire rendering target
+                let _ = self.canvas.copy(&bg_texture, None, bg_rect);
+                let _ = self.canvas.copy(&fg_texture, None, fg_rect);
                 self.canvas.present();
 
                 self.frame_idx += 1;

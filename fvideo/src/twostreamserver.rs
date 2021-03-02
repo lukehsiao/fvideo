@@ -215,9 +215,8 @@ impl FvideoTwoStreamServer {
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
     fn crop_x264_pic(&mut self, gaze: &GazeSample, width: u32, height: u32) {
-        // Scale from disp coordinates to original video coordinates
-        let p_y = gaze.d_y as f32 * self.height as f32 / gaze.d_height as f32;
-        let p_x = gaze.d_x as f32 * self.width as f32 / gaze.d_width as f32;
+        let p_y = gaze.p_y as i32;
+        let p_x = gaze.p_x as i32;
 
         // TODO(lukehsiao): This is unsafe in particular in that right now I allow the copies to
         // reach into random data off the edges of the picture. This garbage data is essentially
@@ -225,12 +224,12 @@ impl FvideoTwoStreamServer {
 
         // Keep the "cropped" window contained in the frame.
         // Only allow multiples of 2 to maintain integer values after division
-        let top: i32 = match p_y.round() as i32 - height as i32 / 2 {
+        let top: i32 = match p_y - height as i32 / 2 {
             n if n % 2 == 0 => n,
             n if n % 2 != 0 => n + 1,
             _ => 0,
         };
-        let left: i32 = match p_x.round() as i32 - width as i32 / 2 {
+        let left: i32 = match p_x - width as i32 / 2 {
             n if n % 2 == 0 => n,
             n if n % 2 != 0 => n + 1,
             _ => 0,
