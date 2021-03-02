@@ -40,6 +40,7 @@ impl FvideoTwoStreamServer {
     pub fn new(
         fovea: u32,
         rescale: Dims,
+        fg_qp: i32,
         bg_qp: i32,
         video: PathBuf,
     ) -> Result<FvideoTwoStreamServer, FvideoServerError> {
@@ -65,17 +66,17 @@ impl FvideoTwoStreamServer {
 
         let frame_dur = Duration::from_secs_f64(1.0 / fps);
 
-        let orig_par = crate::setup_x264_params(width, height, 24)?;
+        let orig_par = crate::setup_x264_params(width, height, fg_qp)?;
         let orig_pic = Picture::from_param(&orig_par)?;
 
         // foreground stream is cropped
-        let mut fg_par = crate::setup_x264_params(fovea_size, fovea_size, bg_qp)?;
+        let mut fg_par = crate::setup_x264_params(fovea_size, fovea_size, fg_qp)?;
         let fg_pic = Picture::from_param(&fg_par)?;
         let fg_encoder = Encoder::open(&mut fg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
 
         // background stream is scaled
-        let mut bg_par = crate::setup_x264_params_bg(rescale.width, rescale.height, 24)?;
+        let mut bg_par = crate::setup_x264_params_bg(rescale.width, rescale.height, bg_qp)?;
         let bg_pic = Picture::from_param(&bg_par)?;
         let bg_encoder = Encoder::open(&mut bg_par)
             .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;

@@ -157,6 +157,12 @@ struct Opt {
     #[structopt(short= "w", long, default_value = "512", parse(try_from_str = parse_bg_width))]
     bg_width: u32,
 
+    /// QP setting for the foreground.
+    ///
+    /// Only used for the TwoStream foveation algorithm.
+    #[structopt(short, long, default_value = "24")]
+    fg_qp: i32,
+
     /// QP setting for the background.
     ///
     /// Only used for the TwoStream foveation algorithm.
@@ -272,6 +278,7 @@ fn main() -> Result<()> {
                         width: opt.bg_width,
                         height: opt.bg_width * 9 / 16,
                     },
+                    opt.fg_qp,
                     opt.bg_qp,
                     opt.video.clone(),
                 )?;
