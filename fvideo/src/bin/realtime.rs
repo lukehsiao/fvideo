@@ -232,16 +232,17 @@ fn main() -> Result<()> {
     let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
     writeln!(
         cfg_dest,
-        "alg,fovea,bg_width,bg_qp,fg_qp,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
+        "alg,fovea,bg_width,bg_qp,fg_qp,delay_ms,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
     )?;
     write!(
         cfg_dest,
-        "{},{},{},{},{},{},{},{},",
+        "{},{},{},{},{},{},{},{},{},",
         opt.alg,
         opt.fovea,
         opt.bg_width,
         opt.bg_qp,
         opt.fg_qp,
+        opt.delay,
         opt.qo_max,
         opt.gaze_source,
         opt.video.display()
