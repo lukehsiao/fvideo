@@ -338,9 +338,8 @@ fn main() -> Result<()> {
                 debug!("Total display_frame: {:#?}", time.elapsed());
 
                 // Also save both streams to file
-                // TODO(lukehsiao): this would probably be more useful if it was
-                // actually the overlayed video. But for now, at least we can
-                // see both streams directly.
+                // TODO(lukehsiao): this would probably be more useful if it was actually the
+                // overlayed video. But for now, at least we can see both streams directly.
                 if let Some(bg_nal) = nal.1 {
                     outfile.write_all(bg_nal.as_bytes())?;
                 }
@@ -386,8 +385,7 @@ fn main() -> Result<()> {
         total_bytes,
     )?;
 
-    // TODO(lukehsiao): This is kind of hack-y. Should probably have the client
-    // do this.
+    // TODO(lukehsiao): This is kind of hack-y. Should probably have the client do this.
     if GazeSource::Eyelink == gaze_source && record {
         let edf_dest: PathBuf = [&outdir, &PathBuf::from("eyetrace.edf")].iter().collect();
         if let Err(e) = fs::rename(EDF_FILE, edf_dest) {
