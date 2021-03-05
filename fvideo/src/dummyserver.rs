@@ -308,7 +308,7 @@ impl FvideoDummyTwoStreamServer {
             self.bg_encoder.encode(&self.bg_pic).unwrap(),
         ) {
             (Some((fg, _, _)), Some((bg, _, _))) => {
-                fg_nal = Some(fg);
+                fg_nal = Some((fg, gaze));
                 bg_nal = Some(bg);
             }
             (_, _) => {

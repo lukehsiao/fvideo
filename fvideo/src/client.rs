@@ -45,7 +45,6 @@ pub struct FvideoClient {
     frame_idx: u64,
     gaze_source: GazeSource,
     gaze_samples: VecDeque<GazeSample>,
-    last_gaze_sample: GazeSample,
     eye_used: Option<EyeData>,
     trace_samples: Option<VecDeque<EyeSample>>,
     eyelink_options: EyelinkOptions,
@@ -218,18 +217,6 @@ impl FvideoClient {
 
         let texture_creator = canvas.texture_creator();
 
-        let last_gaze_sample = GazeSample {
-            time: Instant::now(),
-            seqno: 0,
-            d_width: disp_width,
-            d_height: disp_height,
-            d_x: disp_width / 2,
-            d_y: disp_height / 2,
-            p_x: src_dims.width / 2,
-            p_y: src_dims.height / 2,
-            m_x: src_dims.width / 2 / 16,
-            m_y: src_dims.height / 2 / 16,
-        };
         let mut gaze_samples = VecDeque::new();
         gaze_samples.reserve(256);
         gaze_samples.push_back(GazeSample {
@@ -354,7 +341,6 @@ impl FvideoClient {
             frame_idx: 0,
             gaze_source,
             gaze_samples,
-            last_gaze_sample,
             eye_used,
             trace_samples,
             eyelink_options,
@@ -415,13 +401,13 @@ impl FvideoClient {
                         || (gaze.p_y as i32 - curr_gaze_sample.p_y as i32).abs() > thresh
                     {
                         self.gaze_samples.push_back(gaze);
-                        self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
+                        self.gaze_samples.pop_front();
                         self.triggered = true;
                         self.seqno += 1;
                         return curr_gaze_sample;
                     }
                     self.gaze_samples.push_back(gaze);
-                    self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
+                    self.gaze_samples.pop_front();
                 }
             }
         }
@@ -549,10 +535,12 @@ impl FvideoClient {
         match self.delay {
             Some(delay) => {
                 if self.gaze_samples.front().unwrap().time.elapsed() >= delay {
-                    self.last_gaze_sample = self.gaze_samples.pop_front().unwrap();
+                    self.gaze_samples.pop_front();
                 }
             }
-            None => self.last_gaze_sample = self.gaze_samples.pop_front().unwrap(),
+            None => {
+                self.gaze_samples.pop_front();
+            }
         }
 
         *self.gaze_samples.front().unwrap()
@@ -642,7 +630,11 @@ impl FvideoClient {
         }
     }
 
-    fn display_twostream_frame(&mut self, fg_nal: Option<&NalData>, bg_nal: Option<&NalData>) {
+    fn display_twostream_frame(
+        &mut self,
+        fg_nal: Option<&(NalData, GazeSample)>,
+        bg_nal: Option<&NalData>,
+    ) {
         let time = Instant::now();
 
         // Quick return if no new data
@@ -698,7 +690,10 @@ impl FvideoClient {
         }
 
         // If there is a new fg frame, update it
-        if let Some(fg) = fg_nal {
+        let mut c_y = 0;
+        let mut c_x = 0;
+        let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
+        if let Some((fg, gaze)) = fg_nal {
             let fg_packet = Packet::copy(fg.as_bytes());
             self.total_bytes += fg_packet.size() as u64;
             match self.fg_decoder.decode(&fg_packet, &mut self.fg_frame) {
@@ -714,6 +709,8 @@ impl FvideoClient {
                     error!("Error occured while decoding packet.");
                 }
             }
+            c_y = gaze.p_y as i32 + bg_rect.y();
+            c_x = gaze.p_x as i32 + bg_rect.x();
         }
 
         // Redraw
@@ -744,7 +741,6 @@ impl FvideoClient {
             .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
             .unwrap();
 
-        let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
         let _ = bg_texture.update_yuv(
             bg_rect,
             self.bg_frame.data(0),
@@ -756,9 +752,9 @@ impl FvideoClient {
         );
 
         // position the fg square correctly on the canvas
+        //
+        // If there is an fg_nal, we assume there is an fg_gaze.
         let bg_rect = self.canvas.clip_rect().unwrap();
-        let c_y = self.last_gaze_sample.p_y as i32 + bg_rect.y();
-        let c_x = self.last_gaze_sample.p_x as i32 + bg_rect.x();
 
         fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
 
@@ -777,9 +773,10 @@ impl FvideoClient {
     }
 
     /// Decode and display the provided frame.
-    pub fn display_frame<'a, T>(&mut self, fg_nal: T, bg_nal: T)
+    pub fn display_frame<'a, T, U>(&mut self, fg_nal: T, bg_nal: U)
     where
-        T: Into<Option<&'a NalData>>,
+        T: Into<Option<&'a (NalData, GazeSample)>>,
+        U: Into<Option<&'a NalData>>,
     {
         match self.alg {
             FoveationAlg::TwoStream => self.display_twostream_frame(fg_nal.into(), bg_nal.into()),

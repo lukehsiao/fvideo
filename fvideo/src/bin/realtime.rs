@@ -339,7 +339,7 @@ fn main() -> Result<()> {
                 if let Some(bg_nal) = nal.1 {
                     outfile.write_all(bg_nal.as_bytes())?;
                 }
-                if let Some(fg_nal) = nal.0 {
+                if let Some((fg_nal, _)) = nal.0 {
                     fgfile.as_mut().unwrap().write_all(fg_nal.as_bytes())?;
                 }
             }

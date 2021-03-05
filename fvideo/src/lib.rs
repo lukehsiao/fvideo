@@ -19,7 +19,7 @@ pub mod dummyserver;
 pub mod server;
 pub mod twostreamserver;
 
-pub type EncodedFrames = (Option<NalData>, Option<NalData>);
+pub type EncodedFrames = (Option<(NalData, GazeSample)>, Option<NalData>);
 
 /// Source video dimensions for initializing a client.
 #[derive(Copy, Clone, Debug)]

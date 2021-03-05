@@ -225,7 +225,7 @@ impl FvideoTwoStreamServer {
             // foreground high quality stream needs to be high FPS.
             match self.fg_encoder.encode(&self.fg_pic).unwrap() {
                 Some((fg, _, _)) => {
-                    fg_nal = Some(fg);
+                    fg_nal = Some((fg, gaze));
                 }
                 _ => {
                     warn!("Didn't encode a nal?");
@@ -234,10 +234,6 @@ impl FvideoTwoStreamServer {
         }
 
         debug!("    x264.encode_frame: {:#?}", time.elapsed());
-
-        if let Some(_) = fg_nal {
-            dbg!(gaze);
-        }
 
         Ok((fg_nal, bg_nal))
     }
