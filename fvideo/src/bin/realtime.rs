@@ -81,7 +81,7 @@ fn parse_qo_max(src: &str) -> Result<f32> {
 fn parse_bg_width(src: &str) -> Result<u32> {
     let bg_width = u32::from_str(src)?;
     let bg_height = bg_width * 9 / 16;
-    if !(bg_width % 16 == 0) || !(bg_height % 16 == 0) {
+    if (bg_width % 16 != 0) || (bg_height % 16 != 0) {
         Err(anyhow!(
             "Background width (and implied height: {}) must be a multiple of 16.",
             bg_height
