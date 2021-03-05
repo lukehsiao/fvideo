@@ -295,9 +295,7 @@ fn main() -> Result<()> {
                     };
                     debug!("Total encode_frame: {:#?}", time.elapsed());
 
-                    for nal in nals {
-                        nal_tx.send(nal)?;
-                    }
+                    nal_tx.send(nals)?;
                 }
                 Ok(())
             })
@@ -316,9 +314,7 @@ fn main() -> Result<()> {
                     };
                     debug!("Total encode_frame: {:#?}", time.elapsed());
 
-                    for nal in nals {
-                        nal_tx.send(nal)?;
-                    }
+                    nal_tx.send(nals)?;
                 }
                 Ok(())
             })

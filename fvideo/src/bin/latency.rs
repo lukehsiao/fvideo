@@ -176,9 +176,7 @@ fn main() -> Result<()> {
                         Err(_) => break,
                     };
 
-                    for nal in nals {
-                        nal_tx.send(nal)?;
-                    }
+                    nal_tx.send(nals)?;
 
                     if server.triggered() {
                         info!("Total encode_frame: {:#?}", time.elapsed());
@@ -201,9 +199,7 @@ fn main() -> Result<()> {
                         Err(_) => break,
                     };
 
-                    for nal in nals {
-                        nal_tx.send(nal)?;
-                    }
+                    nal_tx.send(nals)?;
 
                     if server.triggered() {
                         info!("Total encode_frame: {:#?}", time.elapsed());

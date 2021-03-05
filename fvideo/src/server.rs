@@ -187,19 +187,18 @@ impl FvideoServer {
         self.timestamp += 1;
 
         let time = Instant::now();
-        let mut nals = vec![];
 
+        let fg_nal = None;
+        let mut bg_nal = None;
         if let Some((nal, _, _)) = self.encoder.encode(&self.pic).unwrap() {
-            nals.push((None, Some(nal)));
+            bg_nal = Some(nal)
         }
         while self.encoder.delayed_frames() {
-            if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
-                nals.push((None, Some(nal)));
-            }
+            todo!();
         }
 
         debug!("    x264.encode_frame: {:#?}", time.elapsed());
 
-        Ok(nals)
+        Ok((fg_nal, bg_nal))
     }
 }

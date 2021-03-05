@@ -120,18 +120,17 @@ impl FvideoDummyServer {
             self.triggered_buff += 1;
         }
 
-        let mut nals = vec![];
+        let fg_nal = None;
+        let mut bg_nal = None;
         if let Some((nal, _, _)) = self.encoder.encode(pic).unwrap() {
-            nals.push((None, Some(nal)));
+            bg_nal = Some(nal);
         }
 
         while self.encoder.delayed_frames() {
-            if let Some((nal, _, _)) = self.encoder.encode(None).unwrap() {
-                nals.push((None, Some(nal)));
-            }
+            todo!();
         }
 
-        Ok(nals)
+        Ok((fg_nal, bg_nal))
     }
 }
 
@@ -302,14 +301,15 @@ impl FvideoDummyTwoStreamServer {
         self.fg_pic.set_timestamp(self.timestamp);
         self.timestamp += 1;
 
-        let mut nals = vec![];
-
+        let mut fg_nal = None;
+        let mut bg_nal = None;
         match (
             self.fg_encoder.encode(&self.fg_pic).unwrap(),
             self.bg_encoder.encode(&self.bg_pic).unwrap(),
         ) {
-            (Some((fg_nal, _, _)), Some((bg_nal, _, _))) => {
-                nals.push((Some(fg_nal), Some(bg_nal)));
+            (Some((fg, _, _)), Some((bg, _, _))) => {
+                fg_nal = Some(fg);
+                bg_nal = Some(bg);
             }
             (_, _) => {
                 warn!("Didn't encode a nal?");
@@ -320,7 +320,7 @@ impl FvideoDummyTwoStreamServer {
             todo!();
         }
 
-        Ok(nals)
+        Ok((fg_nal, bg_nal))
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.

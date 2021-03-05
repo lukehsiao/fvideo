@@ -157,9 +157,9 @@ impl FvideoTwoStreamServer {
         debug!("    read_frame: {:#?}", time.elapsed());
 
         let time = Instant::now();
-        let mut nals = vec![];
 
         let mut bg_nal = None;
+        let mut fg_nal = None;
         if advanced {
             // Rescale to bg_pic.
             unsafe {
@@ -194,9 +194,7 @@ impl FvideoTwoStreamServer {
         // low quality stream could be sent beforehand, or in lower FPS. Only the foreground high
         // quality stream needs to be high FPS.
         match self.fg_encoder.encode(&self.fg_pic).unwrap() {
-            Some((fg_nal, _, _)) => {
-                nals.push((Some(fg_nal), bg_nal));
-            }
+            Some((fg, _, _)) => fg_nal = Some(fg),
             _ => {
                 warn!("Didn't encode a nal?");
             }
@@ -204,14 +202,11 @@ impl FvideoTwoStreamServer {
 
         while self.fg_encoder.delayed_frames() {
             todo!();
-            // if let Some((nal, _, _)) = self.fg_encoder.encode(None).unwrap() {
-            //     fg_nals.push(nal);
-            // }
         }
 
         debug!("    x264.encode_frame: {:#?}", time.elapsed());
 
-        Ok(nals)
+        Ok((fg_nal, bg_nal))
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
