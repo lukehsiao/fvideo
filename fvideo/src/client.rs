@@ -52,6 +52,7 @@ pub struct FvideoClient {
     triggered: bool,
     alpha_blend: Vec<u8>,
     bg_frame: Video,
+    fg_frame: Video,
     seqno: u64,
     delay: Option<Duration>,
     filter: Graph,
@@ -360,6 +361,7 @@ impl FvideoClient {
             triggered: false,
             alpha_blend,
             bg_frame: Video::empty(),
+            fg_frame: Video::empty(),
             seqno: 0,
             delay: if display_options.delay > 0 {
                 Some(Duration::from_millis(display_options.delay))
@@ -640,9 +642,17 @@ impl FvideoClient {
         }
     }
 
-    fn display_twostream_frame(&mut self, fg_nal: &NalData, bg_nal: Option<&NalData>) {
+    fn display_twostream_frame(&mut self, fg_nal: Option<&NalData>, bg_nal: Option<&NalData>) {
         let time = Instant::now();
 
+        // Quick return if no new data
+        if let (None, None) = (fg_nal, bg_nal) {
+            // FPS looks like it drops a lot, but in reality, we hit this fast path a LOT.
+            // self.frame_idx += 1;
+            return;
+        }
+
+        // Otherwise, we need to draw
         let mut fg_texture = self
             .texture_creator
             .create_texture_streaming(PixelFormatEnum::ABGR8888, self.fg.width, self.fg.height)
@@ -656,11 +666,6 @@ impl FvideoClient {
         }
 
         let dec_time = Instant::now();
-        let fg_packet = Packet::copy(fg_nal.as_bytes());
-        self.total_bytes += fg_packet.size() as u64;
-        let mut fg_frame = Video::empty();
-        let mut fg_frame_rgba = Video::empty();
-
         // If there is a new bg frame, update it
         if let Some(bg) = bg_nal {
             let bg_packet = Packet::copy(bg.as_bytes());
@@ -692,74 +697,82 @@ impl FvideoClient {
             }
         }
 
-        match self.fg_decoder.decode(&fg_packet, &mut fg_frame) {
-            Ok(true) => {
-                if self.triggered {
-                    info!("    decode nal: {:?}", dec_time.elapsed());
-                } else {
-                    debug!("    decode nal: {:?}", dec_time.elapsed());
-                }
-
-                let time = Instant::now();
-                let mut fg_rect = Rect::new(0, 0, fg_frame.width(), fg_frame.height());
-
-                let mut converter = fg_frame.converter(Pixel::RGBA).unwrap();
-                converter.run(&fg_frame, &mut fg_frame_rgba).unwrap();
-
-                // Manipulate the alpha channel to give blend at the edges
-                let height = fg_frame_rgba.height();
-                let width = fg_frame_rgba.stride(0);
-                let rgba_data = fg_frame_rgba.data_mut(0);
-
-                let mut alpha_iter = self.alpha_blend.iter();
-                for j in 0..height {
-                    for i in (0..width).step_by(4) {
-                        rgba_data[(width * j as usize) + i + 3] = *alpha_iter.next().unwrap();
+        // If there is a new fg frame, update it
+        if let Some(fg) = fg_nal {
+            let fg_packet = Packet::copy(fg.as_bytes());
+            self.total_bytes += fg_packet.size() as u64;
+            match self.fg_decoder.decode(&fg_packet, &mut self.fg_frame) {
+                Ok(true) => {
+                    if self.triggered {
+                        info!("    decode nal: {:?}", dec_time.elapsed());
+                    } else {
+                        debug!("    decode nal: {:?}", dec_time.elapsed());
                     }
                 }
-
-                let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
-
-                let mut bg_texture = self
-                    .texture_creator
-                    .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
-                    .unwrap();
-
-                let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
-                let _ = bg_texture.update_yuv(
-                    bg_rect,
-                    self.bg_frame.data(0),
-                    self.bg_frame.stride(0),
-                    self.bg_frame.data(1),
-                    self.bg_frame.stride(1),
-                    self.bg_frame.data(2),
-                    self.bg_frame.stride(2),
-                );
-
-                // position the fg square correctly on the canvas
-                let bg_rect = self.canvas.clip_rect().unwrap();
-                let c_y = self.last_gaze_sample.p_y as i32 + bg_rect.y();
-                let c_x = self.last_gaze_sample.p_x as i32 + bg_rect.x();
-
-                fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
-
-                self.canvas.clear();
-                // Stretches the bg_texture to fill the entire rendering target
-                let _ = self.canvas.copy(&bg_texture, None, bg_rect);
-                let _ = self.canvas.copy(&fg_texture, None, fg_rect);
-                self.canvas.present();
-
-                self.frame_idx += 1;
-                if self.triggered {
-                    info!("    display new frame: {:?}", time.elapsed());
-                } else {
-                    debug!("    display new frame: {:?}", time.elapsed());
+                Ok(false) => unimplemented!(),
+                Err(_) => {
+                    error!("Error occured while decoding packet.");
                 }
             }
-            Ok(false) => (),
-            Err(_) => {
-                error!("Error occured while decoding packet.");
+        }
+
+        // Redraw
+        let mut fg_frame_rgba = Video::empty();
+
+        let time = Instant::now();
+        let mut fg_rect = Rect::new(0, 0, self.fg_frame.width(), self.fg_frame.height());
+
+        let mut converter = self.fg_frame.converter(Pixel::RGBA).unwrap();
+        converter.run(&self.fg_frame, &mut fg_frame_rgba).unwrap();
+
+        // Manipulate the alpha channel to give blend at the edges
+        let height = fg_frame_rgba.height();
+        let width = fg_frame_rgba.stride(0);
+        let rgba_data = fg_frame_rgba.data_mut(0);
+
+        let mut alpha_iter = self.alpha_blend.iter();
+        for j in 0..height {
+            for i in (0..width).step_by(4) {
+                rgba_data[(width * j as usize) + i + 3] = *alpha_iter.next().unwrap();
             }
+        }
+
+        let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
+
+        let mut bg_texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
+            .unwrap();
+
+        let bg_rect = Rect::new(0, 0, self.bg_frame.width(), self.bg_frame.height());
+        let _ = bg_texture.update_yuv(
+            bg_rect,
+            self.bg_frame.data(0),
+            self.bg_frame.stride(0),
+            self.bg_frame.data(1),
+            self.bg_frame.stride(1),
+            self.bg_frame.data(2),
+            self.bg_frame.stride(2),
+        );
+
+        // position the fg square correctly on the canvas
+        let bg_rect = self.canvas.clip_rect().unwrap();
+        let c_y = self.last_gaze_sample.p_y as i32 + bg_rect.y();
+        let c_x = self.last_gaze_sample.p_x as i32 + bg_rect.x();
+
+        fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
+
+        self.canvas.clear();
+        // Stretches the bg_texture to fill the entire rendering target
+        let _ = self.canvas.copy(&bg_texture, None, bg_rect);
+        let _ = self.canvas.copy(&fg_texture, None, fg_rect);
+        self.canvas.present();
+
+        self.frame_idx += 1;
+        if self.triggered {
+            info!("    display new frame: {:?}", time.elapsed());
+        } else {
+            debug!("    display new frame: {:?}", time.elapsed());
         }
     }
 
@@ -769,9 +782,7 @@ impl FvideoClient {
         T: Into<Option<&'a NalData>>,
     {
         match self.alg {
-            FoveationAlg::TwoStream => {
-                self.display_twostream_frame(fg_nal.into().unwrap(), bg_nal.into())
-            }
+            FoveationAlg::TwoStream => self.display_twostream_frame(fg_nal.into(), bg_nal.into()),
             _ => self.display_onestream_frame(bg_nal.into().unwrap()),
         }
     }
