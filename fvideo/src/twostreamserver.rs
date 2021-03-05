@@ -168,7 +168,10 @@ impl FvideoTwoStreamServer {
 
     // TODO(lukehsiao): I don't like this return type. At some point we should pull this into a
     // trait or something to have a more clear interface.
-    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
+    pub fn encode_frame(
+        &mut self,
+        mut gaze: GazeSample,
+    ) -> Result<EncodedFrames, FvideoServerError> {
         let time = Instant::now();
         let advanced = self.read_frame()?;
 
@@ -215,7 +218,7 @@ impl FvideoTwoStreamServer {
 
         if advanced || gaze_changed {
             // Crop section into fg_pic
-            self.crop_x264_pic(&gaze, self.fovea, self.fovea);
+            self.crop_x264_pic(&mut gaze, self.fovea, self.fovea);
 
             self.fg_pic.set_timestamp(self.timestamp);
             self.timestamp += 1;
@@ -239,7 +242,7 @@ impl FvideoTwoStreamServer {
     }
 
     /// Crop orig_pic centered around the gaze and place into fg_pic.
-    fn crop_x264_pic(&mut self, gaze: &GazeSample, width: u32, height: u32) {
+    fn crop_x264_pic(&mut self, gaze: &mut GazeSample, width: u32, height: u32) {
         let p_y = gaze.p_y as i32;
         let p_x = gaze.p_x as i32;
 
@@ -251,12 +254,18 @@ impl FvideoTwoStreamServer {
         // Only allow multiples of 2 to maintain integer values after division
         let top: i32 = match p_y - height as i32 / 2 {
             n if n % 2 == 0 => n,
-            n if n % 2 != 0 => n + 1,
+            n if n % 2 != 0 => {
+                gaze.p_y += 1;
+                n + 1
+            }
             _ => 0,
         };
         let left: i32 = match p_x - width as i32 / 2 {
             n if n % 2 == 0 => n,
-            n if n % 2 != 0 => n + 1,
+            n if n % 2 != 0 => {
+                gaze.p_x += 1;
+                n + 1
+            }
             _ => 0,
         };
 
