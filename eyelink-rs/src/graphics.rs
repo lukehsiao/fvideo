@@ -57,7 +57,7 @@ unsafe extern "C" fn erase_cal_target(user_data: *mut c_void) -> INT16 {
 #[no_mangle]
 unsafe extern "C" fn draw_cal_target(user_data: *mut c_void, x: f32, y: f32) -> INT16 {
     // Calibration target size in px.
-    const TARGET_SIZE: u32 = 12;
+    const TARGET_SIZE: u32 = 24;
     const INNER_SIZE: u32 = 4;
     let canvas = match (user_data as *mut Canvas<Window>).as_mut() {
         Some(c) => c,
