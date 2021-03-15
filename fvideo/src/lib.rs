@@ -170,6 +170,32 @@ fn setup_x264_params(width: u32, height: u32, qp: i32) -> Result<Param, FvideoSe
     Ok(par)
 }
 
+fn setup_x264_params_bg_crf(width: u32, height: u32, crf: f32) -> Result<Param, FvideoServerError> {
+    let mut par = Param::default_preset("faster", "zerolatency")
+        .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+    par = par.set_dimension(width as i32, height as i32);
+    par = par.set_min_keyint(i32::MAX);
+    par = par.set_no_scenecut();
+    par = par.set_crf(crf);
+
+    Ok(par)
+}
+
+fn setup_x264_params_crf(width: u32, height: u32, crf: f32) -> Result<Param, FvideoServerError> {
+    let mut par = Param::default_preset("superfast", "zerolatency")
+        .map_err(|s| FvideoServerError::EncoderError(s.to_string()))?;
+
+    // TODO(lukehsiao): this is hacky, and should probably be cleaned up.
+    par = par.set_x264_defaults();
+    par = par.set_dimension(width as i32, height as i32);
+    par = par.set_min_keyint(i32::MAX);
+    par = par.set_no_scenecut();
+    par = par.set_crf(crf);
+
+    Ok(par)
+}
+
 /// Return the width, height, and framerate of the input Y4M.
 ///
 /// See <https://wiki.multimedia.cx/index.php/YUV4MPEG2> for details.

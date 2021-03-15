@@ -29,10 +29,10 @@
 //!     -a, --alg <alg>
 //!             The method used for foveation [default: Gaussian]  [possible values: SquareStep,
 //!             Gaussian, TwoStream]
-//!     -b, --bg-qp <bg-qp>
-//!             QP setting for the background.
+//!     -b, --bg-crf <bg-crf>
+//!             CRF setting for the background.
 //!
-//!             Only used for the TwoStream foveation algorithm. [default: 24]
+//!             Only used for the TwoStream foveation algorithm. [default: 23.0]
 //!     -w, --bg-width <bg-width>
 //!             Width to rescale the background video stream.
 //!
@@ -41,10 +41,10 @@
 //!     -d, --delay <delay>
 //!             Amount of artificial latency to add (ms) [default: 0]
 //!
-//!     -f, --fg-qp <fg-qp>
-//!             QP setting for the foreground.
+//!     -f, --fg-crf <fg-crf>
+//!             CRF setting for the foreground.
 //!
-//!             Only used for the TwoStream foveation algorithm. [default: 24]
+//!             Only used for the TwoStream foveation algorithm. [default: 23.0]
 //!     -s, --filter <filter>
 //!             FFmpeg-style filter to apply to the decoded bg frames [default: smartblur=lr=1.0:ls=-1.0]
 //!
@@ -185,17 +185,17 @@ struct Opt {
     #[structopt(short= "w", long, default_value = "512", parse(try_from_str = parse_bg_width))]
     bg_width: u32,
 
-    /// QP setting for the foreground.
+    /// CRF setting for the foreground.
     ///
     /// Only used for the TwoStream foveation algorithm.
-    #[structopt(short, long, default_value = "24")]
-    fg_qp: i32,
+    #[structopt(short, long, default_value = "23.0")]
+    fg_crf: f32,
 
-    /// QP setting for the background.
+    /// CRF setting for the background.
     ///
     /// Only used for the TwoStream foveation algorithm.
-    #[structopt(short, long, default_value = "24")]
-    bg_qp: i32,
+    #[structopt(short, long, default_value = "23.0")]
+    bg_crf: f32,
 
     /// FFmpeg-style filter to apply to the decoded bg frames.
     #[structopt(short = "s", long, default_value = "smartblur=lr=1.0:ls=-1.0")]
@@ -262,7 +262,7 @@ fn main() -> Result<()> {
     let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
     writeln!(
         cfg_dest,
-        "alg,fovea,bg_width,bg_qp,fg_qp,delay_ms,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
+        "alg,fovea,bg_width,bg_crf,fg_crf,delay_ms,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
     )?;
     write!(
         cfg_dest,
@@ -270,8 +270,8 @@ fn main() -> Result<()> {
         opt.alg,
         opt.fovea,
         opt.bg_width,
-        opt.bg_qp,
-        opt.fg_qp,
+        opt.bg_crf,
+        opt.fg_crf,
         opt.delay,
         opt.qo_max,
         opt.gaze_source,
@@ -312,8 +312,8 @@ fn main() -> Result<()> {
                         width: opt.bg_width,
                         height: opt.bg_width * 9 / 16,
                     },
-                    opt.fg_qp,
-                    opt.bg_qp,
+                    opt.fg_crf,
+                    opt.bg_crf,
                     opt.video.clone(),
                 )?;
                 for current_gaze in gaze_rx {

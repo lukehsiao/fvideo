@@ -243,6 +243,14 @@ impl Param {
         self
     }
 
+    /// Use constant rate factor mode with the specified QP.
+    pub fn set_crf(mut self, crf: f32) -> Param {
+        self.par.rc.f_rf_constant = crf;
+        self.par.rc.i_rc_method = 1;
+
+        self
+    }
+
     /// Use constant QP mode with the specified QP.
     pub fn set_qp(mut self, qp: i32) -> Param {
         self.par.rc.i_qp_constant = qp;
@@ -322,8 +330,8 @@ impl Param {
         self.par.analyse.b_psnr = 0;
         self.par.analyse.b_ssim = 0;
 
-        self.par.rc.i_rc_method = 0;
-        self.par.rc.i_qp_constant = 24;
+        self.par.rc.i_rc_method = 1;
+        self.par.rc.i_qp_constant = -1;
         self.par.rc.i_qp_min = 21;
         self.par.rc.i_qp_max = 69;
         self.par.rc.i_qp_step = 4;
