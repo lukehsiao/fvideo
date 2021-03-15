@@ -18,18 +18,41 @@
 //!     -s, --skip-cal
 //!             Whether to run eyelink calibration or not
 //!
+//!     -s, --skip-output
+//!             Whether to save the streams and results to file
+//!
 //!     -V, --version
 //!             Prints version information
 //!
 //!
 //! OPTIONS:
 //!     -a, --alg <alg>
-//!             The method used to calculate QP offsets for foveation [default: Gaussian]  [possible values:
-//!             SquareStep, Gaussian, TwoStream]
+//!             The method used for foveation [default: Gaussian]  [possible values: SquareStep,
+//!             Gaussian, TwoStream]
+//!     -b, --bg-qp <bg-qp>
+//!             QP setting for the background.
+//!
+//!             Only used for the TwoStream foveation algorithm. [default: 24]
+//!     -w, --bg-width <bg-width>
+//!             Width to rescale the background video stream.
+//!
+//!             Both width and height must be a multiple of 16 (the size of a macroblock). Height will automatically be
+//!             calculated to keep a 16:9 ratio. Only used by the TwoStream foveation algorithm. [default: 512]
+//!     -d, --delay <delay>
+//!             Amount of artificial latency to add (ms) [default: 0]
+//!
+//!     -f, --fg-qp <fg-qp>
+//!             QP setting for the foreground.
+//!
+//!             Only used for the TwoStream foveation algorithm. [default: 24]
+//!     -s, --filter <filter>
+//!             FFmpeg-style filter to apply to the decoded bg frames [default: smartblur=lr=1.0:ls=-1.0]
+//!
 //!     -f, --fovea <fovea>
 //!             The parameter for the size of the foveal region (0 = disable foveation).
 //!
-//!             The meaning of this value depends on the Foveation Algorithm. [default: 0]
+//!             The meaning of this value depends on the Foveation Algorithm. TODO(lukehsiao): explain the differences.
+//!             [default: 1]
 //!     -g, --gaze-source <gaze-source>
 //!             Source for gaze data [default: Mouse]  [possible values: Mouse, Eyelink,
 //!             TraceFile]
@@ -38,8 +61,9 @@
 //!
 //!             Defaults to output/%Y-%m-%d-%H-%M-%S/.
 //!     -q, --qo-max <qo-max>
-//!             The maximum qp offset outside of the foveal region (only range 0 to 81 valid) [default: 35.0]
+//!             The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
 //!
+//!             Only used for the Guassian or SquareStep foveation algorithms. [default: 35.0]
 //!     -t, --trace <trace>
 //!             The trace file to use, if a trace file is the gaze source
 //!
@@ -141,6 +165,10 @@ struct Opt {
     #[structopt(short, long, parse(from_os_str))]
     output: Option<PathBuf>,
 
+    /// Whether to save the streams and results to file.
+    #[structopt(short, long)]
+    skip_output: bool,
+
     /// Whether to run eyelink calibration or not.
     #[structopt(short, long)]
     skip_cal: bool,
@@ -215,6 +243,7 @@ fn main() -> Result<()> {
         opt.trace.clone(),
     );
 
+    let skip_output = opt.skip_output;
     let outdir = match &opt.output {
         None => [
             "output/",
@@ -224,6 +253,7 @@ fn main() -> Result<()> {
         .collect::<PathBuf>(),
         Some(p) => p.to_path_buf(),
     };
+
     if let Err(e) = fs::create_dir_all(&outdir) {
         info!("{}", e);
     }
@@ -385,6 +415,13 @@ fn main() -> Result<()> {
     if GazeSource::Eyelink == gaze_source && record {
         let edf_dest: PathBuf = [&outdir, &PathBuf::from("eyetrace.edf")].iter().collect();
         if let Err(e) = fs::rename(EDF_FILE, edf_dest) {
+            warn!("{}", e);
+        }
+    }
+
+    // TODO(lukehsiao): Should just avoid writing in the first place.
+    if skip_output {
+        if let Err(e) = fs::remove_dir_all(outdir) {
             warn!("{}", e);
         }
     }
