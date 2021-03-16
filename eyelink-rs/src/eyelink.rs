@@ -94,20 +94,14 @@ pub fn run_calibration() -> Result<(), FvideoEyelinkError> {
     eyelink_rs::eyecmd_printf(
         format!("screen_pixel_coords = {} {} {} {}", 0, 0, disp.w, disp.h).as_str(),
     )?;
-    // let mut target_fg_color = SDL_Color {
-    //     r: 0,
-    //     g: 0,
-    //     b: 0,
-    //     unused: 255,
-    // };
-    // let mut target_bg_color = SDL_Color {
-    //     r: 200,
-    //     g: 200,
-    //     b: 200,
-    //     unused: 255,
-    // };
+
+    // Set display prescaler.
     //
-    // eyelink_rs::set_calibration_colors(&mut target_fg_color, &mut target_bg_color);
+    // This is necessary to support 4k resolution screens. Otherwise, the default prescaler gives a
+    // max x-axis value of 3270.
+    //
+    // See: https://www.sr-support.com/thread-7414.html
+    eyelink_rs::eyecmd_printf("screen_write_prescale = 6")?;
 
     eyelink_rs::do_tracker_setup();
 
