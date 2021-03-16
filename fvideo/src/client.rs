@@ -241,12 +241,19 @@ impl FvideoClient {
         };
 
         let (fg_width, fg_height, bg_width, bg_height) = match alg {
-            FoveationAlg::TwoStream => (
-                fovea_size,
-                fovea_size,
-                rescale_dims.width,
-                rescale_dims.height,
-            ),
+            FoveationAlg::TwoStream => {
+                info!(
+                    "fg res: {}x{}, bg_res: {}x{}",
+                    fovea_size, fovea_size, rescale_dims.width, rescale_dims.height
+                );
+
+                (
+                    fovea_size,
+                    fovea_size,
+                    rescale_dims.width,
+                    rescale_dims.height,
+                )
+            }
             _ => (
                 src_dims.width,
                 src_dims.height,
