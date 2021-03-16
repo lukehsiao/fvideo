@@ -402,6 +402,11 @@ fn main() -> Result<()> {
     );
     info!("Total Encoded Size: {} bytes\n", total_bytes);
 
+    if let FoveationAlg::TwoStream = alg_clone {
+        info!("Foreground size: {} bytes", client.fg_bytes());
+        info!("Background size: {} bytes\n", client.bg_bytes());
+    }
+
     write!(
         cfg_dest,
         "{},{},{},{}",

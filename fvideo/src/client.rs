@@ -42,6 +42,8 @@ pub struct FvideoClient {
     _src: Dims,
     disp: Dims,
     total_bytes: u64,
+    fg_bytes: u64,
+    bg_bytes: u64,
     frame_idx: u64,
     gaze_source: GazeSource,
     gaze_samples: VecDeque<GazeSample>,
@@ -338,6 +340,8 @@ impl FvideoClient {
                 height: disp_height,
             },
             total_bytes: 0,
+            fg_bytes: 0,
+            bg_bytes: 0,
             frame_idx: 0,
             gaze_source,
             gaze_samples,
@@ -662,6 +666,7 @@ impl FvideoClient {
         if let Some(bg) = bg_nal {
             let bg_packet = Packet::copy(bg.as_bytes());
             self.total_bytes += bg_packet.size() as u64;
+            self.bg_bytes += bg_packet.size() as u64;
             match self.bg_decoder.decode(&bg_packet, &mut self.bg_frame) {
                 Ok(true) => {
                     let mut filtered = Video::empty();
@@ -696,6 +701,7 @@ impl FvideoClient {
         if let Some((fg, gaze)) = fg_nal {
             let fg_packet = Packet::copy(fg.as_bytes());
             self.total_bytes += fg_packet.size() as u64;
+            self.fg_bytes += fg_packet.size() as u64;
             match self.fg_decoder.decode(&fg_packet, &mut self.fg_frame) {
                 Ok(true) => {
                     if self.triggered {
@@ -790,6 +796,12 @@ impl FvideoClient {
 
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes
+    }
+    pub fn fg_bytes(&self) -> u64 {
+        self.fg_bytes
+    }
+    pub fn bg_bytes(&self) -> u64 {
+        self.bg_bytes
     }
 }
 
