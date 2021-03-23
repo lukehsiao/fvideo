@@ -42,11 +42,11 @@ struct Opt {
     alg: FoveationAlg,
 
     /// Width of dummy input.
-    #[structopt(short, long, default_value = "1920")]
+    #[structopt(short, long, default_value = "3840")]
     width: u32,
 
     /// Height of dummy input.
-    #[structopt(short, long, default_value = "1080")]
+    #[structopt(short, long, default_value = "2160")]
     height: u32,
 
     /// Path for serial connection to ASG.
