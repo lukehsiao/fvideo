@@ -133,12 +133,14 @@ fn main() -> Result<()> {
         client.display_white(opt.height, opt.width / 19);
         thread::sleep(Duration::from_millis(100));
     }
+    client.clear();
+    thread::sleep(Duration::from_millis(100));
 
     println!("e2e_us");
-    for _ in 0..opt.trials {
-        client.clear();
-        thread::sleep(Duration::from_millis(100));
 
+    let mut serial_buf: [u8; 32] = [0; 32];
+    let mut count = opt.trials;
+    while count > 0 {
         // Trigger the ASG.
         let mut e2e_time = Instant::now();
         if let Some(ref mut p) = port {
@@ -156,20 +158,29 @@ fn main() -> Result<()> {
 
         // Read the measurement from the Arduino
         if let Some(ref mut p) = port {
-            let mut serial_buf: Vec<u8> = vec![0; 32];
-            if let Err(e) = p.read(serial_buf.as_mut_slice()) {
+            if let Err(e) = p.read(&mut serial_buf) {
                 error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
                 return Err(e.into());
             }
 
             info!("Rust e2e time: {:#?}", e2e_time.elapsed());
-            let arduino_measurement = str::from_utf8(&serial_buf)?
-                .split_ascii_whitespace()
-                .next()
-                .unwrap();
-            info!("arduino latency: {}µs", arduino_measurement);
-            println!("{}", arduino_measurement);
+            if let Ok(s) = str::from_utf8(&serial_buf) {
+                // Remove the trailing null bytes and whitespace
+                let arduino_measurement = s.trim_matches(char::from(0)).trim();
+                info!("arduino latency: {}µs", arduino_measurement);
+                println!("{}", arduino_measurement);
+
+                // Only decrement if successfully logged
+                count -= 1;
+
+                // Clear buffer again
+                serial_buf.iter_mut().for_each(|m| *m = 0);
+            }
         }
+        thread::sleep(Duration::from_millis(100));
+        client.clear();
+        thread::sleep(Duration::from_millis(100));
+        client.gaze_sample();
     }
 
     Ok(())
