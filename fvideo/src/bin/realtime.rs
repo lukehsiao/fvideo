@@ -1,77 +1,5 @@
 //! A binary for real-time foveated video encoding and display.
-//!
-//! # Usage
-//! ```
-//! realtime 0.1.0
-//! A tool for foveated encoding an input Y4M and decoding/displaying the results.
-//!
-//! USAGE:
-//!     realtime [FLAGS] [OPTIONS] <VIDEO>
-//!
-//! FLAGS:
-//!     -h, --help
-//!             Prints help information
-//!
-//!     -r, --record
-//!             Whether to record an eye trace or not
-//!
-//!     -s, --skip-cal
-//!             Whether to run eyelink calibration or not
-//!
-//!     -s, --skip-output
-//!             Whether to save the streams and results to file
-//!
-//!     -V, --version
-//!             Prints version information
-//!
-//!
-//! OPTIONS:
-//!     -a, --alg <alg>
-//!             The method used for foveation [default: Gaussian]  [possible values: SquareStep,
-//!             Gaussian, TwoStream]
-//!     -b, --bg-crf <bg-crf>
-//!             CRF setting for the background.
-//!
-//!             Only used for the TwoStream foveation algorithm. [default: 23.0]
-//!     -w, --bg-width <bg-width>
-//!             Width to rescale the background video stream.
-//!
-//!             Both width and height must be a multiple of 16 (the size of a macroblock). Height will automatically be
-//!             calculated to keep a 16:9 ratio. Only used by the TwoStream foveation algorithm. [default: 512]
-//!     -d, --delay <delay>
-//!             Amount of artificial latency to add (ms) [default: 0]
-//!
-//!     -f, --fg-crf <fg-crf>
-//!             CRF setting for the foreground.
-//!
-//!             Only used for the TwoStream foveation algorithm. [default: 23.0]
-//!     -s, --filter <filter>
-//!             FFmpeg-style filter to apply to the decoded bg frames [default: smartblur=lr=1.0:ls=-1.0]
-//!
-//!     -f, --fovea <fovea>
-//!             The parameter for the size of the foveal region (0 = disable foveation).
-//!
-//!             The meaning of this value depends on the Foveation Algorithm. TODO(lukehsiao): explain the differences.
-//!             [default: 1]
-//!     -g, --gaze-source <gaze-source>
-//!             Source for gaze data [default: Mouse]  [possible values: Mouse, Eyelink,
-//!             TraceFile]
-//!     -o, --output <output>
-//!             Where to save the foveated h264 bitstream and tracefile.
-//!
-//!             Defaults to output/%Y-%m-%d-%H-%M-%S/.
-//!     -q, --qo-max <qo-max>
-//!             The maximum qp offset outside of the foveal region (only range 0 to 81 valid).
-//!
-//!             Only used for the Guassian or SquareStep foveation algorithms. [default: 35.0]
-//!     -t, --trace <trace>
-//!             The trace file to use, if a trace file is the gaze source
-//!
-//!
-//! ARGS:
-//!     <VIDEO>
-//!             The video to encode and display
-//! ```
+
 extern crate ffmpeg_next as ffmpeg;
 
 use std::io::{BufWriter, Write};
@@ -141,7 +69,6 @@ struct Opt {
         default_value = "Mouse",
         possible_values = &GazeSource::variants(),
         case_insensitive=true,
-        requires_ifs(&[("tracefile", "trace"), ("TraceFile", "trace")])
     )]
     gaze_source: GazeSource,
 
@@ -154,10 +81,6 @@ struct Opt {
     /// The video to encode and display.
     #[structopt(name = "VIDEO", parse(from_os_str))]
     video: PathBuf,
-
-    /// The trace file to use, if a trace file is the gaze source.
-    #[structopt(short, long, parse(from_os_str))]
-    trace: Option<PathBuf>,
 
     /// Where to save the foveated h264 bitstream and tracefile.
     ///
@@ -240,7 +163,6 @@ fn main() -> Result<()> {
             calibrate: !opt.skip_cal,
             record: opt.record,
         },
-        opt.trace.clone(),
     );
 
     let skip_output = opt.skip_output;

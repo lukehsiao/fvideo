@@ -119,7 +119,6 @@ fn main() -> Result<()> {
             calibrate: false,
             record: false,
         },
-        None,
     );
     client.gaze_sample();
 

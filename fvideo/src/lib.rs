@@ -85,7 +85,6 @@ arg_enum! {
     pub enum GazeSource {
         Mouse,
         Eyelink,
-        TraceFile,
     }
 }
 

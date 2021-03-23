@@ -8,7 +8,6 @@ extern crate ffmpeg_next as ffmpeg;
 use std::cmp;
 use std::collections::VecDeque;
 use std::convert::TryInto;
-use std::path::PathBuf;
 use std::process;
 use std::time::{Duration, Instant};
 
@@ -25,7 +24,6 @@ use sdl2::video::{Window, WindowContext};
 use sdl2::{hint, EventPump};
 
 use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
-use eyelink_rs::ascparser::{self, EyeSample};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
 use x264::NalData;
@@ -48,7 +46,6 @@ pub struct FvideoClient {
     gaze_source: GazeSource,
     gaze_samples: VecDeque<GazeSample>,
     eye_used: Option<EyeData>,
-    trace_samples: Option<VecDeque<EyeSample>>,
     eyelink_options: EyelinkOptions,
     triggered: bool,
     alpha_blend: Vec<u8>,
@@ -84,7 +81,7 @@ impl Drop for FvideoClient {
 
 // TODO(lukehsiao): Switch to the builder pattern?
 impl FvideoClient {
-    pub fn new<T: Into<Option<PathBuf>>>(
+    pub fn new(
         alg: FoveationAlg,
         fovea: u32,
         src_dims: Dims,
@@ -92,10 +89,8 @@ impl FvideoClient {
         display_options: DisplayOptions,
         gaze_source: GazeSource,
         eyelink_options: EyelinkOptions,
-        trace: T,
     ) -> FvideoClient {
         let mut eye_used = None;
-        let mut trace_samples = None;
         match gaze_source {
             GazeSource::Eyelink => {
                 if let Err(e) = eyelink::initialize_eyelink(OpenMode::Real) {
@@ -146,16 +141,6 @@ impl FvideoClient {
                 }
             }
             GazeSource::Mouse => (),
-            GazeSource::TraceFile => {
-                let trace = trace.into().expect("Missing trace file path.");
-                trace_samples = match ascparser::parse_asc(trace) {
-                    Err(e) => {
-                        error!("Unable to parse ASC file: {}", e);
-                        process::exit(1);
-                    }
-                    Ok(s) => Some(VecDeque::from(s)),
-                };
-            }
         }
 
         let fg_decoder = decoder::new()
@@ -353,7 +338,6 @@ impl FvideoClient {
             gaze_source,
             gaze_samples,
             eye_used,
-            trace_samples,
             eyelink_options,
             triggered: false,
             alpha_blend,
@@ -515,26 +499,6 @@ impl FvideoClient {
                 } else {
                     *self.gaze_samples.back().unwrap()
                 }
-            }
-            GazeSource::TraceFile => {
-                info!("{:?}", self.trace_samples.as_ref().unwrap().front());
-                todo!();
-                // TODO(lukehsiao): how to determine what the right trace sample
-                // to use is? How to properly "align" this with the video?
-
-                // while comsuming all the front samples that are old
-                // Grab the sample for this time, which is now at the front.
-                //
-                // for sample in self.trace_samples.unwrap() {
-                //     self.trace_samples.pop_front();
-                //     self.curr_gaze_sample = GazeSample {
-                //         time: Instant::now(),
-                //         p_x: p_x.round() as u32,
-                //         p_y: p_y.round() as u32,
-                //         m_x: (p_x / 16.0).round() as u32,
-                //         m_y: (p_y / 16.0).round() as u32,
-                //     }
-                // }
             }
         };
         gaze.time = Instant::now();
@@ -844,7 +808,6 @@ mod tests {
                 calibrate: false,
                 record: false,
             },
-            None,
         );
     }
 }

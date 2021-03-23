@@ -140,7 +140,6 @@ fn main() -> Result<()> {
             calibrate: false,
             record: false,
         },
-        None,
     );
 
     let (nal_tx, nal_rx) = mpsc::channel();
