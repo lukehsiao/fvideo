@@ -68,6 +68,10 @@ struct Opt {
     /// Baud rate for ASG.
     #[structopt(short, long, default_value = "115200")]
     baud: u32,
+
+    /// How many times to run the experiment
+    #[structopt(short, long, default_value = "1")]
+    trials: u32,
 }
 
 const GO_CMD: &str = "g";
@@ -129,40 +133,43 @@ fn main() -> Result<()> {
         client.display_white(opt.height, opt.width / 19);
         thread::sleep(Duration::from_millis(100));
     }
-    client.clear();
 
-    thread::sleep(Duration::from_millis(100));
+    println!("e2e_us");
+    for _ in 0..opt.trials {
+        client.clear();
+        thread::sleep(Duration::from_millis(100));
 
-    // Trigger the ASG.
-    let mut e2e_time = Instant::now();
-    if let Some(ref mut p) = port {
-        e2e_time = Instant::now();
-        info!("Triggered Arduino!");
-        p.write_all(GO_CMD.as_bytes())?;
-        let time = Instant::now();
-        client.triggered_gaze_sample(DIFF_THRESH);
-        info!("Gaze update time: {:#?}", time.elapsed());
-    }
-
-    let now = Instant::now();
-    client.display_white(opt.height, opt.width / 19);
-    info!("rust draw time: {:#?}", now.elapsed());
-
-    info!("Rust e2e time: {:#?}", e2e_time.elapsed());
-
-    // Read the measurement from the Arduino
-    if let Some(ref mut p) = port {
-        let mut serial_buf: Vec<u8> = vec![0; 32];
-        if let Err(e) = p.read(serial_buf.as_mut_slice()) {
-            error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
-            return Err(e.into());
+        // Trigger the ASG.
+        let mut e2e_time = Instant::now();
+        if let Some(ref mut p) = port {
+            e2e_time = Instant::now();
+            info!("Triggered Arduino!");
+            p.write_all(GO_CMD.as_bytes())?;
+            let time = Instant::now();
+            client.triggered_gaze_sample(DIFF_THRESH);
+            info!("Gaze update time: {:#?}", time.elapsed());
         }
 
-        let arduino_measurement = str::from_utf8(&serial_buf)?
-            .split_ascii_whitespace()
-            .next()
-            .unwrap();
-        info!("arduino latency: {}µs", arduino_measurement);
+        let now = Instant::now();
+        client.display_white(opt.height, opt.width / 19);
+        info!("rust draw time: {:#?}", now.elapsed());
+
+        // Read the measurement from the Arduino
+        if let Some(ref mut p) = port {
+            let mut serial_buf: Vec<u8> = vec![0; 32];
+            if let Err(e) = p.read(serial_buf.as_mut_slice()) {
+                error!("No response from Arduino. Was the screen asleep? If so, try again in a few seconds.");
+                return Err(e.into());
+            }
+
+            info!("Rust e2e time: {:#?}", e2e_time.elapsed());
+            let arduino_measurement = str::from_utf8(&serial_buf)?
+                .split_ascii_whitespace()
+                .next()
+                .unwrap();
+            info!("arduino latency: {}µs", arduino_measurement);
+            println!("{}", arduino_measurement);
+        }
     }
 
     Ok(())
