@@ -10,10 +10,10 @@ publish = false
 [dependencies]
 c_fixed_string = "0.2.0"
 lazy_static = "1.4.0"
-libc = "0.2.88"
+libc = "0.2.91"
 libeyelink-sys = { version="0.1.5-alpha.0", path="libeyelink-sys" }
 log = "0.4.14"
-regex = "1.4.3"
+regex = "1.4.5"
 sdl2 = "0.34.3"
 thiserror = "1.0.24"
 
