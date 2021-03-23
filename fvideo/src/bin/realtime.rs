@@ -184,7 +184,7 @@ fn main() -> Result<()> {
     let mut cfg_dest = BufWriter::new(fs::File::create(cfg_dest)?);
     writeln!(
         cfg_dest,
-        "alg,fovea,bg_width,bg_crf,fg_crf,delay_ms,qo_max,gaze_source,video,frames,elapsed_time,fps,filesize_bytes",
+        "alg,fovea,bg_width,bg_crf,fg_crf,delay_ms,qo_max,gaze_source,video,total_gaze,min_gaze,max_gaze,frames,elapsed_time,fps,filesize_bytes",
     )?;
     write!(
         cfg_dest,
@@ -316,22 +316,34 @@ fn main() -> Result<()> {
     let elapsed = now.elapsed();
     let frame_index = client.total_frames();
     let total_bytes = client.total_bytes();
+    let total_gaze = client.total_gaze();
+    let min_gaze = client.min_gaze();
+    let max_gaze = client.max_gaze();
     info!(
         "FPS: {}/{} = {}",
         frame_index,
         elapsed.as_secs_f64(),
         frame_index as f64 / elapsed.as_secs_f64()
     );
-    info!("Total Encoded Size: {} bytes\n", total_bytes);
-
+    info!(
+        "Total Gaze: {},{} px\nMin Gaze: {},{}\nMax Gaze: {},{}",
+        total_gaze.x, total_gaze.y, min_gaze.x, min_gaze.y, max_gaze.x, max_gaze.y
+    );
     if let FoveationAlg::TwoStream = alg_clone {
         info!("Foreground size: {} bytes", client.fg_bytes());
-        info!("Background size: {} bytes\n", client.bg_bytes());
+        info!("Background size: {} bytes", client.bg_bytes());
     }
+    info!("Total Encoded Size: {} bytes\n", total_bytes);
 
     write!(
         cfg_dest,
-        "{},{},{},{}",
+        "{}:{},{}:{},{}:{},{},{},{},{}",
+        total_gaze.x,
+        total_gaze.y,
+        min_gaze.x,
+        min_gaze.y,
+        max_gaze.x,
+        max_gaze.y,
         frame_index,
         elapsed.as_secs_f32(),
         frame_index as f32 / elapsed.as_secs_f32(),

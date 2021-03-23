@@ -21,6 +21,13 @@ pub mod twostreamserver;
 
 pub type EncodedFrames = (Option<(NalData, GazeSample)>, Option<NalData>);
 
+/// Tracking gaze statistics
+#[derive(Copy, Clone, Debug)]
+pub struct Coords {
+    pub x: u64,
+    pub y: u64,
+}
+
 /// Source video dimensions for initializing a client.
 #[derive(Copy, Clone, Debug)]
 pub struct Dims {

@@ -23,7 +23,9 @@ use sdl2::render::{BlendMode, Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 use sdl2::{hint, EventPump};
 
-use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE};
+use crate::{
+    Coords, Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSample, GazeSource, EDF_FILE,
+};
 use eyelink_rs::libeyelink_sys::MISSING_DATA;
 use eyelink_rs::{self, eyelink, EyeData, OpenMode};
 use x264::NalData;
@@ -54,6 +56,10 @@ pub struct FvideoClient {
     seqno: u64,
     delay: Option<Duration>,
     filter: Graph,
+    total_gaze: Coords,
+    last_gaze: Coords,
+    min_gaze: Coords,
+    max_gaze: Coords,
 }
 
 impl Drop for FvideoClient {
@@ -350,6 +356,19 @@ impl FvideoClient {
                 None
             },
             filter,
+            total_gaze: Coords { x: 0, y: 0 },
+            last_gaze: Coords {
+                x: u64::from(src_dims.width) / 2,
+                y: u64::from(src_dims.height) / 2,
+            },
+            min_gaze: Coords {
+                x: u64::MAX,
+                y: u64::MAX,
+            },
+            max_gaze: Coords {
+                x: u64::MIN,
+                y: u64::MIN,
+            },
         }
     }
 
@@ -507,15 +526,29 @@ impl FvideoClient {
         self.gaze_samples.push_back(gaze);
 
         // Allow artificial delay to determine when to release the next gaze sample
-        match self.delay {
+        if let Some(oldest_gaze) = match self.delay {
             Some(delay) => {
                 if self.gaze_samples.front().unwrap().time.elapsed() >= delay {
-                    self.gaze_samples.pop_front();
+                    self.gaze_samples.pop_front()
+                } else {
+                    None
                 }
             }
-            None => {
-                self.gaze_samples.pop_front();
-            }
+            None => self.gaze_samples.pop_front(),
+        } {
+            // Update gaze stats
+            self.min_gaze.x = cmp::min(self.min_gaze.x, u64::from(oldest_gaze.p_x));
+            self.min_gaze.y = cmp::min(self.min_gaze.y, u64::from(oldest_gaze.p_y));
+            self.max_gaze.x = cmp::max(self.max_gaze.x, u64::from(oldest_gaze.p_x));
+            self.max_gaze.y = cmp::max(self.max_gaze.y, u64::from(oldest_gaze.p_y));
+
+            self.total_gaze.x +=
+                (self.last_gaze.x as i64 - i64::from(oldest_gaze.p_x)).saturating_abs() as u64;
+            self.total_gaze.y +=
+                (self.last_gaze.y as i64 - i64::from(oldest_gaze.p_y)).saturating_abs() as u64;
+
+            self.last_gaze.x = u64::from(oldest_gaze.p_x);
+            self.last_gaze.y = u64::from(oldest_gaze.p_y);
         }
 
         *self.gaze_samples.front().unwrap()
@@ -768,11 +801,25 @@ impl FvideoClient {
     pub fn total_bytes(&self) -> u64 {
         self.total_bytes
     }
+
     pub fn fg_bytes(&self) -> u64 {
         self.fg_bytes
     }
+
     pub fn bg_bytes(&self) -> u64 {
         self.bg_bytes
+    }
+
+    pub fn total_gaze(&self) -> Coords {
+        self.total_gaze
+    }
+
+    pub fn min_gaze(&self) -> Coords {
+        self.min_gaze
+    }
+
+    pub fn max_gaze(&self) -> Coords {
+        self.max_gaze
     }
 }
 
