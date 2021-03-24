@@ -559,19 +559,33 @@ impl FvideoClient {
     ///
     /// In particular, this is intended to be used with a photodiode like the
     /// one in <https://github.com/lukehsiao/eyelink-latency>.
-    pub fn display_white(&mut self, height: u32, dim: u32) {
-        self.canvas.set_draw_color(Color::WHITE);
-        match self
-            .canvas
-            .fill_rect(Rect::new(0, (height - dim).try_into().unwrap(), dim, dim))
-        {
-            Ok(_) => {
-                self.canvas.present();
-            }
-            Err(e) => {
-                error!("Failed drawing rectangle: {}.", e);
-            }
-        }
+    pub fn display_white(&mut self, dim: u32) {
+        // YUV data for white
+        let y = vec![235; dim as usize * dim as usize];
+        let u = vec![128; dim as usize / 2 * dim as usize / 2];
+        let v = vec![128; dim as usize / 2 * dim as usize / 2];
+
+        let mut texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::YV12, dim, dim)
+            .unwrap();
+
+        let mut rect = Rect::new(0, 0, dim, dim);
+        let _ = texture.update_yuv(
+            rect,
+            y.as_slice(),
+            dim as usize,
+            u.as_slice(),
+            dim as usize / 2,
+            v.as_slice(),
+            dim as usize / 2,
+        );
+
+        rect = Rect::new(0, (self.disp.height - dim).try_into().unwrap(), dim, dim);
+
+        self.canvas.clear();
+        let _ = self.canvas.copy(&texture, None, rect);
+        self.canvas.present();
 
         self.frame_idx += 1;
     }

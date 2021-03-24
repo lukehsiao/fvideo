@@ -75,6 +75,7 @@ struct Opt {
 }
 
 const GO_CMD: &str = "g";
+const BOX_DIM: u32 = 200;
 
 fn main() -> Result<()> {
     pretty_env_logger::init_timed();
@@ -105,7 +106,7 @@ fn main() -> Result<()> {
 
     let mut client = FvideoClient::new(
         opt.alg,
-        1,
+        30,
         Dims {
             width: opt.width,
             height: opt.height,
@@ -130,7 +131,7 @@ fn main() -> Result<()> {
     for _ in 0..3 {
         client.clear();
         thread::sleep(Duration::from_millis(100));
-        client.display_white(opt.height, opt.width / 19);
+        client.display_white(BOX_DIM);
         thread::sleep(Duration::from_millis(100));
     }
     client.clear();
@@ -153,7 +154,7 @@ fn main() -> Result<()> {
         }
 
         let now = Instant::now();
-        client.display_white(opt.height, opt.width / 19);
+        client.display_white(BOX_DIM);
         info!("rust draw time: {:#?}", now.elapsed());
 
         // Read the measurement from the Arduino
