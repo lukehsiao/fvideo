@@ -17,7 +17,7 @@ use crate::{Dims, EncodedFrames, FvideoServerError, GazeSample};
 
 const BLACK: u8 = 16;
 const WHITE: u8 = 235;
-pub const DIFF_THRESH: i32 = 10;
+pub const DIFF_THRESH: i32 = 50;
 const LINGER_FRAMES: i64 = 1;
 
 /// Dummy server used for single-stream e2e latency measurements
@@ -149,7 +149,7 @@ pub struct FvideoDummyTwoStreamServer {
     bg_encoder: Encoder,
     fg_encoder: Encoder,
     scaler: Context,
-    _width: u32,
+    width: u32,
     height: u32,
     timestamp: i64,
     triggered_buff: i64,
@@ -236,7 +236,7 @@ impl FvideoDummyTwoStreamServer {
             bg_encoder,
             fg_encoder,
             scaler,
-            _width: src_dims.width,
+            width: src_dims.width,
             height: src_dims.height,
             timestamp: 0,
             triggered_buff: 0,
@@ -268,6 +268,11 @@ impl FvideoDummyTwoStreamServer {
                 || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
         {
             self.triggered = true;
+
+            // Change gaze to bottom left
+            let box_dim = self.width / 19;
+            gaze.p_x = box_dim / 2;
+            gaze.p_y = self.height - (box_dim / 2);
             info!("Server changing white!");
         }
 
