@@ -4,7 +4,7 @@ extern crate ffmpeg_next as ffmpeg;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Instant;
 use std::{io, num};
 
@@ -74,7 +74,7 @@ pub enum FvideoServerError {
     #[error(transparent)]
     X264Error(#[from] x264::X264Error),
     #[error(transparent)]
-    FFMpegError(#[from] ffmpeg::Error),
+    FfmpegError(#[from] ffmpeg::Error),
     #[error("Encoder Error: {self}")]
     EncoderError(String),
     #[error("Invalid Foveation Algorithm: {self}")]
@@ -205,7 +205,7 @@ fn setup_x264_params_crf(width: u32, height: u32, crf: f32) -> Result<Param, Fvi
 /// Return the width, height, and framerate of the input Y4M.
 ///
 /// See <https://wiki.multimedia.cx/index.php/YUV4MPEG2> for details.
-pub fn get_video_metadata(video: &PathBuf) -> Result<(u32, u32, f64), FvideoServerError> {
+pub fn get_video_metadata(video: &Path) -> Result<(u32, u32, f64), FvideoServerError> {
     let video_in = File::open(video)?;
     let mut video_in = BufReader::new(video_in);
 

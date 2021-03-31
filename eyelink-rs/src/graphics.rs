@@ -29,11 +29,11 @@ pub enum GraphicsError {
     #[error(transparent)]
     IoError(#[from] io::Error),
     #[error("SDL2 Error: {self}")]
-    SDL2Error(String),
+    Sdl2Error(String),
     #[error(transparent)]
-    SDL2WindowBuildError(#[from] WindowBuildError),
+    Sdl2WindowBuildError(#[from] WindowBuildError),
     #[error(transparent)]
-    SDL2IntegerOrSdlError(#[from] IntegerOrSdlError),
+    Sdl2IntegerOrSdlError(#[from] IntegerOrSdlError),
 }
 
 #[no_mangle]
@@ -124,25 +124,25 @@ unsafe extern "C" fn exit_cal_display(user_data: *mut c_void) -> INT16 {
 /// close_expt_graphics() to clean up.
 pub fn init_expt_graphics() -> Result<(DisplayMode, *mut Canvas<Window>), GraphicsError> {
     // Initialize SDL2
-    let sdl_context = sdl2::init().map_err(GraphicsError::SDL2Error)?;
-    let video = sdl_context.video().map_err(GraphicsError::SDL2Error)?;
+    let sdl_context = sdl2::init().map_err(GraphicsError::Sdl2Error)?;
+    let video = sdl_context.video().map_err(GraphicsError::Sdl2Error)?;
 
     match video.num_video_displays() {
         Ok(n) if n == 1 => (),
         Ok(n) => {
-            return Err(GraphicsError::SDL2Error(format!(
+            return Err(GraphicsError::Sdl2Error(format!(
                 "We currently only support 1 display. You have {}.",
                 n
             )));
         }
-        Err(e) => return Err(GraphicsError::SDL2Error(e)),
+        Err(e) => return Err(GraphicsError::Sdl2Error(e)),
     }
 
     // Assumes a single display at index 0.
     const DISP_IDX: i32 = 0;
     let display_mode = video
         .desktop_display_mode(DISP_IDX)
-        .map_err(GraphicsError::SDL2Error)?;
+        .map_err(GraphicsError::Sdl2Error)?;
 
     let window = video
         .window("calibration", display_mode.w as u32, display_mode.h as u32)
@@ -197,7 +197,7 @@ pub fn init_expt_graphics() -> Result<(DisplayMode, *mut Canvas<Window>), Graphi
     unsafe {
         match libeyelink_sys::setup_graphic_hook_functions_V2(Box::into_raw(fcns)) {
             0 => (),
-            n => return Err(GraphicsError::SDL2Error(format!("Graphic Hooks: {}", n))),
+            n => return Err(GraphicsError::Sdl2Error(format!("Graphic Hooks: {}", n))),
         }
     }
     Ok((display_mode, canvas_ptr))
@@ -213,7 +213,7 @@ pub unsafe fn close_expt_graphics(canvas_ptr: *mut Canvas<Window>) -> Result<(),
         Box::from_raw(canvas_ptr);
         Ok(())
     } else {
-        Err(GraphicsError::SDL2Error(
+        Err(GraphicsError::Sdl2Error(
             "Received a NULL ptr for canvas.".to_string(),
         ))
     }

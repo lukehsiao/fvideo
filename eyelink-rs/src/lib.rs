@@ -16,7 +16,7 @@ pub mod graphics;
 /// Wrapper for all errors working with libeyelink-sys.
 pub enum EyelinkError {
     #[error("Invalid IP Address {}", self)]
-    InvalidIP(String),
+    InvalidIp(String),
     #[error("Unable to connect to Eyelink")]
     ConnectionError,
     #[error("Esc was pressed during drift correction.")]
@@ -41,11 +41,11 @@ pub enum EyelinkError {
         "eyelink-rs received an undocumented return value from libeyelink_sys: {}",
         self
     )]
-    APIError(i16),
+    ApiError(i16),
     #[error("Data File Error {code}: {msg}")]
     DataError { code: i32, msg: String },
     #[error("SDL Error: [{code}] {msg}")]
-    SDLError { code: i32, msg: String },
+    SdlError { code: i32, msg: String },
 }
 
 #[derive(Debug, PartialEq)]
@@ -75,7 +75,7 @@ pub fn set_eyelink_address(addr: &str) -> Result<(), EyelinkError> {
     unsafe {
         match libeyelink_sys::set_eyelink_address(c_addr.as_ptr() as *mut c_char) {
             0 => Ok(()),
-            _ => Err(EyelinkError::InvalidIP(addr.into())),
+            _ => Err(EyelinkError::InvalidIp(addr.into())),
         }
     }
 }
@@ -112,7 +112,7 @@ pub fn eyemsg_printf(msg: &str) -> Result<(), EyelinkError> {
     unsafe {
         match libeyelink_sys::eyemsg_printf(c_msg.as_ptr()) {
             0 => Ok(()),
-            n => Err(EyelinkError::APIError(n)),
+            n => Err(EyelinkError::ApiError(n)),
         }
     }
 }
@@ -158,7 +158,7 @@ pub fn eyelink_get_tracker_version() -> Result<(i16, i16), EyelinkError> {
         .map_err(EyelinkError::Utf8Error)?;
 
     // Parse major version from the form "EYELINK XX x.xx"
-    let major = parse_sw_version(sw_version).map_err(|_| EyelinkError::APIError(0))?;
+    let major = parse_sw_version(sw_version).map_err(|_| EyelinkError::ApiError(0))?;
 
     Ok((version, major))
 }
@@ -171,7 +171,7 @@ pub fn eyelink_is_connected() -> Result<ConnectionStatus, EyelinkError> {
         -1 => Ok(ConnectionStatus::Simulated),
         1 => Ok(ConnectionStatus::Normal),
         2 => Ok(ConnectionStatus::Broadcast),
-        e => Err(EyelinkError::APIError(e)),
+        e => Err(EyelinkError::ApiError(e)),
     }
 }
 
@@ -181,7 +181,7 @@ pub fn break_pressed() -> Result<bool, EyelinkError> {
     match res {
         0 => Ok(false),
         1 => Ok(true),
-        e => Err(EyelinkError::APIError(e)),
+        e => Err(EyelinkError::ApiError(e)),
     }
 }
 
@@ -201,7 +201,7 @@ pub fn open_data_file(path: &str) -> Result<(), EyelinkError> {
 
     match res {
         0 => Ok(()),
-        e => Err(EyelinkError::APIError(e)),
+        e => Err(EyelinkError::ApiError(e)),
     }
 }
 
@@ -245,7 +245,7 @@ pub fn do_drift_correct(x: i16, y: i16, draw: bool, allow_setup: bool) -> Result
     match res {
         0 => Ok(()),
         27 => Err(EyelinkError::EscPressed),
-        n => Err(EyelinkError::APIError(n)),
+        n => Err(EyelinkError::ApiError(n)),
     }
 }
 
@@ -254,7 +254,7 @@ pub fn eyelink_flush_keybuttons(enable_buttons: i16) -> Result<(), EyelinkError>
 
     match res {
         0 => Ok(()),
-        n => Err(EyelinkError::APIError(n)),
+        n => Err(EyelinkError::ApiError(n)),
     }
 }
 
@@ -267,7 +267,7 @@ pub fn eyelink_newest_float_sample() -> Result<Box<FSAMPLE>, EyelinkError> {
         -1 => Err(EyelinkError::NoSampleError),
         0 => Err(EyelinkError::NoNewSampleError),
         1 => Ok(unsafe { Box::from_raw(buf_raw) }),
-        n => Err(EyelinkError::APIError(n)),
+        n => Err(EyelinkError::ApiError(n)),
     }
 }
 
@@ -279,7 +279,7 @@ pub fn eyelink_eye_available() -> Result<EyeData, EyelinkError> {
         a if a == libeyelink_sys::LEFT_EYE as i16 => Ok(EyeData::Left),
         a if a == libeyelink_sys::BINOCULAR as i16 => Ok(EyeData::Binocular),
         -1 => Err(EyelinkError::EyeDataError),
-        n => Err(EyelinkError::APIError(n)),
+        n => Err(EyelinkError::ApiError(n)),
     }
 }
 
@@ -311,7 +311,7 @@ pub fn start_recording(
     };
     match res {
         0 => Ok(()),
-        n => Err(EyelinkError::APIError(n)),
+        n => Err(EyelinkError::ApiError(n)),
     }
 }
 
