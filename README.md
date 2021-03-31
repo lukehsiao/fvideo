@@ -14,7 +14,7 @@ Low-latency foveated video encoding.
 following system dependencies:
 
 ```
-sudo apt install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
+sudo apt install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev mpv
 ```
 
 Note that `fvideo` requires FFmpeg 4.3.x, so if running on Ubuntu 18.04, you'll need to install it

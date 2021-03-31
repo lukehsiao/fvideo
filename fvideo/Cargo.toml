@@ -20,6 +20,9 @@ name = "recording"
 name = "realtime"
 
 [[bin]]
+name = "user_study"
+
+[[bin]]
 name = "latency"
 
 [[bin]]
