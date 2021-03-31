@@ -26,7 +26,7 @@ name = "latency"
 name = "minlatency"
 
 [dependencies]
-anyhow = "1.0.39"
+anyhow = "1.0.40"
 chrono = "0.4.19"
 ctrlc = "3.1.8"
 eyelink-rs = {path = "../eyelink-rs"}

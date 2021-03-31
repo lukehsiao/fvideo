@@ -17,7 +17,7 @@ categories = ["external-ffi-bindings"]
 maintenance = { status = "experimental" }
 
 [dependencies]
-libc = "0.2.82"
+libc = "0.2.92"
 
 [features]
 sdl-graphics = []
