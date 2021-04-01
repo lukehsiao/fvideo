@@ -1,13 +1,24 @@
 use std::collections::HashMap;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Instant;
+use std::thread;
+use std::time::{Duration, Instant};
 
+use log::{info, warn};
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::{clear, cursor};
 use thiserror::Error;
 
 // use crate::client::FvideoClient;
 // use crate::twostreamserver::FvideoTwoStreamServer;
 // use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource, EDF_FILE};
+
+// TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
+// TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
+// TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
 
 #[derive(Error, Debug)]
 pub enum UserStudyError {
@@ -22,7 +33,7 @@ pub enum UserStudyError {
 enum State {
     Video { quality: u32 },
     Accept { quality: u32 },
-    Pause { quality: u32 },
+    Pause,
     Init,
     Calibrate,
     Baseline,
@@ -30,13 +41,14 @@ enum State {
 }
 
 // Events that can cause state transitions
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Event {
-    Enter,
-    One,
-    Two,
+    Accept,
     Quit,
-    None,
+    Baseline,
+    Calibrate,
+    Pause,
+    Video { quality: u32 },
 }
 
 #[derive(Debug)]
@@ -57,6 +69,7 @@ struct StateData {
 }
 
 impl UserStudy {
+    /// Create a new UserStudy state machine.
     fn new(name: &str, baseline: &Path, video: &Path, output: Option<&Path>) -> Self {
         // The artificial delays we will use.
         let mut delays = HashMap::new();
@@ -82,21 +95,83 @@ impl UserStudy {
         }
     }
 
+    /// Handle state transition logic.
     fn next(self, event: Event) -> Self {
         match (&self.state, event) {
-            (State::Init, Event::None) => {
-                println!("Init, None");
+            (_, Event::Quit) => {
+                info!("Quitting the user study.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Quit,
+                }
+            }
+            (_, Event::Pause) => {
+                info!("Pausing the user study.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Pause,
+                }
+            }
+            (_, Event::Calibrate) => {
+                info!("Re-calibrating.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Calibrate,
+                }
+            }
+            (_, Event::Baseline) => {
+                info!("Showing baseline.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Baseline,
+                }
+            }
+            (_, Event::Video { quality: q }) => {
+                info!("Showing quality {}.", q);
+                UserStudy {
+                    data: self.data,
+                    state: State::Video { quality: q },
+                }
+            }
+            (State::Calibrate, _) => {
+                info!("Showing baseline.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Baseline,
+                }
+            }
+            (State::Video { quality: q }, Event::Accept) => {
+                info!("Choosing this quality setting.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Accept { quality: *q },
+                }
+            }
+            (s, e) => {
+                warn!("Undefined transition: {:?} and {:?}", s, e);
                 self
             }
-            (_, _) => self,
         }
     }
 
-    fn run(&self) {
+    /// Handle state actions.
+    fn run(&self) -> Result<(), UserStudyError> {
         match self.state {
-            State::Init => println!("Init state action."),
-            _ => print!("x"),
+            State::Init => {}
+            State::Accept { quality: q } => {
+                info!("Accepted quality: {}", q);
+            }
+            State::Pause => {}
+            State::Calibrate => {
+                info!("Run Calibration.");
+            }
+            State::Baseline => play_video(&self.data.baseline)?,
+            State::Video { quality: q } => {
+                info!("Print quality: {}", q);
+            }
+            State::Quit => {}
         }
+        Ok(())
     }
 }
 
@@ -109,10 +184,52 @@ pub fn run(
 ) -> Result<(), UserStudyError> {
     let mut state = UserStudy::new(name, baseline, video, output);
 
+    // Enter raw mode to get keypresses immediately.
+    //
+    // This breaks the normal print macros.
+    let mut stdout = io::stdout().into_raw_mode().unwrap();
+    let mut stdin = termion::async_stdin().keys();
+
+    info!("Starting state machine loop.");
     loop {
-        state = state.next(Event::None);
-        state.run();
-        break;
+        // Read possible events
+        let event = match stdin.next() {
+            Some(r) => match r {
+                Ok(Key::Esc) | Ok(Key::Ctrl('c')) => {
+                    write!(stdout, "{}{}", clear::All, cursor::Goto(1, 1))?;
+                    stdout.lock().flush()?;
+                    Event::Quit
+                }
+                Ok(Key::Char(c)) => match c {
+                    '0'..='9' => Event::Video {
+                        quality: c.to_digit(10).unwrap(),
+                    },
+                    '\n' => Event::Accept,
+                    'p' => Event::Pause,
+                    'c' => Event::Calibrate,
+                    'b' => Event::Baseline,
+                    _ => continue,
+                },
+                Ok(_) => continue,
+                Err(e) => return Err(UserStudyError::IoError(e)),
+            },
+            None => {
+                // So we're not just burning cycles busy spinning
+                thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+        };
+
+        // Transition State
+        state = state.next(event);
+
+        // Run new state
+        if let State::Quit = state.state {
+            info!("User study is complete.");
+            break;
+        } else {
+            state.run()?;
+        }
     }
 
     Ok(())
