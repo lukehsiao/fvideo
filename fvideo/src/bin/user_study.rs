@@ -1,25 +1,4 @@
 //! A binary for the user study experiments.
-//!
-//! ## Usage
-//! ```
-//! user_study 0.1.0
-//! The user study experiment interface.
-//!
-//! USAGE:
-//!     user_study [OPTIONS] <BASELINE> <VIDEO> --name <name>
-//!
-//! FLAGS:
-//!     -h, --help       Prints help information
-//!     -V, --version    Prints version information
-//!
-//! OPTIONS:
-//!     -n, --name <name>        The full name of the participant
-//!     -o, --output <output>    Where to save the foveated h264 bitstream and tracefile
-//!
-//! ARGS:
-//!     <BASELINE>    The streaming proxy baseline video
-//!     <VIDEO>       The uncompressed video to encode and display
-//! ```
 
 extern crate ffmpeg_next as ffmpeg;
 
@@ -27,10 +6,11 @@ use std::path::PathBuf;
 use std::{fs, process};
 
 use anyhow::Result;
-use chrono::Utc;
 use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
+
+use fvideo::user_study;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -56,7 +36,7 @@ struct Opt {
 
     /// Where to save the foveated h264 bitstream and tracefile.
     ///
-    /// Defaults to output/%Y-%m-%d-%H-%M-%S/.
+    /// No output is saved unless this is specified.
     #[structopt(short, long, parse(from_os_str))]
     output: Option<PathBuf>,
 }
@@ -68,35 +48,30 @@ fn main() -> Result<()> {
     let opt = Opt::from_args();
     debug!("{:?}", opt);
 
-    let outdir = match &opt.output {
-        None => [
-            "output/",
-            &Utc::now().format("%Y-%m-%d-%H-%M-%S").to_string(),
-        ]
-        .iter()
-        .collect::<PathBuf>(),
-        Some(p) => p.to_path_buf(),
-    };
-    info!("Storing logs at: {:?}", outdir);
-
-    if let Err(e) = fs::create_dir_all(&outdir) {
-        info!("{}", e);
+    if let Some(outdir) = &opt.output {
+        info!("Storing logs at: {:?}", outdir);
+        if let Err(e) = fs::create_dir_all(outdir) {
+            info!("{}", e);
+        }
+    } else {
+        warn!("Not storing any logs.");
     }
 
     // Catch SIGINT to allow early exit.
-    ctrlc::set_handler(move || {
+    ctrlc::set_handler(|| {
         debug!("Exiting from SIGINT");
-        info!("Removing output directory...");
-        if let Err(e) = fs::remove_dir_all(outdir.clone()) {
-            warn!("{}", e);
-        }
         process::exit(1)
     })
     .expect("Error setting Ctrl-C handler");
 
-    println!("{}", opt.name);
+    user_study::run(
+        &opt.name,
+        &opt.baseline,
+        &opt.video,
+        opt.output.as_ref().map(|p| p.as_path()),
+    )?;
 
-    loop {}
+    info!("User study complete.");
 
     Ok(())
 }

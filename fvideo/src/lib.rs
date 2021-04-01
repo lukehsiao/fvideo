@@ -18,6 +18,7 @@ pub mod client;
 pub mod dummyserver;
 pub mod server;
 pub mod twostreamserver;
+pub mod user_study;
 
 pub type EncodedFrames = (Option<(NalData, GazeSample)>, Option<NalData>);
 
