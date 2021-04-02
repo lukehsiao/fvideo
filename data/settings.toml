@@ -1,17 +1,125 @@
-[[videos]]
-    name = "pier_seaside"
-    [videos.settings]
-        0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        19 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        38 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        57 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        76 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+[pier_seaside]
+    attempts = 3
+    [[pier_seaside.delays]]
+        delay = 0 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[pier_seaside.delays]]
+        delay = 19
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[pier_seaside.delays]]
+        delay = 38 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[pier_seaside.delays]]
+        delay = 57 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[pier_seaside.delays]]
+        delay = 76 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
 
-[[videos]]
-    name = "toddler_fountain"
-    [videos.settings]
-        0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        19 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        38 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        57 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
-        76 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+[toddler_fountain]
+    attempts = 3
+    [[toddler_fountain.delays]]
+        delay = 0 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[toddler_fountain.delays]]
+        delay = 19
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[toddler_fountain.delays]]
+        delay = 38 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[toddler_fountain.delays]]
+        delay = 57 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[toddler_fountain.delays]]
+        delay = 76 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}

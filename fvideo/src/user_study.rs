@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::thread;
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use log::{info, warn};
+use serde::Deserialize;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -20,12 +21,43 @@ use thiserror::Error;
 // TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
 // TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
 
+#[derive(Debug, Deserialize)]
+struct Quality {
+    fg_size: u32,
+    fg_crf: u32,
+    bg_size: u32,
+    bg_crf: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct Delay {
+    delay: u32,
+    q1: Quality,
+    q2: Quality,
+    q3: Quality,
+    q4: Quality,
+    q5: Quality,
+    q6: Quality,
+    q7: Quality,
+    q8: Quality,
+    q9: Quality,
+    q0: Quality,
+}
+
+#[derive(Debug, Deserialize)]
+struct Video {
+    attempts: u32,
+    delays: Vec<Delay>,
+}
+
 #[derive(Error, Debug)]
 pub enum UserStudyError {
     #[error("Unable to play `{0}` with mpv.")]
     MpvError(String),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    TomlError(#[from] toml::de::Error),
 }
 
 // The set of possible user study states.
@@ -183,6 +215,13 @@ pub fn run(
     output: Option<&Path>,
 ) -> Result<(), UserStudyError> {
     let mut state = UserStudy::new(name, baseline, video, output);
+
+    let config_file = fs::read_to_string("data/settings.toml")?;
+
+    let videos: HashMap<String, Video> = toml::from_str(&config_file)?;
+
+    dbg!(videos);
+    return Ok(());
 
     // Enter raw mode to get keypresses immediately.
     //
