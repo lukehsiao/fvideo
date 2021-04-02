@@ -5,7 +5,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use std::{fs, thread};
 
-use log::{info, warn};
+use log::{debug, info, warn};
 use rand::prelude::*;
 use serde::Deserialize;
 use structopt::clap::arg_enum;
@@ -19,9 +19,9 @@ use thiserror::Error;
 // use crate::twostreamserver::FvideoTwoStreamServer;
 // use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource, EDF_FILE};
 
-// TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
-// TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
-// TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
+// - [ ] TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
+// - [ ] TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
+// - [x] TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
 
 arg_enum! {
     #[derive(Copy, Clone, Debug, PartialEq)]
@@ -187,24 +187,8 @@ impl UserStudy {
     /// Handle state transition logic.
     fn next(self, event: Event) -> Self {
         match (&self.state, event) {
-            (State::Accept { quality: _ }, Event::Resume) => {
-                // If we're all done
-                if self.data.delays.is_empty() {
-                    info!("All delays complete.");
-                    UserStudy {
-                        data: self.data,
-                        state: State::Quit,
-                    }
-                } else {
-                    info!("Paused and ready for the next delay.");
-                    UserStudy {
-                        data: self.data,
-                        state: State::Pause { quality: 0 },
-                    }
-                }
-            }
             (_, Event::Quit) => {
-                info!("Quitting the user study.");
+                info!("Quitting.");
                 UserStudy {
                     data: self.data,
                     state: State::Quit,
@@ -245,13 +229,6 @@ impl UserStudy {
                     state: State::Video { quality: *q },
                 }
             }
-            (State::Calibrate, _) => {
-                info!("Showing baseline.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Baseline,
-                }
-            }
             (State::Video { quality: q }, Event::Accept) => {
                 info!("Choosing this quality setting.");
                 UserStudy {
@@ -269,11 +246,23 @@ impl UserStudy {
     /// Handle state actions.
     fn run(&mut self) -> Result<(), UserStudyError> {
         match self.state {
-            State::Init => {}
+            State::Init => {
+                info!("Moving to calibration first.");
+                self.state = State::Calibrate;
+            }
             State::Accept { quality: q } => {
                 info!("Accepted quality: {}", q);
                 if let Some(d) = self.data.delays.pop() {
                     info!("Log info for delay: {}", d);
+                }
+
+                // Also state transition immediately after accept.
+                if self.data.delays.is_empty() {
+                    info!("All delays complete.");
+                    self.state = State::Quit;
+                } else {
+                    info!("Paused and ready for the next delay.");
+                    self.state = State::Pause { quality: 0 };
                 }
             }
             State::Pause { quality: _ } => {}
@@ -295,7 +284,7 @@ pub fn run(name: &str, source: &Source, output: Option<&Path>) -> Result<(), Use
     let config_file = fs::read_to_string("data/settings.toml")?;
     let settings: HashMap<String, Video> = toml::from_str(&config_file)?;
 
-    let mut state = UserStudy::new(name, source, output, settings);
+    let mut user_study = UserStudy::new(name, source, output, settings);
 
     // Enter raw mode to get keypresses immediately.
     //
@@ -335,14 +324,16 @@ pub fn run(name: &str, source: &Source, output: Option<&Path>) -> Result<(), Use
         };
 
         // Transition State
-        state = state.next(event);
+        debug!("Moving from: {:?}", user_study.state);
+        user_study = user_study.next(event);
+        debug!("Moving into: {:?}", user_study.state);
 
         // Run new state
-        if let State::Quit = state.state {
+        if let State::Quit = user_study.state {
             info!("User study is complete.");
             break;
         } else {
-            state.run()?;
+            user_study.run()?;
         }
     }
 
