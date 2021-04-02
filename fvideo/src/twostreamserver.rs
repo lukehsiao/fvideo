@@ -6,8 +6,8 @@ use std::convert::TryInto;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::ptr;
 use std::time::{Duration, Instant};
+use std::{fmt, ptr};
 
 use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
@@ -35,6 +35,18 @@ pub struct FvideoTwoStreamServer {
     last_frame_time: Duration,
     last_gaze_sample: GazeSample,
     timestamp: i64,
+}
+
+impl fmt::Debug for FvideoTwoStreamServer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FvideoTwoStreamServer")
+            .field("fovea", &self.fovea)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("frame_cnt", &self.frame_cnt)
+            .field("last_gaze_sample", &self.last_gaze_sample)
+            .finish()
+    }
 }
 
 const DIFF_THRESH: i32 = 10;

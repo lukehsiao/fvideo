@@ -5,11 +5,10 @@
 
 extern crate ffmpeg_next as ffmpeg;
 
-use std::cmp;
 use std::collections::VecDeque;
 use std::convert::TryInto;
-use std::process;
 use std::time::{Duration, Instant};
+use std::{cmp, fmt, process};
 
 use ffmpeg::filter::{self, graph::Graph};
 use ffmpeg::util::format::pixel::Pixel;
@@ -60,6 +59,29 @@ pub struct FvideoClient {
     last_gaze: Coords,
     min_gaze: Coords,
     max_gaze: Coords,
+}
+
+impl fmt::Debug for FvideoClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FvideoClient")
+            .field("alg", &self.alg)
+            .field("fg", &self.fg)
+            .field("bg", &self.bg)
+            .field("disp", &self.disp)
+            .field("total_bytes", &self.total_bytes)
+            .field("fg_bytes", &self.fg_bytes)
+            .field("bg_bytes", &self.bg_bytes)
+            .field("frame_idx", &self.frame_idx)
+            .field("gaze_source", &self.gaze_source)
+            .field("eyelink_options", &self.eyelink_options)
+            .field("triggered", &self.triggered)
+            .field("seqno", &self.seqno)
+            .field("total_gaze", &self.total_gaze)
+            .field("last_gaze", &self.last_gaze)
+            .field("min_gaze", &self.min_gaze)
+            .field("max_gaze", &self.max_gaze)
+            .finish()
+    }
 }
 
 impl Drop for FvideoClient {
