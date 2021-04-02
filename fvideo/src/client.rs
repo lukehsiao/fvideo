@@ -38,7 +38,7 @@ pub struct FvideoClient {
     event_pump: EventPump,
     fg: Dims,
     bg: Dims,
-    _src: Dims,
+    src: Dims,
     disp: Dims,
     total_bytes: u64,
     fg_bytes: u64,
@@ -275,24 +275,7 @@ impl FvideoClient {
             ),
         };
 
-        // Set the alpha values based on a circular 2D Gaussian. These constants right now
-        // are just tuned to what seems to look OK to me. See commit msg for details.
-        let mut alpha_blend: Vec<u8> = vec![];
-        for j in 0..fg_width {
-            for i in 0..fg_width {
-                alpha_blend.push(cmp::min(
-                    255,
-                    (896.0
-                        * (-1.0
-                            * (((i as i32 - (fg_width / 2) as i32).pow(2)
-                                + (j as i32 - (fg_width / 2) as i32).pow(2))
-                                as f32
-                                / (2.0 * (fg_width as f32 / 5.0).powi(2))))
-                        .exp())
-                    .round() as u8,
-                ));
-            }
-        }
+        let alpha_blend = compute_alpha(fg_width);
 
         let buffer_params = format!(
             "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
@@ -354,7 +337,7 @@ impl FvideoClient {
                 width: bg_width,
                 height: bg_height,
             },
-            _src: src_dims,
+            src: src_dims,
             disp: Dims {
                 width: disp_width,
                 height: disp_height,
@@ -392,6 +375,118 @@ impl FvideoClient {
                 y: u64::MIN,
             },
         }
+    }
+
+    /// Reinitialize internal state, without dealing with Eyelink functions.
+    pub fn reinit(&mut self, fovea: u32, bg_width: u32, delay: u64, filter: &str) {
+        let fg_decoder = decoder::new()
+            .open_as(decoder::find(codec::Id::H264))
+            .unwrap()
+            .video()
+            .unwrap();
+
+        let bg_decoder = decoder::new()
+            .open_as(decoder::find(codec::Id::H264))
+            .unwrap()
+            .video()
+            .unwrap();
+
+        let mut gaze_samples = VecDeque::new();
+        gaze_samples.reserve(256);
+        gaze_samples.push_back(GazeSample {
+            time: Instant::now(),
+            seqno: 0,
+            d_width: self.disp.width,
+            d_height: self.disp.height,
+            d_x: self.disp.width / 2,
+            d_y: self.disp.height / 2,
+            p_x: self.src.width / 2,
+            p_y: self.src.height / 2,
+            m_x: self.src.width / 2 / 16,
+            m_y: self.src.height / 2 / 16,
+        });
+
+        let rescale_dims = Dims {
+            width: bg_width,
+            height: bg_width * 9 / 16,
+        };
+
+        let fovea_size = match fovea {
+            n if n * 16 > self.src.height => self.src.height,
+            0 => panic!("Error"), // this is "no foveation"
+            n => n * 16,
+        };
+
+        let (fg_width, fg_height, bg_width, bg_height) = match self.alg {
+            FoveationAlg::TwoStream => {
+                info!(
+                    "fg res: {}x{}, bg_res: {}x{}",
+                    fovea_size, fovea_size, rescale_dims.width, rescale_dims.height
+                );
+
+                (
+                    fovea_size,
+                    fovea_size,
+                    rescale_dims.width,
+                    rescale_dims.height,
+                )
+            }
+            _ => (
+                self.src.width,
+                self.src.height,
+                self.src.width,
+                self.src.height,
+            ),
+        };
+
+        let alpha_blend = compute_alpha(fg_width);
+
+        let buffer_params = format!(
+            "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
+            bg_width, bg_height, "yuv420p", 1, 24
+        );
+
+        self = &mut FvideoClient {
+            fg_decoder,
+            bg_decoder,
+            gaze_samples,
+            fg: Dims {
+                width: fg_width,
+                height: fg_height,
+            },
+            bg: Dims {
+                width: bg_width,
+                height: bg_height,
+            },
+            total_bytes: 0,
+            fg_bytes: 0,
+            bg_bytes: 0,
+            frame_idx: 0,
+            triggered: false,
+            alpha_blend,
+            bg_frame: Video::empty(),
+            fg_frame: Video::empty(),
+            seqno: 0,
+            delay: if delay > 0 {
+                Some(Duration::from_millis(delay))
+            } else {
+                None
+            },
+            total_gaze: Coords { x: 0, y: 0 },
+            last_gaze: Coords {
+                x: u64::from(self.src.width) / 2,
+                y: u64::from(self.src.height) / 2,
+            },
+            min_gaze: Coords {
+                x: u64::MAX,
+                y: u64::MAX,
+            },
+            max_gaze: Coords {
+                x: u64::MIN,
+                y: u64::MIN,
+            },
+            ..*self
+        };
     }
 
     /// Re-initialize_eyelink and run a calibration.
@@ -899,6 +994,30 @@ impl FvideoClient {
     pub fn max_gaze(&self) -> Coords {
         self.max_gaze
     }
+}
+
+/// Compute the 2D Gaussian of alpha values for blending.
+///
+/// These constants right now are just tuned to what seems to look OK to me. See commit msg for
+/// details.
+fn compute_alpha(fg_width: u32) -> Vec<u8> {
+    let mut alpha_blend: Vec<u8> = vec![];
+    for j in 0..fg_width {
+        for i in 0..fg_width {
+            alpha_blend.push(cmp::min(
+                255,
+                (896.0
+                    * (-1.0
+                        * (((i as i32 - (fg_width / 2) as i32).pow(2)
+                            + (j as i32 - (fg_width / 2) as i32).pow(2))
+                            as f32
+                            / (2.0 * (fg_width as f32 / 5.0).powi(2))))
+                    .exp())
+                .round() as u8,
+            ));
+        }
+    }
+    alpha_blend
 }
 
 #[cfg(test)]
