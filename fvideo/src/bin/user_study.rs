@@ -10,7 +10,7 @@ use log::{debug, info, warn};
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
-use fvideo::user_study;
+use fvideo::user_study::{self, Source};
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -24,15 +24,13 @@ struct Opt {
     #[structopt(short, long)]
     name: String,
 
-    /// The streaming proxy baseline video.
-    ///
-    /// Will be played using `mpv`, which must be present on the PATH.
-    #[structopt(name = "BASELINE", parse(from_os_str))]
-    baseline: PathBuf,
-
-    /// The uncompressed video to encode and display.
-    #[structopt(name = "VIDEO", parse(from_os_str))]
-    video: PathBuf,
+    /// Source for gaze data.
+    #[structopt(
+        name = "SOURCE",
+        possible_values = &Source::variants(),
+        case_insensitive=true,
+    )]
+    source: Source,
 
     /// Where to save the foveated h264 bitstream and tracefile.
     ///
@@ -66,8 +64,7 @@ fn main() -> Result<()> {
 
     user_study::run(
         &opt.name,
-        &opt.baseline,
-        &opt.video,
+        &opt.source,
         opt.output.as_ref().map(|p| p.as_path()),
     )?;
 

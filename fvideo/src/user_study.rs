@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 use std::{fs, thread};
 
 use log::{info, warn};
+use rand::prelude::*;
 use serde::Deserialize;
+use structopt::clap::arg_enum;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -20,6 +22,17 @@ use thiserror::Error;
 // TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
 // TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
 // TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
+
+arg_enum! {
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    pub enum Source {
+        PierSeaside,
+        Barscene,
+        SquareTimelapse,
+        Rollercoaster,
+        ToddlerFountain,
+    }
+}
 
 #[derive(Debug, Deserialize)]
 struct Quality {
@@ -65,7 +78,7 @@ pub enum UserStudyError {
 enum State {
     Video { quality: u32 },
     Accept { quality: u32 },
-    Pause,
+    Pause { quality: u32 },
     Init,
     Calibrate,
     Baseline,
@@ -80,6 +93,7 @@ enum Event {
     Baseline,
     Calibrate,
     Pause,
+    Resume,
     Video { quality: u32 },
 }
 
@@ -93,7 +107,7 @@ struct UserStudy {
 #[derive(Debug)]
 struct StateData {
     start: Instant,
-    delays: HashMap<u64, u32>,
+    delays: Vec<u32>,
     name: String,
     baseline: PathBuf,
     video: PathBuf,
@@ -102,14 +116,57 @@ struct StateData {
 
 impl UserStudy {
     /// Create a new UserStudy state machine.
-    fn new(name: &str, baseline: &Path, video: &Path, output: Option<&Path>) -> Self {
-        // The artificial delays we will use.
-        let mut delays = HashMap::new();
-        delays.insert(0, 0);
-        delays.insert(19, 0);
-        delays.insert(38, 0);
-        delays.insert(57, 0);
-        delays.insert(76, 0);
+    fn new(
+        name: &str,
+        source: &Source,
+        output: Option<&Path>,
+        settings: HashMap<String, Video>,
+    ) -> Self {
+        let baseline = match source {
+            Source::PierSeaside => PathBuf::from("data/pierseaside.h264"),
+            Source::ToddlerFountain => PathBuf::from("data/toddlerfountain.h264"),
+            Source::SquareTimelapse => PathBuf::from("data/square_timelapse.h264"),
+            Source::Barscene => PathBuf::from("data/barscene.h264"),
+            Source::Rollercoaster => PathBuf::from("data/rollercoaster.h264"),
+        };
+
+        let video = match source {
+            Source::PierSeaside => {
+                PathBuf::from("~/Videos/Netflix_PierSeaside_3840x2160_60fps_yuv420p.y4m")
+            }
+            Source::ToddlerFountain => {
+                PathBuf::from("~/Videos/Netflix_ToddlerFountain_3840x2160_60fps_yuv420p.y4m")
+            }
+            Source::SquareTimelapse => {
+                PathBuf::from("~/Videos/Netflix_SquareAndTimelapse_3840x2160_60fps_yuv420p.y4m")
+            }
+            Source::Barscene => {
+                PathBuf::from("~/Videos/Netflix_BarScene_3840x2160_60fps_yuv420p.y4m")
+            }
+            Source::Rollercoaster => {
+                PathBuf::from("~/Videos/Netflix_RollerCoaster_3840x2160_60fps_yuv420p.y4m")
+            }
+        };
+
+        let key = match source {
+            Source::PierSeaside => "pier_seaside",
+            Source::ToddlerFountain => "toddler_fountain",
+            Source::SquareTimelapse => "square_timelapse",
+            Source::Barscene => "barscene",
+            Source::Rollercoaster => "rollercoaster",
+        };
+
+        // Queue up N attempts of each artificual delay we'll use.
+        let mut delays = vec![];
+        let setting = settings.get(key).unwrap();
+        for _ in 0..setting.attempts {
+            for d in &setting.delays {
+                delays.push(d.delay);
+            }
+        }
+        // Shuffle to randomize order they are presented to the user
+        let mut rng = rand::thread_rng();
+        delays.shuffle(&mut rng);
 
         let state = StateData {
             start: Instant::now(),
@@ -130,18 +187,27 @@ impl UserStudy {
     /// Handle state transition logic.
     fn next(self, event: Event) -> Self {
         match (&self.state, event) {
+            (State::Accept { quality: _ }, Event::Resume) => {
+                // If we're all done
+                if self.data.delays.is_empty() {
+                    info!("All delays complete.");
+                    UserStudy {
+                        data: self.data,
+                        state: State::Quit,
+                    }
+                } else {
+                    info!("Paused and ready for the next delay.");
+                    UserStudy {
+                        data: self.data,
+                        state: State::Pause { quality: 0 },
+                    }
+                }
+            }
             (_, Event::Quit) => {
                 info!("Quitting the user study.");
                 UserStudy {
                     data: self.data,
                     state: State::Quit,
-                }
-            }
-            (_, Event::Pause) => {
-                info!("Pausing the user study.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Pause,
                 }
             }
             (_, Event::Calibrate) => {
@@ -163,6 +229,20 @@ impl UserStudy {
                 UserStudy {
                     data: self.data,
                     state: State::Video { quality: q },
+                }
+            }
+            (State::Video { quality: q }, Event::Pause) => {
+                info!("Pausing the user study.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Pause { quality: *q },
+                }
+            }
+            (State::Pause { quality: q }, Event::Resume) => {
+                info!("Resuming the user study.");
+                UserStudy {
+                    data: self.data,
+                    state: State::Video { quality: *q },
                 }
             }
             (State::Calibrate, _) => {
@@ -187,13 +267,16 @@ impl UserStudy {
     }
 
     /// Handle state actions.
-    fn run(&self) -> Result<(), UserStudyError> {
+    fn run(&mut self) -> Result<(), UserStudyError> {
         match self.state {
             State::Init => {}
             State::Accept { quality: q } => {
                 info!("Accepted quality: {}", q);
+                if let Some(d) = self.data.delays.pop() {
+                    info!("Log info for delay: {}", d);
+                }
             }
-            State::Pause => {}
+            State::Pause { quality: _ } => {}
             State::Calibrate => {
                 info!("Run Calibration.");
             }
@@ -208,20 +291,11 @@ impl UserStudy {
 }
 
 /// Main state machine loop
-pub fn run(
-    name: &str,
-    baseline: &Path,
-    video: &Path,
-    output: Option<&Path>,
-) -> Result<(), UserStudyError> {
-    let mut state = UserStudy::new(name, baseline, video, output);
-
+pub fn run(name: &str, source: &Source, output: Option<&Path>) -> Result<(), UserStudyError> {
     let config_file = fs::read_to_string("data/settings.toml")?;
+    let settings: HashMap<String, Video> = toml::from_str(&config_file)?;
 
-    let videos: HashMap<String, Video> = toml::from_str(&config_file)?;
-
-    dbg!(videos);
-    return Ok(());
+    let mut state = UserStudy::new(name, source, output, settings);
 
     // Enter raw mode to get keypresses immediately.
     //
@@ -247,6 +321,7 @@ pub fn run(
                     'p' => Event::Pause,
                     'c' => Event::Calibrate,
                     'b' => Event::Baseline,
+                    'r' => Event::Resume,
                     _ => continue,
                 },
                 Ok(_) => continue,
