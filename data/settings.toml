@@ -123,3 +123,192 @@
         q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
         q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
         q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+
+[rollercoaster]
+    attempts = 3
+    [[rollercoaster.delays]]
+        delay = 0 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[rollercoaster.delays]]
+        delay = 19
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[rollercoaster.delays]]
+        delay = 38 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[rollercoaster.delays]]
+        delay = 57 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[rollercoaster.delays]]
+        delay = 76 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+
+[square_timelapse]
+    attempts = 3
+    [[square_timelapse.delays]]
+        delay = 0 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[square_timelapse.delays]]
+        delay = 19
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[square_timelapse.delays]]
+        delay = 38 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[square_timelapse.delays]]
+        delay = 57 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[square_timelapse.delays]]
+        delay = 76 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+
+[barscene]
+    attempts = 3
+    [[barscene.delays]]
+        delay = 0 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[barscene.delays]]
+        delay = 19
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[barscene.delays]]
+        delay = 38 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[barscene.delays]]
+        delay = 57 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+    [[barscene.delays]]
+        delay = 76 
+        q1 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q2 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q3 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q4 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q5 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q6 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q7 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q8 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q9 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
+        q0 = {fg_size = 1, fg_crf = 2, bg_size = 3, bg_crf = 4}
