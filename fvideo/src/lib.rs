@@ -36,6 +36,11 @@ pub struct Dims {
     pub height: u32,
 }
 
+#[derive(Debug)]
+pub enum ServerCmd {
+    Stop,
+}
+
 /// A gaze sample.
 #[derive(Copy, Clone, Debug)]
 pub struct GazeSample {

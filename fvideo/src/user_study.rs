@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
-use std::{fs, thread};
 
+use flume::{Receiver, Sender};
 use log::{debug, info, warn};
 use rand::prelude::*;
 use serde::Deserialize;
@@ -15,9 +17,12 @@ use termion::raw::IntoRawMode;
 use termion::{clear, cursor};
 use thiserror::Error;
 
-// use crate::client::FvideoClient;
-// use crate::twostreamserver::FvideoTwoStreamServer;
-// use crate::{Dims, DisplayOptions, EyelinkOptions, FoveationAlg, GazeSource, EDF_FILE};
+use crate::client::FvideoClient;
+use crate::twostreamserver::FvideoTwoStreamServer;
+use crate::{
+    Dims, DisplayOptions, EncodedFrames, EyelinkOptions, FoveationAlg, GazeSample, GazeSource,
+    ServerCmd,
+};
 
 // - [ ] TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
 // - [ ] TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
@@ -34,17 +39,17 @@ arg_enum! {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Copy, Clone)]
 struct Quality {
     fg_size: u32,
-    fg_crf: u32,
+    fg_crf: f32,
     bg_size: u32,
-    bg_crf: u32,
+    bg_crf: f32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Copy, Clone)]
 struct Delay {
-    delay: u32,
+    delay: u64,
     q1: Quality,
     q2: Quality,
     q3: Quality,
@@ -71,6 +76,10 @@ pub enum UserStudyError {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     TomlError(#[from] toml::de::Error),
+    #[error(transparent)]
+    FvideoServerError(#[from] crate::FvideoServerError),
+    #[error(transparent)]
+    SendError(#[from] flume::SendError<EncodedFrames>),
 }
 
 // The set of possible user study states.
@@ -107,11 +116,16 @@ struct UserStudy {
 #[derive(Debug)]
 struct StateData {
     start: Instant,
-    delays: Vec<u32>,
+    delays: Vec<Delay>,
     name: String,
     baseline: PathBuf,
     video: PathBuf,
     output: Option<PathBuf>,
+    client: FvideoClient,
+    server: JoinHandle<Result<(), UserStudyError>>,
+    nal_rx: Receiver<EncodedFrames>,
+    gaze_tx: Sender<GazeSample>,
+    cmd_tx: Sender<ServerCmd>,
 }
 
 impl UserStudy {
@@ -122,6 +136,7 @@ impl UserStudy {
         output: Option<&Path>,
         settings: HashMap<String, Video>,
     ) -> Self {
+        // TODO(lukehsiao): these should be configured, and not hardcoded.
         let baseline = match source {
             Source::PierSeaside => PathBuf::from("data/pierseaside.h264"),
             Source::ToddlerFountain => PathBuf::from("data/toddlerfountain.h264"),
@@ -157,16 +172,76 @@ impl UserStudy {
         };
 
         // Queue up N attempts of each artificual delay we'll use.
-        let mut delays = vec![];
+        let mut delays: Vec<Delay> = vec![];
         let setting = settings.get(key).unwrap();
         for _ in 0..setting.attempts {
-            for d in &setting.delays {
-                delays.push(d.delay);
+            for delay in &setting.delays {
+                delays.push(*delay);
             }
         }
         // Shuffle to randomize order they are presented to the user
         let mut rng = rand::thread_rng();
         delays.shuffle(&mut rng);
+
+        let (width, height, _) =
+            crate::get_video_metadata(&video).expect("Unable to get video metadata.");
+
+        // Initialize with the highest quality settings (q0).
+        let fovea = delays.last().unwrap().q0.fg_size;
+        let bg_width = delays.last().unwrap().q0.bg_size;
+        let delay = delays.last().unwrap().delay;
+        let filter = "smartblur=lr=1.0:ls=-1.0";
+        let client = FvideoClient::new(
+            FoveationAlg::TwoStream,
+            fovea,
+            Dims { width, height },
+            Dims {
+                width: bg_width,
+                height: bg_width * 9 / 16,
+            },
+            DisplayOptions {
+                delay,
+                filter: filter.to_string(),
+            },
+            GazeSource::Eyelink,
+            EyelinkOptions {
+                calibrate: false,
+                record: false,
+            },
+        );
+
+        // Communication channels between client and server
+        let (nal_tx, nal_rx) = flume::bounded(16);
+        let (gaze_tx, gaze_rx) = flume::bounded(16);
+        let (cmd_tx, _cmd_rx) = flume::bounded(5);
+
+        let fg_crf = delays.last().unwrap().q0.fg_crf;
+        let bg_crf = delays.last().unwrap().q0.bg_crf;
+        let video_clone = video.clone();
+        let server_hnd = thread::spawn(move || -> Result<(), UserStudyError> {
+            let mut server = FvideoTwoStreamServer::new(
+                fovea,
+                Dims {
+                    width: bg_width,
+                    height: bg_width * 9 / 16,
+                },
+                fg_crf,
+                bg_crf,
+                video_clone,
+            )?;
+            for current_gaze in gaze_rx {
+                // Only look at latest available gaze sample
+                let time = Instant::now();
+                let nals = match server.encode_frame(current_gaze) {
+                    Ok(n) => n,
+                    Err(_) => break,
+                };
+                debug!("Total encode_frame: {:#?}", time.elapsed());
+
+                nal_tx.send(nals)?;
+            }
+            Ok(())
+        });
 
         let state = StateData {
             start: Instant::now(),
@@ -175,6 +250,11 @@ impl UserStudy {
             baseline: baseline.to_path_buf(),
             video: video.to_path_buf(),
             output: output.map(Path::to_path_buf),
+            client,
+            server: server_hnd,
+            nal_rx,
+            gaze_tx,
+            cmd_tx,
         };
 
         // Init state machine
@@ -253,7 +333,7 @@ impl UserStudy {
             State::Accept { quality: q } => {
                 info!("Accepted quality: {}", q);
                 if let Some(d) = self.data.delays.pop() {
-                    info!("Log info for delay: {}", d);
+                    info!("Log info for delay: {}", d.delay);
                 }
 
                 // Also state transition immediately after accept.
@@ -271,7 +351,26 @@ impl UserStudy {
             }
             State::Baseline => play_video(&self.data.baseline)?,
             State::Video { quality: q } => {
-                info!("Print quality: {}", q);
+                info!("Playing video quality: {}", q);
+                // for nal in nal_rx {
+                //     // Send first to pipeline encode/decode, otherwise it would be in serial.
+                //     gaze_tx.send(client.gaze_sample())?;
+                //
+                //     // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
+                //     let time = Instant::now();
+                //     client.display_frame(nal.0.as_ref(), nal.1.as_ref());
+                //     debug!("Total display_frame: {:#?}", time.elapsed());
+                //
+                //     // Also save both streams to file
+                //     // TODO(lukehsiao): this would probably be more useful if it was actually the
+                //     // overlayed video. But for now, at least we can see both streams directly.
+                //     if let Some(bg_nal) = nal.1 {
+                //         outfile.write_all(bg_nal.as_bytes())?;
+                //     }
+                //     if let Some((fg_nal, _)) = nal.0 {
+                //         fgfile.as_mut().unwrap().write_all(fg_nal.as_bytes())?;
+                //     }
+                // }
             }
             State::Quit => {}
         }

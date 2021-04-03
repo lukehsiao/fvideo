@@ -378,7 +378,7 @@ impl FvideoClient {
     }
 
     /// Reinitialize internal state, without dealing with Eyelink functions.
-    pub fn reinit(&mut self, fovea: u32, bg_width: u32, delay: u64, filter: &str) {
+    pub fn reinit(&mut self, fovea: u32, bg_width: u32, delay: u64, filter_str: &str) {
         let fg_decoder = decoder::new()
             .open_as(decoder::find(codec::Id::H264))
             .unwrap()
@@ -446,47 +446,85 @@ impl FvideoClient {
             bg_width, bg_height, "yuv420p", 1, 24
         );
 
-        self = &mut FvideoClient {
-            fg_decoder,
-            bg_decoder,
-            gaze_samples,
-            fg: Dims {
-                width: fg_width,
-                height: fg_height,
-            },
-            bg: Dims {
-                width: bg_width,
-                height: bg_height,
-            },
-            total_bytes: 0,
-            fg_bytes: 0,
-            bg_bytes: 0,
-            frame_idx: 0,
-            triggered: false,
-            alpha_blend,
-            bg_frame: Video::empty(),
-            fg_frame: Video::empty(),
-            seqno: 0,
-            delay: if delay > 0 {
-                Some(Duration::from_millis(delay))
-            } else {
-                None
-            },
-            total_gaze: Coords { x: 0, y: 0 },
-            last_gaze: Coords {
-                x: u64::from(self.src.width) / 2,
-                y: u64::from(self.src.height) / 2,
-            },
-            min_gaze: Coords {
-                x: u64::MAX,
-                y: u64::MAX,
-            },
-            max_gaze: Coords {
-                x: u64::MIN,
-                y: u64::MIN,
-            },
-            ..*self
+        let filter = {
+            let mut filter = filter::Graph::new();
+
+            filter
+                .add(
+                    &filter::find("buffer").unwrap(),
+                    "in",           // name
+                    &buffer_params, // params
+                )
+                .unwrap();
+
+            filter
+                .add(
+                    &filter::find("buffersink").unwrap(),
+                    "out", // name
+                    "",    // params
+                )
+                .unwrap();
+
+            let mut inp = filter.get("in").unwrap();
+            inp.set_pixel_format(Pixel::YUV420P);
+
+            let mut out = filter.get("out").unwrap();
+            out.set_pixel_format(Pixel::YUV420P);
+
+            filter
+                .output("in", 0)
+                .unwrap()
+                .input("out", 0)
+                .unwrap()
+                .parse(filter_str)
+                .unwrap();
+
+            filter.validate().unwrap();
+
+            info!("{}", filter.dump());
+
+            filter
         };
+
+        self.fg_decoder = fg_decoder;
+        self.bg_decoder = bg_decoder;
+        self.gaze_samples = gaze_samples;
+        self.fg = Dims {
+            width: fg_width,
+            height: fg_height,
+        };
+        self.bg = Dims {
+            width: bg_width,
+            height: bg_height,
+        };
+        self.total_bytes = 0;
+        self.fg_bytes = 0;
+        self.bg_bytes = 0;
+        self.frame_idx = 0;
+        self.triggered = false;
+        self.alpha_blend = alpha_blend;
+        self.bg_frame = Video::empty();
+        self.fg_frame = Video::empty();
+        self.seqno = 0;
+        self.delay = if delay > 0 {
+            Some(Duration::from_millis(delay))
+        } else {
+            None
+        };
+        self.total_gaze = Coords { x: 0, y: 0 };
+        self.last_gaze = Coords {
+            x: u64::from(self.src.width) / 2,
+            y: u64::from(self.src.height) / 2,
+        };
+        self.min_gaze = Coords {
+            x: u64::MAX,
+            y: u64::MAX,
+        };
+        self.max_gaze = Coords {
+            x: u64::MIN,
+            y: u64::MIN,
+        };
+        self.filter = filter;
     }
 
     /// Re-initialize_eyelink and run a calibration.
