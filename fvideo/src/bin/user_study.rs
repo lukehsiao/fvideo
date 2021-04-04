@@ -62,11 +62,7 @@ fn main() -> Result<()> {
     })
     .expect("Error setting Ctrl-C handler");
 
-    user_study::run(
-        &opt.name,
-        &opt.source,
-        opt.output.as_ref().map(|p| p.as_path()),
-    )?;
+    user_study::run(&opt.name, &opt.source, opt.output.as_deref())?;
 
     info!("User study complete.");
 

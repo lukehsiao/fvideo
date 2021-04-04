@@ -220,8 +220,8 @@ impl UserStudy {
             start: Instant::now(),
             delays,
             name: name.to_string(),
-            baseline: baseline.to_path_buf(),
-            video: video.to_path_buf(),
+            baseline,
+            video,
             key: key.to_string(),
             output: output.map(Path::to_path_buf),
             log,
@@ -423,7 +423,7 @@ impl UserStudy {
 
                 for nal in nal_rx {
                     // Send first to pipeline encode/decode, otherwise it would be in serial.
-                    if let Err(_) = gaze_tx.send(client.gaze_sample()) {
+                    if gaze_tx.send(client.gaze_sample()).is_err() {
                         break;
                     }
 
