@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::time::Instant;
-use std::{io, num};
+use std::{fmt, io, num};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -27,6 +27,12 @@ pub type EncodedFrames = (Option<(NalData, GazeSample)>, Option<NalData>);
 pub struct Coords {
     pub x: u64,
     pub y: u64,
+}
+
+impl fmt::Display for Coords {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}:{})", self.x, self.y)
+    }
 }
 
 /// Source video dimensions for initializing a client.

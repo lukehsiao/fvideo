@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::thread;
 use std::time::{Duration, Instant};
-use std::{fs, thread};
 
+use chrono::Utc;
 use log::{debug, info, warn};
 use rand::prelude::*;
 use sdl2::event::EventType;
@@ -133,7 +135,9 @@ struct StateData {
     name: String,
     baseline: PathBuf,
     video: PathBuf,
+    key: String,
     output: Option<PathBuf>,
+    log: File,
 }
 
 impl UserStudy {
@@ -191,6 +195,26 @@ impl UserStudy {
         let mut rng = rand::thread_rng();
         delays.shuffle(&mut rng);
 
+        // Open the logfile
+        let log = match OpenOptions::new().append(true).open("data/user_study.csv") {
+            Ok(file) => file,
+            Err(_) => {
+                let mut file = OpenOptions::new()
+                    .append(true)
+                    .create_new(true)
+                    .open("data/user_study.csv")
+                    .unwrap();
+
+                // Write the header for the CSV if it is new
+                writeln!(
+                    file,
+                    "timestamp,name,alg,fovea,bg_width,bg_crf,fg_crf,delay_ms,gaze_source,video,total_gaze,min_gaze,max_gaze,frames,filesize_bytes",
+                ).unwrap();
+
+                file
+            }
+        };
+
         // Initialize with the highest quality settings (q0).
         let state = StateData {
             start: Instant::now(),
@@ -198,7 +222,9 @@ impl UserStudy {
             name: name.to_string(),
             baseline: baseline.to_path_buf(),
             video: video.to_path_buf(),
+            key: key.to_string(),
             output: output.map(Path::to_path_buf),
+            log,
         };
 
         // Init state machine
@@ -423,8 +449,26 @@ impl UserStudy {
                                 cmd_tx.send(ServerCmd::Stop)?;
                             }
                             Keycode::Return => {
-                                // TODO(lukehsiao): What data do we need from the client while it
-                                // still exists?
+                                // Need to log this here while the client exists
+                                writeln!(
+                                    self.data.log,
+                                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                                    Utc::now().to_rfc3339(),
+                                    self.data.name,
+                                    FoveationAlg::TwoStream,
+                                    fovea,
+                                    bg_width,
+                                    bg_crf,
+                                    fg_crf,
+                                    self.data.delays.last().unwrap().delay,
+                                    GazeSource::Eyelink,
+                                    self.data.key,
+                                    client.total_gaze(),
+                                    client.min_gaze(),
+                                    client.max_gaze(),
+                                    client.total_frames(),
+                                    client.total_bytes()
+                                )?;
                                 self.next(Event::Accept);
                                 cmd_tx.send(ServerCmd::Stop)?;
                             }
