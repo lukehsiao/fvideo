@@ -15,7 +15,8 @@ use ffmpeg::util::format::pixel::Pixel;
 use ffmpeg::util::frame::video::Video;
 use ffmpeg::{codec, decoder, Packet};
 use log::{debug, error, info};
-use sdl2::event::EventType;
+use sdl2::event::{Event, EventType};
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, TextureCreator};
@@ -38,7 +39,7 @@ pub struct FvideoClient {
     event_pump: EventPump,
     fg: Dims,
     bg: Dims,
-    src: Dims,
+    _src: Dims,
     disp: Dims,
     total_bytes: u64,
     fg_bytes: u64,
@@ -223,7 +224,6 @@ impl FvideoClient {
         ));
 
         event_pump.enable_event(EventType::MouseMotion);
-        event_pump.pump_events();
 
         // 0 is immediate update
         // 1 synchronizes with vertical retrace
@@ -337,7 +337,7 @@ impl FvideoClient {
                 width: bg_width,
                 height: bg_height,
             },
-            src: src_dims,
+            _src: src_dims,
             disp: Dims {
                 width: disp_width,
                 height: disp_height,
@@ -377,154 +377,14 @@ impl FvideoClient {
         }
     }
 
-    /// Reinitialize internal state, without dealing with Eyelink functions.
-    pub fn reinit(&mut self, fovea: u32, bg_width: u32, delay: u64, filter_str: &str) {
-        let fg_decoder = decoder::new()
-            .open_as(decoder::find(codec::Id::H264))
-            .unwrap()
-            .video()
-            .unwrap();
+    /// Enable SDL event.
+    pub fn enable_event(&mut self, event: EventType) {
+        self.event_pump.enable_event(event);
+    }
 
-        let bg_decoder = decoder::new()
-            .open_as(decoder::find(codec::Id::H264))
-            .unwrap()
-            .video()
-            .unwrap();
-
-        let mut gaze_samples = VecDeque::new();
-        gaze_samples.reserve(256);
-        gaze_samples.push_back(GazeSample {
-            time: Instant::now(),
-            seqno: 0,
-            d_width: self.disp.width,
-            d_height: self.disp.height,
-            d_x: self.disp.width / 2,
-            d_y: self.disp.height / 2,
-            p_x: self.src.width / 2,
-            p_y: self.src.height / 2,
-            m_x: self.src.width / 2 / 16,
-            m_y: self.src.height / 2 / 16,
-        });
-
-        let rescale_dims = Dims {
-            width: bg_width,
-            height: bg_width * 9 / 16,
-        };
-
-        let fovea_size = match fovea {
-            n if n * 16 > self.src.height => self.src.height,
-            0 => panic!("Error"), // this is "no foveation"
-            n => n * 16,
-        };
-
-        let (fg_width, fg_height, bg_width, bg_height) = match self.alg {
-            FoveationAlg::TwoStream => {
-                info!(
-                    "fg res: {}x{}, bg_res: {}x{}",
-                    fovea_size, fovea_size, rescale_dims.width, rescale_dims.height
-                );
-
-                (
-                    fovea_size,
-                    fovea_size,
-                    rescale_dims.width,
-                    rescale_dims.height,
-                )
-            }
-            _ => (
-                self.src.width,
-                self.src.height,
-                self.src.width,
-                self.src.height,
-            ),
-        };
-
-        let alpha_blend = compute_alpha(fg_width);
-
-        let buffer_params = format!(
-            "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
-            bg_width, bg_height, "yuv420p", 1, 24
-        );
-
-        let filter = {
-            let mut filter = filter::Graph::new();
-
-            filter
-                .add(
-                    &filter::find("buffer").unwrap(),
-                    "in",           // name
-                    &buffer_params, // params
-                )
-                .unwrap();
-
-            filter
-                .add(
-                    &filter::find("buffersink").unwrap(),
-                    "out", // name
-                    "",    // params
-                )
-                .unwrap();
-
-            let mut inp = filter.get("in").unwrap();
-            inp.set_pixel_format(Pixel::YUV420P);
-
-            let mut out = filter.get("out").unwrap();
-            out.set_pixel_format(Pixel::YUV420P);
-
-            filter
-                .output("in", 0)
-                .unwrap()
-                .input("out", 0)
-                .unwrap()
-                .parse(filter_str)
-                .unwrap();
-
-            filter.validate().unwrap();
-
-            info!("{}", filter.dump());
-
-            filter
-        };
-
-        self.fg_decoder = fg_decoder;
-        self.bg_decoder = bg_decoder;
-        self.gaze_samples = gaze_samples;
-        self.fg = Dims {
-            width: fg_width,
-            height: fg_height,
-        };
-        self.bg = Dims {
-            width: bg_width,
-            height: bg_height,
-        };
-        self.total_bytes = 0;
-        self.fg_bytes = 0;
-        self.bg_bytes = 0;
-        self.frame_idx = 0;
-        self.triggered = false;
-        self.alpha_blend = alpha_blend;
-        self.bg_frame = Video::empty();
-        self.fg_frame = Video::empty();
-        self.seqno = 0;
-        self.delay = if delay > 0 {
-            Some(Duration::from_millis(delay))
-        } else {
-            None
-        };
-        self.total_gaze = Coords { x: 0, y: 0 };
-        self.last_gaze = Coords {
-            x: u64::from(self.src.width) / 2,
-            y: u64::from(self.src.height) / 2,
-        };
-        self.min_gaze = Coords {
-            x: u64::MAX,
-            y: u64::MAX,
-        };
-        self.max_gaze = Coords {
-            x: u64::MIN,
-            y: u64::MIN,
-        };
-        self.filter = filter;
+    /// Disable SDL event.
+    pub fn disable_event(&mut self, event: EventType) {
+        self.event_pump.disable_event(event);
     }
 
     /// Re-initialize_eyelink and run a calibration.
@@ -646,6 +506,23 @@ impl FvideoClient {
         };
 
         (p_x as u32, p_y as u32)
+    }
+
+    /// Return the latest KeyUp event, if one is available.
+    pub fn keyboard_event(&mut self) -> Option<Keycode> {
+        // If there are keyboard events, grab them
+        for event in self.event_pump.poll_iter() {
+            match event {
+                Event::KeyUp {
+                    keycode: Some(k), ..
+                } => return Some(k),
+                Event::KeyDown {
+                    keycode: Some(k), ..
+                } => return Some(k),
+                _ => continue,
+            }
+        }
+        None
     }
 
     /// Get the latest gaze sample, if one is available.
