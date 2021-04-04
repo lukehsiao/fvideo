@@ -1,14 +1,14 @@
 use std::collections::HashMap;
-use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
-use flume::{Receiver, Sender};
 use log::{debug, info, warn};
 use rand::prelude::*;
+use sdl2::event::EventType;
+use sdl2::keyboard::Keycode;
 use serde::Deserialize;
 use structopt::clap::arg_enum;
 use termion::event::Key;
@@ -21,12 +21,18 @@ use crate::client::FvideoClient;
 use crate::twostreamserver::FvideoTwoStreamServer;
 use crate::{
     Dims, DisplayOptions, EncodedFrames, EyelinkOptions, FoveationAlg, GazeSample, GazeSource,
-    ServerCmd,
 };
 
-// - [ ] TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
-// - [ ] TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
+// - [ ] TODO(lukehsiao): What exactly do we log?
+// - [x] TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
+// - [x] TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
 // - [x] TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
+
+#[derive(Debug)]
+pub enum ServerCmd {
+    Start,
+    Stop,
+}
 
 arg_enum! {
     #[derive(Copy, Clone, Debug, PartialEq)]
@@ -72,6 +78,8 @@ struct Video {
 pub enum UserStudyError {
     #[error("Unable to play `{0}` with mpv.")]
     MpvError(String),
+    #[error("{0} is not a valid quality setting.")]
+    InvalidQuality(u32),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -79,15 +87,19 @@ pub enum UserStudyError {
     #[error(transparent)]
     FvideoServerError(#[from] crate::FvideoServerError),
     #[error(transparent)]
-    SendError(#[from] flume::SendError<EncodedFrames>),
+    SendNalError(#[from] flume::SendError<EncodedFrames>),
+    #[error(transparent)]
+    SendGazeError(#[from] flume::SendError<GazeSample>),
+    #[error(transparent)]
+    SendCmdError(#[from] flume::SendError<ServerCmd>),
 }
 
 // The set of possible user study states.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum State {
     Video { quality: u32 },
     Accept { quality: u32 },
-    Pause { quality: u32 },
+    Pause,
     Init,
     Calibrate,
     Baseline,
@@ -104,6 +116,7 @@ enum Event {
     Pause,
     Resume,
     Video { quality: u32 },
+    None,
 }
 
 #[derive(Debug)]
@@ -121,11 +134,6 @@ struct StateData {
     baseline: PathBuf,
     video: PathBuf,
     output: Option<PathBuf>,
-    client: FvideoClient,
-    server: JoinHandle<Result<(), UserStudyError>>,
-    nal_rx: Receiver<EncodedFrames>,
-    gaze_tx: Sender<GazeSample>,
-    cmd_tx: Sender<ServerCmd>,
 }
 
 impl UserStudy {
@@ -146,21 +154,21 @@ impl UserStudy {
         };
 
         let video = match source {
-            Source::PierSeaside => {
-                PathBuf::from("~/Videos/Netflix_PierSeaside_3840x2160_60fps_yuv420p.y4m")
-            }
-            Source::ToddlerFountain => {
-                PathBuf::from("~/Videos/Netflix_ToddlerFountain_3840x2160_60fps_yuv420p.y4m")
-            }
-            Source::SquareTimelapse => {
-                PathBuf::from("~/Videos/Netflix_SquareAndTimelapse_3840x2160_60fps_yuv420p.y4m")
-            }
+            Source::PierSeaside => PathBuf::from(
+                "/home/lukehsiao/Videos/Netflix_PierSeaside_3840x2160_60fps_yuv420p.y4m",
+            ),
+            Source::ToddlerFountain => PathBuf::from(
+                "/home/lukehsiao/Videos/Netflix_ToddlerFountain_3840x2160_60fps_yuv420p.y4m",
+            ),
+            Source::SquareTimelapse => PathBuf::from(
+                "/home/lukehsiao/Videos/Netflix_SquareAndTimelapse_3840x2160_60fps_yuv420p.y4m",
+            ),
             Source::Barscene => {
-                PathBuf::from("~/Videos/Netflix_BarScene_3840x2160_60fps_yuv420p.y4m")
+                PathBuf::from("/home/lukehsiao/Videos/Netflix_BarScene_3840x2160_60fps_yuv420p.y4m")
             }
-            Source::Rollercoaster => {
-                PathBuf::from("~/Videos/Netflix_RollerCoaster_3840x2160_60fps_yuv420p.y4m")
-            }
+            Source::Rollercoaster => PathBuf::from(
+                "/home/lukehsiao/Videos/Netflix_RollerCoaster_3840x2160_60fps_yuv420p.y4m",
+            ),
         };
 
         let key = match source {
@@ -183,66 +191,7 @@ impl UserStudy {
         let mut rng = rand::thread_rng();
         delays.shuffle(&mut rng);
 
-        let (width, height, _) =
-            crate::get_video_metadata(&video).expect("Unable to get video metadata.");
-
         // Initialize with the highest quality settings (q0).
-        let fovea = delays.last().unwrap().q0.fg_size;
-        let bg_width = delays.last().unwrap().q0.bg_size;
-        let delay = delays.last().unwrap().delay;
-        let filter = "smartblur=lr=1.0:ls=-1.0";
-        let client = FvideoClient::new(
-            FoveationAlg::TwoStream,
-            fovea,
-            Dims { width, height },
-            Dims {
-                width: bg_width,
-                height: bg_width * 9 / 16,
-            },
-            DisplayOptions {
-                delay,
-                filter: filter.to_string(),
-            },
-            GazeSource::Eyelink,
-            EyelinkOptions {
-                calibrate: false,
-                record: false,
-            },
-        );
-
-        // Communication channels between client and server
-        let (nal_tx, nal_rx) = flume::bounded(16);
-        let (gaze_tx, gaze_rx) = flume::bounded(16);
-        let (cmd_tx, _cmd_rx) = flume::bounded(5);
-
-        let fg_crf = delays.last().unwrap().q0.fg_crf;
-        let bg_crf = delays.last().unwrap().q0.bg_crf;
-        let video_clone = video.clone();
-        let server_hnd = thread::spawn(move || -> Result<(), UserStudyError> {
-            let mut server = FvideoTwoStreamServer::new(
-                fovea,
-                Dims {
-                    width: bg_width,
-                    height: bg_width * 9 / 16,
-                },
-                fg_crf,
-                bg_crf,
-                video_clone,
-            )?;
-            for current_gaze in gaze_rx {
-                // Only look at latest available gaze sample
-                let time = Instant::now();
-                let nals = match server.encode_frame(current_gaze) {
-                    Ok(n) => n,
-                    Err(_) => break,
-                };
-                debug!("Total encode_frame: {:#?}", time.elapsed());
-
-                nal_tx.send(nals)?;
-            }
-            Ok(())
-        });
-
         let state = StateData {
             start: Instant::now(),
             delays,
@@ -250,11 +199,6 @@ impl UserStudy {
             baseline: baseline.to_path_buf(),
             video: video.to_path_buf(),
             output: output.map(Path::to_path_buf),
-            client,
-            server: server_hnd,
-            nal_rx,
-            gaze_tx,
-            cmd_tx,
         };
 
         // Init state machine
@@ -265,60 +209,39 @@ impl UserStudy {
     }
 
     /// Handle state transition logic.
-    fn next(self, event: Event) -> Self {
+    fn next(&mut self, event: Event) {
         match (&self.state, event) {
             (_, Event::Quit) => {
                 info!("Quitting.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Quit,
-                }
+                self.state = State::Quit;
             }
             (_, Event::Calibrate) => {
                 info!("Re-calibrating.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Calibrate,
-                }
+                self.state = State::Calibrate;
             }
             (_, Event::Baseline) => {
                 info!("Showing baseline.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Baseline,
-                }
+                self.state = State::Baseline;
             }
             (_, Event::Video { quality: q }) => {
                 info!("Showing quality {}.", q);
-                UserStudy {
-                    data: self.data,
-                    state: State::Video { quality: q },
-                }
+                self.state = State::Video { quality: q };
             }
-            (State::Video { quality: q }, Event::Pause) => {
+            (State::Video { quality: _ }, Event::Pause) => {
                 info!("Pausing the user study.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Pause { quality: *q },
-                }
+                self.state = State::Pause;
             }
-            (State::Pause { quality: q }, Event::Resume) => {
+            (State::Pause, Event::Resume) => {
                 info!("Resuming the user study.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Video { quality: *q },
-                }
+                self.state = State::Video { quality: 0 };
             }
             (State::Video { quality: q }, Event::Accept) => {
                 info!("Choosing this quality setting.");
-                UserStudy {
-                    data: self.data,
-                    state: State::Accept { quality: *q },
-                }
+                self.state = State::Accept { quality: *q };
             }
+            (_, Event::None) => (),
             (s, e) => {
                 warn!("Undefined transition: {:?} and {:?}", s, e);
-                self
             }
         }
     }
@@ -333,6 +256,7 @@ impl UserStudy {
             State::Accept { quality: q } => {
                 info!("Accepted quality: {}", q);
                 if let Some(d) = self.data.delays.pop() {
+                    // TODO(lukehsiao): actually log stuff
                     info!("Log info for delay: {}", d.delay);
                 }
 
@@ -342,35 +266,214 @@ impl UserStudy {
                     self.state = State::Quit;
                 } else {
                     info!("Paused and ready for the next delay.");
-                    self.state = State::Pause { quality: 0 };
+                    self.state = State::Pause;
                 }
             }
-            State::Pause { quality: _ } => {}
+            State::Pause => {}
             State::Calibrate => {
-                info!("Run Calibration.");
+                // TODO(lukehsiao): run calibration
             }
-            State::Baseline => play_video(&self.data.baseline)?,
+            State::Baseline => {
+                play_video(&self.data.baseline)?;
+                self.state = State::Pause;
+            }
             State::Video { quality: q } => {
                 info!("Playing video quality: {}", q);
-                // for nal in nal_rx {
-                //     // Send first to pipeline encode/decode, otherwise it would be in serial.
-                //     gaze_tx.send(client.gaze_sample())?;
-                //
-                //     // TODO(lukehsiao): Where is the ~3-6ms discrepancy from?
-                //     let time = Instant::now();
-                //     client.display_frame(nal.0.as_ref(), nal.1.as_ref());
-                //     debug!("Total display_frame: {:#?}", time.elapsed());
-                //
-                //     // Also save both streams to file
-                //     // TODO(lukehsiao): this would probably be more useful if it was actually the
-                //     // overlayed video. But for now, at least we can see both streams directly.
-                //     if let Some(bg_nal) = nal.1 {
-                //         outfile.write_all(bg_nal.as_bytes())?;
-                //     }
-                //     if let Some((fg_nal, _)) = nal.0 {
-                //         fgfile.as_mut().unwrap().write_all(fg_nal.as_bytes())?;
-                //     }
-                // }
+                // Create a new client
+                let (width, height, _) =
+                    crate::get_video_metadata(&self.data.video).expect("Unable to open video");
+                let delay = self.data.delays.last().unwrap().delay;
+                let filter = "smartblur=lr=1.0:ls=-1.0";
+                let (fovea, fg_crf, bg_width, bg_crf) = match q {
+                    0 => {
+                        let delay = self.data.delays.last().unwrap().q0;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    1 => {
+                        let delay = self.data.delays.last().unwrap().q1;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    2 => {
+                        let delay = self.data.delays.last().unwrap().q2;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    3 => {
+                        let delay = self.data.delays.last().unwrap().q3;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    4 => {
+                        let delay = self.data.delays.last().unwrap().q4;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    5 => {
+                        let delay = self.data.delays.last().unwrap().q5;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    6 => {
+                        let delay = self.data.delays.last().unwrap().q6;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    7 => {
+                        let delay = self.data.delays.last().unwrap().q7;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    8 => {
+                        let delay = self.data.delays.last().unwrap().q8;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    9 => {
+                        let delay = self.data.delays.last().unwrap().q9;
+                        (delay.fg_size, delay.fg_crf, delay.bg_size, delay.bg_crf)
+                    }
+                    _ => return Err(UserStudyError::InvalidQuality(q)),
+                };
+                let mut client = FvideoClient::new(
+                    FoveationAlg::TwoStream,
+                    fovea,
+                    Dims { width, height },
+                    Dims {
+                        width: bg_width,
+                        height: bg_width * 9 / 16,
+                    },
+                    DisplayOptions {
+                        delay,
+                        filter: filter.to_string(),
+                    },
+                    GazeSource::Eyelink,
+                    EyelinkOptions {
+                        calibrate: false,
+                        record: false,
+                    },
+                );
+
+                client.disable_event(EventType::MouseMotion);
+                client.disable_event(EventType::MouseButtonDown);
+                client.disable_event(EventType::MouseButtonUp);
+                client.enable_event(EventType::KeyUp);
+
+                // Reinitalize a new server
+                let (nal_tx, nal_rx) = flume::bounded(16);
+                let (gaze_tx, gaze_rx) = flume::bounded(16);
+                let (cmd_tx, cmd_rx) = flume::bounded(5);
+
+                let video_clone = self.data.video.clone();
+                let server = thread::spawn(move || -> Result<(), UserStudyError> {
+                    // Wait for start command before starting the server
+                    if let Ok(ServerCmd::Start) = cmd_rx.recv() {
+                        let mut server = FvideoTwoStreamServer::new(
+                            fovea,
+                            Dims {
+                                width: bg_width,
+                                height: bg_width * 9 / 16,
+                            },
+                            fg_crf,
+                            bg_crf,
+                            video_clone,
+                        )?;
+
+                        for current_gaze in gaze_rx {
+                            // Only look at latest available gaze sample
+                            let nals = match server.encode_frame(current_gaze) {
+                                Ok(n) => n,
+                                Err(_) => break,
+                            };
+                            nal_tx.send(nals)?;
+
+                            // Terminate if signaled
+                            if let Ok(ServerCmd::Stop) = cmd_rx.try_recv() {
+                                break;
+                            }
+                        }
+                    }
+                    Ok(())
+                });
+
+                // Send first to pipeline encode/decode, otherwise it would be in serial.
+                client.gaze_sample(); // Prime with one real gaze sample
+                gaze_tx.send(client.gaze_sample())?;
+
+                // Start the server
+                cmd_tx.send(ServerCmd::Start)?;
+
+                for nal in nal_rx {
+                    // Send first to pipeline encode/decode, otherwise it would be in serial.
+                    if let Err(_) = gaze_tx.send(client.gaze_sample()) {
+                        break;
+                    }
+
+                    client.display_frame(nal.0.as_ref(), nal.1.as_ref());
+
+                    // Check for keyboard event, and force state transition if necessary
+                    if let Some(key) = client.keyboard_event() {
+                        match key {
+                            Keycode::Escape => {
+                                self.next(Event::Quit);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::P => {
+                                self.next(Event::Pause);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::C => {
+                                self.next(Event::Calibrate);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::B => {
+                                self.next(Event::Baseline);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Return => {
+                                // TODO(lukehsiao): What data do we need from the client while it
+                                // still exists?
+                                self.next(Event::Accept);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num0 => {
+                                self.next(Event::Video { quality: 0 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num1 => {
+                                self.next(Event::Video { quality: 1 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num2 => {
+                                self.next(Event::Video { quality: 2 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num3 => {
+                                self.next(Event::Video { quality: 3 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num4 => {
+                                self.next(Event::Video { quality: 4 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num5 => {
+                                self.next(Event::Video { quality: 5 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num6 => {
+                                self.next(Event::Video { quality: 6 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num7 => {
+                                self.next(Event::Video { quality: 7 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num8 => {
+                                self.next(Event::Video { quality: 8 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            Keycode::Num9 => {
+                                self.next(Event::Video { quality: 9 });
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+
+                server.join().unwrap()?;
             }
             State::Quit => {}
         }
@@ -410,22 +513,24 @@ pub fn run(name: &str, source: &Source, output: Option<&Path>) -> Result<(), Use
                     'c' => Event::Calibrate,
                     'b' => Event::Baseline,
                     'r' => Event::Resume,
-                    _ => continue,
+                    _ => Event::None,
                 },
-                Ok(_) => continue,
+                Ok(_) => Event::None,
                 Err(e) => return Err(UserStudyError::IoError(e)),
             },
             None => {
                 // So we're not just burning cycles busy spinning
                 thread::sleep(Duration::from_millis(50));
-                continue;
+                Event::None
             }
         };
 
         // Transition State
-        debug!("Moving from: {:?}", user_study.state);
-        user_study = user_study.next(event);
-        debug!("Moving into: {:?}", user_study.state);
+        let prev_state = user_study.state;
+        user_study.next(event);
+        if prev_state != user_study.state {
+            debug!("Moving from: {:?} to {:?}", prev_state, user_study.state);
+        }
 
         // Run new state
         if let State::Quit = user_study.state {
