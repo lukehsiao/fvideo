@@ -297,7 +297,34 @@ impl UserStudy {
             }
             State::Pause => {}
             State::Calibrate => {
-                // TODO(lukehsiao): run calibration
+                // Create a new client
+                let (width, height, _) =
+                    crate::get_video_metadata(&self.data.video).expect("Unable to open video");
+                let filter = "smartblur=lr=1.0:ls=-1.0";
+                let bg_width = 512;
+
+                // These settings don't really matter. We will make a new client for each quality.
+                let _ = FvideoClient::new(
+                    FoveationAlg::TwoStream,
+                    30,
+                    Dims { width, height },
+                    Dims {
+                        width: bg_width,
+                        height: bg_width * 9 / 16,
+                    },
+                    DisplayOptions {
+                        delay: 0,
+                        filter: filter.to_string(),
+                    },
+                    GazeSource::Eyelink,
+                    EyelinkOptions {
+                        calibrate: true,
+                        record: false,
+                    },
+                );
+
+                // Also state transition afterwords to pause
+                self.state = State::Pause;
             }
             State::Baseline => {
                 play_video(&self.data.baseline)?;

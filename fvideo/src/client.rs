@@ -387,48 +387,6 @@ impl FvideoClient {
         self.event_pump.disable_event(event);
     }
 
-    /// Re-initialize_eyelink and run a calibration.
-    pub fn calibrate(&mut self) {
-        if let GazeSource::Eyelink = self.gaze_source {
-            if let Err(e) = eyelink::initialize_eyelink(OpenMode::Real) {
-                error!("Failed Eyelink Initialization: {}", e);
-                process::exit(1);
-            }
-
-            if let Err(e) = eyelink::run_calibration() {
-                error!("Failed Eyelink Calibration: {}", e);
-                process::exit(1);
-            }
-
-            if let Err(e) = eyelink::start_recording(None) {
-                error!("Failed starting recording: {}", e);
-                process::exit(1);
-            }
-
-            if let Err(e) = eyelink_rs::eyelink_wait_for_block_start(100, 1, 0) {
-                error!("No link samples received: {}", e);
-                process::exit(1);
-            }
-
-            self.eye_used = match eyelink_rs::eyelink_eye_available() {
-                Ok(e) => {
-                    debug!("Eye data from: {:?}", e);
-                    Some(e)
-                }
-                Err(e) => {
-                    error!("No eye data available: {}", e);
-                    process::exit(1);
-                }
-            };
-
-            // Flush and only look at the most recent button press
-            if let Err(e) = eyelink_rs::eyelink_flush_keybuttons(0) {
-                error!("Unable to flush buttons: {}", e);
-                process::exit(1);
-            }
-        }
-    }
-
     /// Repeatedly checks the latest gaze sample until a threshold is exceeded.
     pub fn triggered_gaze_sample(&mut self, thresh: i32) -> GazeSample {
         loop {
