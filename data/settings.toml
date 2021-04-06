@@ -2,127 +2,127 @@
     attempts = 3
     [[pier_seaside.delays]]
         delay = 0   
-        q0 = {fg_size = 35, fg_crf = 23.0, bg_size = 768, bg_crf = 21.0}
-        q1 = {fg_size = 33, fg_crf = 23.2, bg_size = 768, bg_crf = 21.4}
-        q2 = {fg_size = 31, fg_crf = 23.4, bg_size = 768, bg_crf = 21.9}
-        q3 = {fg_size = 28, fg_crf = 23.7, bg_size = 768, bg_crf = 22.3}
-        q4 = {fg_size = 26, fg_crf = 23.9, bg_size = 768, bg_crf = 22.8}
-        q5 = {fg_size = 24, fg_crf = 24.1, bg_size = 768, bg_crf = 23.2}
+        q0 = {fg_size = 35, fg_crf = 23.0, bg_size = 768, bg_crf = 25.0}
+        q1 = {fg_size = 33, fg_crf = 23.2, bg_size = 768, bg_crf = 24.8}
+        q2 = {fg_size = 31, fg_crf = 23.4, bg_size = 768, bg_crf = 24.6}
+        q3 = {fg_size = 28, fg_crf = 23.7, bg_size = 768, bg_crf = 24.3}
+        q4 = {fg_size = 26, fg_crf = 23.9, bg_size = 768, bg_crf = 24.1}
+        q5 = {fg_size = 24, fg_crf = 24.1, bg_size = 768, bg_crf = 23.9}
         q6 = {fg_size = 22, fg_crf = 24.3, bg_size = 768, bg_crf = 23.7}
-        q7 = {fg_size = 19, fg_crf = 24.6, bg_size = 768, bg_crf = 24.1}
-        q8 = {fg_size = 17, fg_crf = 24.8, bg_size = 768, bg_crf = 24.6}
-        q9 = {fg_size = 15, fg_crf = 25.0, bg_size = 768, bg_crf = 25.0} # ~12x
+        q7 = {fg_size = 19, fg_crf = 24.6, bg_size = 768, bg_crf = 23.4}
+        q8 = {fg_size = 17, fg_crf = 24.8, bg_size = 768, bg_crf = 23.2}
+        q9 = {fg_size = 15, fg_crf = 25.0, bg_size = 768, bg_crf = 23.0} # ~10x
     [[pier_seaside.delays]]
         delay = 19
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 55, fg_crf = 23.0, bg_size = 768, bg_crf = 25.0}
+        q1 = {fg_size = 52, fg_crf = 23.2, bg_size = 768, bg_crf = 24.8}
+        q2 = {fg_size = 49, fg_crf = 23.4, bg_size = 768, bg_crf = 24.6}
+        q3 = {fg_size = 47, fg_crf = 23.7, bg_size = 768, bg_crf = 24.3}
+        q4 = {fg_size = 43, fg_crf = 23.9, bg_size = 768, bg_crf = 24.1}
+        q5 = {fg_size = 41, fg_crf = 24.1, bg_size = 768, bg_crf = 23.9}
+        q6 = {fg_size = 38, fg_crf = 24.3, bg_size = 768, bg_crf = 23.7}
+        q7 = {fg_size = 36, fg_crf = 24.6, bg_size = 768, bg_crf = 23.4}
+        q8 = {fg_size = 33, fg_crf = 24.8, bg_size = 768, bg_crf = 23.2}
+        q9 = {fg_size = 30, fg_crf = 25.0, bg_size = 768, bg_crf = 23.0}
     [[pier_seaside.delays]]
         delay = 38 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 63, fg_crf = 23.0, bg_size = 768, bg_crf = 25.0}
+        q1 = {fg_size = 59, fg_crf = 23.2, bg_size = 768, bg_crf = 24.8}
+        q2 = {fg_size = 56, fg_crf = 23.4, bg_size = 768, bg_crf = 24.6}
+        q3 = {fg_size = 52, fg_crf = 23.7, bg_size = 768, bg_crf = 24.3}
+        q4 = {fg_size = 48, fg_crf = 23.9, bg_size = 768, bg_crf = 24.1}
+        q5 = {fg_size = 45, fg_crf = 24.1, bg_size = 768, bg_crf = 23.9}
+        q6 = {fg_size = 41, fg_crf = 24.3, bg_size = 768, bg_crf = 23.7}
+        q7 = {fg_size = 37, fg_crf = 24.6, bg_size = 768, bg_crf = 23.4}
+        q8 = {fg_size = 34, fg_crf = 24.8, bg_size = 768, bg_crf = 23.2}
+        q9 = {fg_size = 30, fg_crf = 25.0, bg_size = 768, bg_crf = 23.0}
     [[pier_seaside.delays]]
         delay = 57 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 73, fg_crf = 23.0, bg_size = 512, bg_crf = 25.0}
+        q1 = {fg_size = 69, fg_crf = 23.2, bg_size = 512, bg_crf = 24.8}
+        q2 = {fg_size = 64, fg_crf = 23.4, bg_size = 512, bg_crf = 24.6}
+        q3 = {fg_size = 60, fg_crf = 23.7, bg_size = 512, bg_crf = 24.3}
+        q4 = {fg_size = 56, fg_crf = 23.9, bg_size = 512, bg_crf = 24.1}
+        q5 = {fg_size = 52, fg_crf = 24.1, bg_size = 512, bg_crf = 23.9}
+        q6 = {fg_size = 48, fg_crf = 24.3, bg_size = 512, bg_crf = 23.7}
+        q7 = {fg_size = 43, fg_crf = 24.6, bg_size = 512, bg_crf = 23.4}
+        q8 = {fg_size = 39, fg_crf = 24.8, bg_size = 512, bg_crf = 23.2}
+        q9 = {fg_size = 35, fg_crf = 25.0, bg_size = 512, bg_crf = 23.0}
     [[pier_seaside.delays]]
         delay = 76 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 80, fg_crf = 23.0, bg_size = 768, bg_crf = 25.0}
+        q1 = {fg_size = 76, fg_crf = 23.2, bg_size = 768, bg_crf = 24.8}
+        q2 = {fg_size = 71, fg_crf = 23.4, bg_size = 768, bg_crf = 24.6}
+        q3 = {fg_size = 67, fg_crf = 23.7, bg_size = 768, bg_crf = 24.3}
+        q4 = {fg_size = 62, fg_crf = 23.9, bg_size = 768, bg_crf = 24.1}
+        q5 = {fg_size = 58, fg_crf = 24.1, bg_size = 768, bg_crf = 23.9}
+        q6 = {fg_size = 53, fg_crf = 24.3, bg_size = 768, bg_crf = 23.7}
+        q7 = {fg_size = 49, fg_crf = 24.6, bg_size = 768, bg_crf = 23.4}
+        q8 = {fg_size = 44, fg_crf = 24.8, bg_size = 768, bg_crf = 23.2}
+        q9 = {fg_size = 40, fg_crf = 25.0, bg_size = 768, bg_crf = 23.0}
 
 [toddler_fountain]
     attempts = 3
     [[toddler_fountain.delays]]
         delay = 0 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 40, fg_crf = 23.0, bg_size = 768, bg_crf = 22.0}
+        q1 = {fg_size = 37, fg_crf = 23.2, bg_size = 768, bg_crf = 22.3}
+        q2 = {fg_size = 34, fg_crf = 23.4, bg_size = 768, bg_crf = 22.7}
+        q3 = {fg_size = 32, fg_crf = 23.7, bg_size = 768, bg_crf = 23.0}
+        q4 = {fg_size = 29, fg_crf = 23.9, bg_size = 768, bg_crf = 23.3}
+        q5 = {fg_size = 26, fg_crf = 24.1, bg_size = 768, bg_crf = 23.7}
+        q6 = {fg_size = 23, fg_crf = 24.3, bg_size = 768, bg_crf = 24.0}
+        q7 = {fg_size = 21, fg_crf = 24.6, bg_size = 512, bg_crf = 24.3}
+        q8 = {fg_size = 18, fg_crf = 24.8, bg_size = 512, bg_crf = 24.7}
+        q9 = {fg_size = 15, fg_crf = 25.0, bg_size = 512, bg_crf = 25.0} # ~5x
     [[toddler_fountain.delays]]
         delay = 19
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 55, fg_crf = 23.0, bg_size = 768, bg_crf = 22.0}
+        q1 = {fg_size = 51, fg_crf = 23.2, bg_size = 768, bg_crf = 23.0}
+        q2 = {fg_size = 46, fg_crf = 23.4, bg_size = 768, bg_crf = 23.0}
+        q3 = {fg_size = 42, fg_crf = 23.7, bg_size = 768, bg_crf = 23.0}
+        q4 = {fg_size = 38, fg_crf = 23.9, bg_size = 768, bg_crf = 23.0}
+        q5 = {fg_size = 33, fg_crf = 24.1, bg_size = 768, bg_crf = 23.0}
+        q6 = {fg_size = 29, fg_crf = 24.3, bg_size = 768, bg_crf = 23.0}
+        q7 = {fg_size = 25, fg_crf = 24.6, bg_size = 768, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 24.8, bg_size = 768, bg_crf = 23.0}
+        q9 = {fg_size = 16, fg_crf = 25.0, bg_size = 768, bg_crf = 25.0}
     [[toddler_fountain.delays]]
         delay = 38 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 22.0}
+        q1 = {fg_size = 20, fg_crf = 23.2, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.4, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.7, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.9, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 24.1, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 24.3, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 24.6, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 24.8, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 25.0, bg_size = 512, bg_crf = 25.0}
     [[toddler_fountain.delays]]
         delay = 57 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 22.0}
+        q1 = {fg_size = 20, fg_crf = 23.2, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.4, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.7, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.9, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 24.1, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 24.3, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 24.6, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 24.8, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 25.0, bg_size = 512, bg_crf = 25.0}
     [[toddler_fountain.delays]]
         delay = 76 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 60, fg_crf = 23.0, bg_size = 768, bg_crf = 22.0}
+        q1 = {fg_size = 56, fg_crf = 23.2, bg_size = 768, bg_crf = 22.3}
+        q2 = {fg_size = 51, fg_crf = 23.4, bg_size = 768, bg_crf = 22.7}
+        q3 = {fg_size = 47, fg_crf = 23.7, bg_size = 768, bg_crf = 23.0}
+        q4 = {fg_size = 42, fg_crf = 23.9, bg_size = 768, bg_crf = 23.3}
+        q5 = {fg_size = 38, fg_crf = 24.1, bg_size = 768, bg_crf = 23.7}
+        q6 = {fg_size = 33, fg_crf = 24.3, bg_size = 768, bg_crf = 24.0}
+        q7 = {fg_size = 29, fg_crf = 24.6, bg_size = 768, bg_crf = 24.3}
+        q8 = {fg_size = 24, fg_crf = 24.8, bg_size = 768, bg_crf = 24.7}
+        q9 = {fg_size = 20, fg_crf = 25.0, bg_size = 768, bg_crf = 25.0}
 
 [rollercoaster]
     attempts = 3
@@ -191,16 +191,16 @@
     attempts = 3
     [[square_timelapse.delays]]
         delay = 0 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0}
+        q1 = {fg_size = 24, fg_crf = 23.2, bg_size = 768, bg_crf = 23.2}
+        q2 = {fg_size = 22, fg_crf = 23.4, bg_size = 768, bg_crf = 23.4}
+        q3 = {fg_size = 21, fg_crf = 23.7, bg_size = 768, bg_crf = 23.7}
+        q4 = {fg_size = 20, fg_crf = 23.9, bg_size = 768, bg_crf = 23.9}
+        q5 = {fg_size = 18, fg_crf = 24.1, bg_size = 768, bg_crf = 24.1}
+        q6 = {fg_size = 17, fg_crf = 24.3, bg_size = 768, bg_crf = 24.3}
+        q7 = {fg_size = 16, fg_crf = 24.6, bg_size = 768, bg_crf = 24.6}
+        q8 = {fg_size = 14, fg_crf = 24.8, bg_size = 768, bg_crf = 24.8}
+        q9 = {fg_size = 13, fg_crf = 25.0, bg_size = 768, bg_crf = 25.0} # ~10x
     [[square_timelapse.delays]]
         delay = 19
         q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
@@ -254,16 +254,16 @@
     attempts = 3
     [[barscene.delays]]
         delay = 0 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0}
+        q1 = {fg_size = 24, fg_crf = 23.1, bg_size = 768, bg_crf = 23.8}
+        q2 = {fg_size = 23, fg_crf = 23.2, bg_size = 768, bg_crf = 23.6}
+        q3 = {fg_size = 22, fg_crf = 23.3, bg_size = 768, bg_crf = 23.3}
+        q4 = {fg_size = 21, fg_crf = 23.4, bg_size = 768, bg_crf = 23.1}
+        q5 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 22.9}
+        q6 = {fg_size = 19, fg_crf = 23.6, bg_size = 768, bg_crf = 22.7}
+        q7 = {fg_size = 18, fg_crf = 23.7, bg_size = 768, bg_crf = 22.4}
+        q8 = {fg_size = 17, fg_crf = 23.8, bg_size = 768, bg_crf = 22.2}
+        q9 = {fg_size = 16, fg_crf = 23.9, bg_size = 768, bg_crf = 22.0}
     [[barscene.delays]]
         delay = 19
         q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
@@ -302,7 +302,7 @@
         q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
     [[barscene.delays]]
         delay = 76 
-        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q0 = {fg_size = 80, fg_crf = 23.0, bg_size = 512, bg_crf = 25.0}
         q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
@@ -311,7 +311,7 @@
         q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
-        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 25, fg_crf = 23.0, bg_size = 512, bg_crf = 21.0}
 
 [oceanwaves]
     attempts = 3
