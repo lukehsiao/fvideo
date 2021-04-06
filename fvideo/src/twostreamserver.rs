@@ -258,13 +258,9 @@ impl FvideoTwoStreamServer {
         let p_y = gaze.p_y as i32;
         let p_x = gaze.p_x as i32;
 
-        // TODO(lukehsiao): This is unsafe in particular in that right now I allow the copies to
-        // reach into random data off the edges of the picture. This garbage data is essentially
-        // hidden when it is displayed, but it could be better to be safer about this.
-
         // Keep the "cropped" window contained in the frame.
         // Only allow multiples of 2 to maintain integer values after division
-        let top: i32 = match p_y - height as i32 / 2 {
+        let top = match p_y - height as i32 / 2 {
             n if n % 2 == 0 => n,
             n if n % 2 != 0 => {
                 gaze.p_y += 1;
@@ -272,7 +268,7 @@ impl FvideoTwoStreamServer {
             }
             _ => 0,
         };
-        let left: i32 = match p_x - width as i32 / 2 {
+        let left = match p_x - width as i32 / 2 {
             n if n % 2 == 0 => n,
             n if n % 2 != 0 => {
                 gaze.p_x += 1;
@@ -282,36 +278,54 @@ impl FvideoTwoStreamServer {
         };
 
         // TODO(lukehsiao): hard-coded color space values for now.
-        let csp_height = [1.0, 0.5, 0.5];
-        let csp_width = [1.0, 0.5, 0.5];
+        let csp_height = [1, 2, 2];
+        let csp_width = [1, 2, 2];
 
         let mut offset_plane: [*mut u8; 4] = [ptr::null_mut(); 4];
 
         // Shift the plane pointers down 'top' rows and right 'left' columns
         for i in 0..3 {
-            let mut offset: f32 =
-                self.orig_pic.pic.img.i_stride[i] as f32 * top as f32 * csp_height[i];
-            offset += left as f32 * csp_width[i];
+            let mut offset: isize = (self.orig_pic.pic.img.i_stride[i] * top / csp_height[i])
+                .try_into()
+                .unwrap();
+            offset += (left / csp_width[i]) as isize;
 
-            // grab the offset ptrs
-            // Copy data into fg_pic
+            // Grab the offset ptrs and copy data into fg_pic
             unsafe {
-                offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset.round() as isize);
+                offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset);
+
+                // Used to prevent reading off the right or bottom edges
+                let base_ptr: *const u8 = &*self.orig_pic.pic.img.plane[i];
+                let max_offset = base_ptr as usize + self.orig_pic.plane_size[i];
+                let size: usize = {
+                    let right = (left + width as i32) / csp_width[i];
+
+                    if right > self.orig_pic.pic.img.i_stride[i] {
+                        (self.fg_pic.pic.img.i_stride[i]
+                            - (right - self.orig_pic.pic.img.i_stride[i]))
+                            .try_into()
+                            .unwrap()
+                    } else {
+                        self.fg_pic.pic.img.i_stride[i].try_into().unwrap()
+                    }
+                };
 
                 // Manually copying over. Is this too slow?
                 let mut src_ptr: *mut u8 = offset_plane[i];
                 let mut dst_ptr: *mut u8 = self.fg_pic.pic.img.plane[i];
 
-                for _ in 0..(self.fovea as f32 * csp_height[i]).round() as u32 {
-                    ptr::copy_nonoverlapping(
-                        src_ptr,
-                        dst_ptr,
-                        self.fg_pic.pic.img.i_stride[i].try_into().unwrap(),
-                    );
+                // Stop the copy at the right and bottom edges to avoid segfaults
+                for _ in 0..(self.fovea / csp_height[i] as u32) {
+                    ptr::copy_nonoverlapping(src_ptr, dst_ptr, size);
 
                     // Advance a full row
                     src_ptr = src_ptr.offset(self.orig_pic.pic.img.i_stride[i].try_into().unwrap());
                     dst_ptr = dst_ptr.offset(self.fg_pic.pic.img.i_stride[i].try_into().unwrap());
+
+                    // Stop at bottom edge of array
+                    if (src_ptr as usize) > max_offset {
+                        break;
+                    }
                 }
             }
         }
