@@ -291,7 +291,14 @@ impl UserStudy {
                     info!("All delays complete.");
                     self.state = State::Quit;
                 } else {
-                    info!("Paused and ready for the next delay.");
+                    info!(
+                        "Paused. Remaining delays: {:?}.",
+                        self.data
+                            .delays
+                            .iter()
+                            .map(|d| d.delay)
+                            .collect::<Vec<u64>>()
+                    );
                     self.state = State::Pause;
                 }
             }
