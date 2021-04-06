@@ -408,35 +408,34 @@ impl FvideoClient {
 
                 // Make sure pupil is present
                 if d_x as i32 != MISSING_DATA && d_y as i32 != MISSING_DATA && pa > 0.0 {
-                    // Scale from display to video resolution
-                    let p_x = d_x * self.bg.width as f32 / self.disp.width as f32;
-                    let p_y = d_y * self.bg.height as f32 / self.disp.height as f32;
+                    let (p_x, p_y) = self.to_video_coords(d_x.round() as u32, d_y.round() as u32);
 
                     let gaze = GazeSample {
                         time: Instant::now(),
                         seqno: self.seqno,
                         d_width: self.disp.width,
                         d_height: self.disp.height,
-                        d_x: d_x as u32,
-                        d_y: d_y as u32,
-                        p_x: p_x.round() as u32,
-                        p_y: p_y.round() as u32,
-                        m_x: (p_x / 16.0).round() as u32,
-                        m_y: (p_y / 16.0).round() as u32,
+                        d_x: d_x.round() as u32,
+                        d_y: d_y.round() as u32,
+                        p_x,
+                        p_y,
+                        m_x: p_x / 16,
+                        m_y: p_y / 16,
                     };
 
                     let curr_gaze_sample = *self.gaze_samples.front().unwrap();
+
+                    self.gaze_samples.push_back(gaze);
+                    self.gaze_samples.pop_front();
+
                     if (gaze.p_x as i32 - curr_gaze_sample.p_x as i32).abs() > thresh
                         || (gaze.p_y as i32 - curr_gaze_sample.p_y as i32).abs() > thresh
                     {
-                        self.gaze_samples.push_back(gaze);
-                        self.gaze_samples.pop_front();
                         self.triggered = true;
                         self.seqno += 1;
+
                         return curr_gaze_sample;
                     }
-                    self.gaze_samples.push_back(gaze);
-                    self.gaze_samples.pop_front();
                 }
             }
         }
