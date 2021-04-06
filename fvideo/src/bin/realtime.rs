@@ -326,7 +326,7 @@ fn main() -> Result<()> {
         frame_index as f64 / elapsed.as_secs_f64()
     );
     info!(
-        "Total Gaze: {},{} px\nMin Gaze: {},{}\nMax Gaze: {},{}",
+        "Total Gaze: {},{} px | Min Gaze: {},{} | Max Gaze: {},{}",
         total_gaze.x, total_gaze.y, min_gaze.x, min_gaze.y, max_gaze.x, max_gaze.y
     );
     if let FoveationAlg::TwoStream = alg_clone {
