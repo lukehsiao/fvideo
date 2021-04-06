@@ -208,7 +208,7 @@ impl UserStudy {
                 // Write the header for the CSV if it is new
                 writeln!(
                     file,
-                    "timestamp,name,alg,fovea,bg_width,bg_crf,fg_crf,delay_ms,gaze_source,video,total_gaze,min_gaze,max_gaze,frames,filesize_bytes",
+                    "timestamp,name,alg,quality,fovea,bg_width,bg_crf,fg_crf,delay_ms,gaze_source,video,total_gaze,min_gaze,max_gaze,frames,filesize_bytes",
                 ).unwrap();
 
                 file
@@ -486,10 +486,11 @@ impl UserStudy {
                                 // Need to log this here while the client exists
                                 writeln!(
                                     self.data.log,
-                                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                                     Utc::now().to_rfc3339(),
                                     self.data.name,
                                     FoveationAlg::TwoStream,
+                                    q,
                                     fovea,
                                     bg_width,
                                     bg_crf,
