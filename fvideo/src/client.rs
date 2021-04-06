@@ -54,7 +54,7 @@ pub struct FvideoClient {
     bg_frame: Video,
     fg_frame: Video,
     seqno: u64,
-    delay: Option<Duration>,
+    delay: Duration,
     filter: Graph,
     total_gaze: Coords,
     last_gaze: Coords,
@@ -355,11 +355,7 @@ impl FvideoClient {
             bg_frame: Video::empty(),
             fg_frame: Video::empty(),
             seqno: 0,
-            delay: if display_options.delay > 0 {
-                Some(Duration::from_millis(display_options.delay))
-            } else {
-                None
-            },
+            delay: Duration::from_millis(display_options.delay),
             filter,
             total_gaze: Coords { x: 0, y: 0 },
             last_gaze: Coords {
@@ -557,15 +553,12 @@ impl FvideoClient {
         self.gaze_samples.push_back(gaze);
 
         // Allow artificial delay to determine when to release the next gaze sample
-        if let Some(oldest_gaze) = match self.delay {
-            Some(delay) => {
-                if self.gaze_samples.front().unwrap().time.elapsed() >= delay {
-                    self.gaze_samples.pop_front()
-                } else {
-                    None
-                }
+        if let Some(oldest_gaze) = {
+            if self.gaze_samples.front().unwrap().time.elapsed() >= self.delay {
+                self.gaze_samples.pop_front()
+            } else {
+                None
             }
-            None => self.gaze_samples.pop_front(),
         } {
             // Update gaze stats
             self.min_gaze.x = cmp::min(self.min_gaze.x, u64::from(oldest_gaze.p_x));
@@ -813,8 +806,8 @@ impl FvideoClient {
 
         fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
 
-        // self.canvas.clear();
         // Stretches the bg_texture to fill the entire rendering target
+        self.canvas.clear();
         let _ = self.canvas.copy(&bg_texture, None, bg_rect);
         let _ = self.canvas.copy(&fg_texture, None, fg_rect);
         self.canvas.present();
