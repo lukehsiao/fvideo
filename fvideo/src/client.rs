@@ -813,7 +813,7 @@ impl FvideoClient {
 
         fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
 
-        self.canvas.clear();
+        // self.canvas.clear();
         // Stretches the bg_texture to fill the entire rendering target
         let _ = self.canvas.copy(&bg_texture, None, bg_rect);
         let _ = self.canvas.copy(&fg_texture, None, fg_rect);

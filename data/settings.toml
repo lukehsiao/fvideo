@@ -312,3 +312,66 @@
         q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
         q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+
+[oceanwaves]
+    attempts = 3
+    [[oceanwaves.delays]]
+        delay = 0   
+        q0 = {fg_size = 35, fg_crf = 23.0, bg_size = 768, bg_crf = 21.0}
+        q1 = {fg_size = 33, fg_crf = 23.2, bg_size = 768, bg_crf = 21.4}
+        q2 = {fg_size = 31, fg_crf = 23.4, bg_size = 768, bg_crf = 21.9}
+        q3 = {fg_size = 28, fg_crf = 23.7, bg_size = 768, bg_crf = 22.3}
+        q4 = {fg_size = 26, fg_crf = 23.9, bg_size = 768, bg_crf = 22.8}
+        q5 = {fg_size = 24, fg_crf = 24.1, bg_size = 768, bg_crf = 23.2}
+        q6 = {fg_size = 22, fg_crf = 24.3, bg_size = 768, bg_crf = 23.7}
+        q7 = {fg_size = 19, fg_crf = 24.6, bg_size = 768, bg_crf = 24.1}
+        q8 = {fg_size = 17, fg_crf = 24.8, bg_size = 768, bg_crf = 24.6}
+        q9 = {fg_size = 15, fg_crf = 25.0, bg_size = 768, bg_crf = 25.0} # ~12x
+    [[oceanwaves.delays]]
+        delay = 19
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+    [[oceanwaves.delays]]
+        delay = 38 
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+    [[oceanwaves.delays]]
+        delay = 57 
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+    [[oceanwaves.delays]]
+        delay = 76 
+        q0 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q1 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q2 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q4 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q5 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q7 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q8 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}
+        q9 = {fg_size = 20, fg_crf = 23.0, bg_size = 512, bg_crf = 23.0}

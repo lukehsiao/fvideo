@@ -25,11 +25,6 @@ use crate::{
     Dims, DisplayOptions, EncodedFrames, EyelinkOptions, FoveationAlg, GazeSample, GazeSource,
 };
 
-// - [ ] TODO(lukehsiao): What exactly do we log?
-// - [x] TODO(lukehsiao): How do we get keyboard events when the videos are fullscreen?
-// - [x] TODO(lukehsiao): How do we "interrupt" a currently playing video to change states?
-// - [x] TODO(lukehsiao): How do we load configurations for each latency/video config? From a file?
-
 #[derive(Debug)]
 pub enum ServerCmd {
     Start,
@@ -44,6 +39,7 @@ arg_enum! {
         SquareTimelapse,
         Rollercoaster,
         ToddlerFountain,
+        OceanWaves,
     }
 }
 
@@ -155,6 +151,7 @@ impl UserStudy {
             Source::SquareTimelapse => PathBuf::from("data/square_timelapse.h264"),
             Source::Barscene => PathBuf::from("data/barscene.h264"),
             Source::Rollercoaster => PathBuf::from("data/rollercoaster.h264"),
+            Source::OceanWaves => PathBuf::from("data/ocean_waves.h264"),
         };
 
         let video = match source {
@@ -173,6 +170,9 @@ impl UserStudy {
             Source::Rollercoaster => PathBuf::from(
                 "/home/lukehsiao/Videos/Netflix_RollerCoaster_3840x2160_60fps_yuv420p.y4m",
             ),
+            Source::OceanWaves => {
+                PathBuf::from("/home/lukehsiao/Videos/4k_ocean/ocean_waves_20sec.y4m")
+            }
         };
 
         let key = match source {
@@ -181,6 +181,7 @@ impl UserStudy {
             Source::SquareTimelapse => "square_timelapse",
             Source::Barscene => "barscene",
             Source::Rollercoaster => "rollercoaster",
+            Source::OceanWaves => "oceanwaves",
         };
 
         // Queue up N attempts of each artificual delay we'll use.
