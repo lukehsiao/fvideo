@@ -684,10 +684,11 @@ impl FvideoClient {
         let time = Instant::now();
 
         // Quick return if no new data
-        if let (None, None) = (fg_nal, bg_nal) {
+        match (fg_nal, bg_nal) {
             // FPS looks like it drops a lot, but in reality, we hit this fast path a LOT.
-            // self.frame_idx += 1;
-            return;
+            (None, None) => return,
+            (None, Some(_)) => unimplemented!(),
+            (_, _) => (),
         }
 
         // Otherwise, we need to draw

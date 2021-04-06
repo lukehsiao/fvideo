@@ -27,7 +27,6 @@ use crate::{
 
 #[derive(Debug)]
 pub enum ServerCmd {
-    Start,
     Stop,
 }
 
@@ -418,43 +417,38 @@ impl UserStudy {
                 let (cmd_tx, cmd_rx) = flume::bounded(5);
 
                 let video_clone = self.data.video.clone();
-                let server = thread::spawn(move || -> Result<(), UserStudyError> {
-                    // Wait for start command before starting the server
-                    if let Ok(ServerCmd::Start) = cmd_rx.recv() {
-                        let mut server = FvideoTwoStreamServer::new(
-                            fovea,
-                            Dims {
-                                width: bg_width,
-                                height: bg_width * 9 / 16,
-                            },
-                            fg_crf,
-                            bg_crf,
-                            video_clone,
-                        )?;
-
-                        for current_gaze in gaze_rx {
-                            // Only look at latest available gaze sample
-                            let nals = match server.encode_frame(current_gaze) {
-                                Ok(n) => n,
-                                Err(_) => break,
-                            };
-                            nal_tx.send(nals)?;
-
-                            // Terminate if signaled
-                            if let Ok(ServerCmd::Stop) = cmd_rx.try_recv() {
-                                break;
-                            }
-                        }
-                    }
-                    Ok(())
-                });
 
                 // Send first to pipeline encode/decode, otherwise it would be in serial.
                 client.gaze_sample(); // Prime with one real gaze sample
                 gaze_tx.send(client.gaze_sample())?;
 
-                // Start the server
-                cmd_tx.send(ServerCmd::Start)?;
+                let server = thread::spawn(move || -> Result<(), UserStudyError> {
+                    let mut server = FvideoTwoStreamServer::new(
+                        fovea,
+                        Dims {
+                            width: bg_width,
+                            height: bg_width * 9 / 16,
+                        },
+                        fg_crf,
+                        bg_crf,
+                        video_clone,
+                    )?;
+
+                    for current_gaze in gaze_rx {
+                        // Only look at latest available gaze sample
+                        let nals = match server.encode_frame(current_gaze) {
+                            Ok(n) => n,
+                            Err(_) => break,
+                        };
+                        nal_tx.send(nals)?;
+
+                        // Terminate if signaled
+                        if let Ok(ServerCmd::Stop) = cmd_rx.try_recv() {
+                            break;
+                        }
+                    }
+                    Ok(())
+                });
 
                 for nal in nal_rx {
                     // Send first to pipeline encode/decode, otherwise it would be in serial.
@@ -552,7 +546,6 @@ impl UserStudy {
                         }
                     }
                 }
-
                 server.join().unwrap()?;
             }
             State::Quit => {}
