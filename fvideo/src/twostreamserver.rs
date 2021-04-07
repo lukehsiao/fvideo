@@ -300,7 +300,7 @@ impl FvideoTwoStreamServer {
             unsafe {
                 offset_plane[i] = self.orig_pic.pic.img.plane[i].offset(offset);
 
-                // Used to prevent reading off the right or bottom edges
+                // Used to prevent reading off the edges
                 let base_ptr: *const u8 = &*self.orig_pic.pic.img.plane[i];
                 let max_offset = base_ptr as usize + self.orig_pic.plane_size[i];
                 let size: usize = {
@@ -322,7 +322,18 @@ impl FvideoTwoStreamServer {
 
                 // Stop the copy at the right and bottom edges to avoid segfaults
                 for _ in 0..(self.fovea / csp_height[i] as u32) {
-                    ptr::copy_nonoverlapping(src_ptr, dst_ptr, size);
+                    // Skip above top of array
+                    if (src_ptr as usize + size) <= (base_ptr as usize) {
+                    } else if (src_ptr as usize) < (base_ptr as usize) {
+                        // For the very top row
+                        ptr::copy_nonoverlapping(
+                            src_ptr.offset(left.abs() as isize),
+                            dst_ptr.offset(left.abs() as isize),
+                            size - left.abs() as usize,
+                        );
+                    } else {
+                        ptr::copy_nonoverlapping(src_ptr, dst_ptr, size);
+                    }
 
                     // Advance a full row
                     src_ptr = src_ptr.offset(self.orig_pic.pic.img.i_stride[i].try_into().unwrap());
