@@ -228,7 +228,7 @@ fn main() -> Result<()> {
                             p.write_all(GO_CMD.as_bytes())?;
                             triggered = true;
                             let time = Instant::now();
-                            gaze = client.triggered_gaze_sample(DIFF_THRESH);
+                            gaze = Some(client.triggered_gaze_sample(DIFF_THRESH));
                             info!("Gaze update time: {:#?}", time.elapsed());
                         }
                     }
@@ -257,7 +257,7 @@ fn main() -> Result<()> {
                             p.write_all(GO_CMD.as_bytes())?;
                             triggered = true;
                             let time = Instant::now();
-                            gaze = client.triggered_gaze_sample(DIFF_THRESH);
+                            gaze = Some(client.triggered_gaze_sample(DIFF_THRESH));
                             info!("Gaze update time: {:#?}", time.elapsed());
                         }
                     }

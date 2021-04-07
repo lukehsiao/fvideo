@@ -479,7 +479,7 @@ impl FvideoClient {
     }
 
     /// Get the latest gaze sample, if one is available.
-    pub fn gaze_sample(&mut self) -> GazeSample {
+    pub fn gaze_sample(&mut self) -> Option<GazeSample> {
         let mut gaze = match self.gaze_source {
             GazeSource::Mouse => {
                 // Grab mouse position using SDL2.
@@ -552,14 +552,14 @@ impl FvideoClient {
         self.seqno += 1;
         self.gaze_samples.push_back(gaze);
 
-        // Allow artificial delay to determine when to release the next gaze sample
-        if let Some(oldest_gaze) = {
-            if self.gaze_samples.front().unwrap().time.elapsed() >= self.delay {
-                self.gaze_samples.pop_front()
-            } else {
-                None
-            }
-        } {
+        // Collected all the gaze samples that can be released, and just take the latest one.
+        let mut released: Vec<&GazeSample> = self
+            .gaze_samples
+            .iter()
+            .take_while(|g| g.time.elapsed() >= self.delay)
+            .collect();
+
+        if let Some(oldest_gaze) = released.pop() {
             // Update gaze stats
             self.min_gaze.x = cmp::min(self.min_gaze.x, u64::from(oldest_gaze.p_x));
             self.min_gaze.y = cmp::min(self.min_gaze.y, u64::from(oldest_gaze.p_y));
@@ -573,9 +573,11 @@ impl FvideoClient {
 
             self.last_gaze.x = u64::from(oldest_gaze.p_x);
             self.last_gaze.y = u64::from(oldest_gaze.p_y);
-        }
 
-        *self.gaze_samples.front().unwrap()
+            Some(*oldest_gaze)
+        } else {
+            None
+        }
     }
 
     /// Utility function for immediately drawing a white square to the bottom

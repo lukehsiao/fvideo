@@ -31,6 +31,7 @@ pub struct FvideoServer {
     frame_cnt: u32,
     last_frame_time: Duration,
     timestamp: i64,
+    last_gaze_sample: GazeSample,
 }
 
 impl FvideoServer {
@@ -66,6 +67,19 @@ impl FvideoServer {
 
         let frame_time = Instant::now();
 
+        let last_gaze_sample = GazeSample {
+            time: Instant::now(),
+            seqno: 0,
+            d_width: 0,
+            d_height: 0,
+            d_x: 0,
+            d_y: 0,
+            p_x: 0,
+            p_y: 0,
+            m_x: 0,
+            m_y: 0,
+        };
+
         Ok(FvideoServer {
             fovea,
             alg,
@@ -80,6 +94,7 @@ impl FvideoServer {
             frame_cnt: 0,
             last_frame_time: frame_time.elapsed(),
             timestamp: 0,
+            last_gaze_sample,
         })
     }
 
@@ -118,7 +133,16 @@ impl FvideoServer {
         Ok(())
     }
 
-    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
+    pub fn encode_frame(
+        &mut self,
+        gaze: Option<GazeSample>,
+    ) -> Result<EncodedFrames, FvideoServerError> {
+        // If no new gaze, resume with old one
+        let gaze = match gaze {
+            Some(g) => g,
+            None => self.last_gaze_sample,
+        };
+
         let time = Instant::now();
         self.read_frame()?;
         debug!("    read_frame: {:#?}", time.elapsed());

@@ -6,6 +6,7 @@ extern crate ffmpeg_next as ffmpeg;
 
 use std::convert::TryInto;
 use std::ptr;
+use std::time::Instant;
 
 use ffmpeg::format::Pixel;
 use ffmpeg::software::scaling::{context::Context, flag::Flags};
@@ -93,20 +94,26 @@ impl FvideoDummyServer {
 
     /// Read frame from dummy video which will include a white square at the
     /// bottom left when the gaze position has changed beyond a threshold.
-    pub fn encode_frame(&mut self, gaze: GazeSample) -> Result<EncodedFrames, FvideoServerError> {
+    pub fn encode_frame(
+        &mut self,
+        gaze: Option<GazeSample>,
+    ) -> Result<EncodedFrames, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
-        if self.first_gaze.is_none() {
-            self.first_gaze = Some(gaze);
-        }
+        // If no new gaze, resume with old one
+        if let Some(g) = gaze {
+            if self.first_gaze.is_none() {
+                self.first_gaze = Some(g);
+            }
 
-        if !self.triggered
-            && ((gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
-                || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
-        {
-            self.triggered = true;
-            debug!("Server changing white!");
+            if !self.triggered
+                && ((g.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
+                    || (g.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
+            {
+                self.triggered = true;
+                debug!("Server changing white!");
+            }
         }
 
         let pic = match self.triggered {
@@ -253,36 +260,37 @@ impl FvideoDummyTwoStreamServer {
     /// bottom left when the gaze position has changed beyond a threshold.
     pub fn encode_frame(
         &mut self,
-        mut gaze: GazeSample,
+        gaze: Option<GazeSample>,
     ) -> Result<EncodedFrames, FvideoServerError> {
         if self.triggered_buff >= LINGER_FRAMES {
             info!("Finished.");
             return Err(FvideoServerError::EncoderError("Finished.".to_string()));
         }
-        if self.first_gaze.is_none() {
-            self.first_gaze = Some(gaze);
-        }
+        // If no new gaze, resume with old one
+        if let Some(mut g) = gaze {
+            if self.first_gaze.is_none() {
+                self.first_gaze = Some(g);
+            }
 
-        if !self.triggered
-            && ((gaze.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
-                || (gaze.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
-        {
-            self.triggered = true;
-
-            // Change gaze to bottom left
-            let box_dim = self.width / 19;
-            gaze.p_x = box_dim / 2;
-            gaze.p_y = self.height - (box_dim / 2);
-            info!("Server changing white!");
+            if !self.triggered
+                && ((g.p_x as i32 - self.first_gaze.unwrap().p_x as i32).abs() > DIFF_THRESH
+                    || (g.p_y as i32 - self.first_gaze.unwrap().p_y as i32).abs() > DIFF_THRESH)
+            {
+                self.triggered = true;
+                // Change gaze to bottom left
+                let box_dim = self.width / 19;
+                g.p_x = box_dim / 2;
+                g.p_y = self.height - (box_dim / 2);
+                info!("Server changing white!");
+            }
+            // Crop section into fg_pic
+            self.crop_x264_pic(&mut g, self.fovea, self.fovea);
         }
 
         self.timestamp += 1;
         if self.triggered {
             self.triggered_buff += 1;
         }
-
-        // Crop section into fg_pic
-        self.crop_x264_pic(&mut gaze, self.fovea, self.fovea);
 
         // Rescale to bg_pic. This drops FPS from ~1500 to ~270 on panda. Using
         // fast_bilinear rather than bilinear gives about 800fps.
@@ -313,6 +321,22 @@ impl FvideoDummyTwoStreamServer {
         self.bg_pic.set_timestamp(self.timestamp);
         self.fg_pic.set_timestamp(self.timestamp);
         self.timestamp += 1;
+
+        let gaze = match gaze {
+            Some(g) => g,
+            None => GazeSample {
+                time: Instant::now(),
+                seqno: 0,
+                d_width: 0,
+                d_height: 0,
+                d_x: 0,
+                d_y: 0,
+                p_x: 0,
+                p_y: 0,
+                m_x: 0,
+                m_y: 0,
+            },
+        };
 
         let mut fg_nal = None;
         let mut bg_nal = None;

@@ -182,8 +182,14 @@ impl FvideoTwoStreamServer {
     // trait or something to have a more clear interface.
     pub fn encode_frame(
         &mut self,
-        mut gaze: GazeSample,
+        gaze: Option<GazeSample>,
     ) -> Result<EncodedFrames, FvideoServerError> {
+        // If no new gaze, resume with old one
+        let mut gaze = match gaze {
+            Some(g) => g,
+            None => self.last_gaze_sample,
+        };
+
         let time = Instant::now();
         let advanced = self.read_frame()?;
 

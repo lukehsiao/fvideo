@@ -86,7 +86,7 @@ pub enum UserStudyError {
     #[error(transparent)]
     SendNalError(#[from] flume::SendError<EncodedFrames>),
     #[error(transparent)]
-    SendGazeError(#[from] flume::SendError<GazeSample>),
+    SendGazeError(#[from] flume::SendError<Option<GazeSample>>),
     #[error(transparent)]
     SendCmdError(#[from] flume::SendError<ServerCmd>),
 }
