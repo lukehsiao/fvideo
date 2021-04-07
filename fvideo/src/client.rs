@@ -552,7 +552,7 @@ impl FvideoClient {
         self.seqno += 1;
         self.gaze_samples.push_back(gaze);
 
-        // Collected all the gaze samples that can be released, and just take the latest one.
+        // Collect all the gaze samples that can be released, and just take the latest one.
         let mut released: Vec<&GazeSample> = self
             .gaze_samples
             .iter()
@@ -622,6 +622,11 @@ impl FvideoClient {
         self.canvas.clear();
         self.canvas.present();
         self.frame_idx += 1;
+    }
+
+    /// Utility function for minimizing the window
+    pub fn minimize(&mut self) {
+        self.canvas.window_mut().minimize();
     }
 
     fn display_onestream_frame(&mut self, nal: &NalData) {

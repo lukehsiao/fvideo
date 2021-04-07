@@ -547,6 +547,10 @@ impl UserStudy {
                     }
                 }
                 server.join().unwrap()?;
+
+                // Blank the screen right after the experiment
+                client.clear();
+                client.minimize();
             }
             State::Quit => {}
         }

@@ -310,8 +310,11 @@ fn main() -> Result<()> {
             }
         }
     }
-
     t_enc.join().unwrap()?;
+
+    // Blank the screen right after the experiment
+    client.clear();
+    client.minimize();
 
     let elapsed = now.elapsed();
     let frame_index = client.total_frames();
