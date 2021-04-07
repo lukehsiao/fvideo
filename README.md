@@ -78,15 +78,16 @@ ARGS:
 
 Once in the user study, the interface is:
 
-| key        | action                       |
-| ---------- | ---------------------------- |
-| Esc/Ctrl+C | quit                         |
-| 0-9        | video qualities 0-9          |
-| p          | pause                        |
-| c          | calibrate                    |
-| b          | play baseline                |
-| r          | resume (video qual 0)        |
-| Enter      | accept current video quality |
+| key        | action                                |
+| ---------- | ------------------------------------- |
+| Esc/Ctrl+C | quit                                  |
+| 0-9        | video qualities 0-9                   |
+| p          | pause                                 |
+| c          | calibrate                             |
+| b          | play baseline                         |
+| r          | resume (video qual 0)                 |
+| Enter      | accept current video quality          |
+| n          | none of the qualities are good enough |
 
 All data is logged to `data/user_study.csv`.
 
