@@ -477,6 +477,30 @@ impl UserStudy {
                                 self.next(Event::Baseline);
                                 cmd_tx.send(ServerCmd::Stop)?;
                             }
+                            Keycode::N => {
+                                // Need to log this here while the client exists
+                                writeln!(
+                                    self.data.log,
+                                    "{},{},{},None,{},{},{},{},{},{},{},{},{},{},{},{}",
+                                    Utc::now().to_rfc3339(),
+                                    self.data.name,
+                                    FoveationAlg::TwoStream,
+                                    fovea,
+                                    bg_width,
+                                    bg_crf,
+                                    fg_crf,
+                                    self.data.delays.last().unwrap().delay,
+                                    GazeSource::Eyelink,
+                                    self.data.key,
+                                    client.total_gaze(),
+                                    client.min_gaze(),
+                                    client.max_gaze(),
+                                    client.total_frames(),
+                                    client.total_bytes()
+                                )?;
+                                self.next(Event::Accept);
+                                cmd_tx.send(ServerCmd::Stop)?;
+                            }
                             Keycode::Return => {
                                 // Need to log this here while the client exists
                                 writeln!(
