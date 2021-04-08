@@ -195,6 +195,9 @@ impl UserStudy {
         let mut rng = rand::thread_rng();
         delays.shuffle(&mut rng);
 
+        // Duplicate one for repeatability
+        delays.push(delays.first().unwrap().clone());
+
         // Open the logfile
         let log = match OpenOptions::new().append(true).open("data/user_study.csv") {
             Ok(file) => file,
