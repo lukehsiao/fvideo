@@ -422,6 +422,7 @@ impl UserStudy {
                 client.gaze_sample(); // Prime with one real gaze sample
                 gaze_tx.send(client.gaze_sample())?;
 
+                client.clear();
                 let server = thread::spawn(move || -> Result<(), UserStudyError> {
                     let mut server = FvideoTwoStreamServer::new(
                         fovea,

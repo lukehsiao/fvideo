@@ -274,6 +274,7 @@ fn main() -> Result<()> {
     };
 
     // Continuously display until channel is closed.
+    client.clear();
     match alg_clone {
         FoveationAlg::TwoStream => {
             for nal in nal_rx {
