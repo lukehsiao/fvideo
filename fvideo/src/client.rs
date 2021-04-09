@@ -789,22 +789,26 @@ impl FvideoClient {
             }
         }
 
-        let _ = fg_texture.update(fg_rect, fg_frame_rgba.data(0), fg_frame_rgba.stride(0));
+        fg_texture
+            .update(None, fg_frame_rgba.data(0), width)
+            .expect("Unable to update fg_texture");
 
         let mut bg_texture = self
             .texture_creator
             .create_texture_streaming(PixelFormatEnum::YV12, self.bg.width, self.bg.height)
             .unwrap();
 
-        let _ = bg_texture.update_yuv(
-            bg_rect,
-            self.bg_frame.data(0),
-            self.bg_frame.stride(0),
-            self.bg_frame.data(1),
-            self.bg_frame.stride(1),
-            self.bg_frame.data(2),
-            self.bg_frame.stride(2),
-        );
+        bg_texture
+            .update_yuv(
+                bg_rect,
+                self.bg_frame.data(0),
+                self.bg_frame.stride(0),
+                self.bg_frame.data(1),
+                self.bg_frame.stride(1),
+                self.bg_frame.data(2),
+                self.bg_frame.stride(2),
+            )
+            .expect("Unable to update bg_texture");
 
         // position the fg square correctly on the canvas
         //
@@ -814,9 +818,8 @@ impl FvideoClient {
         fg_rect = Rect::from_center((c_x, c_y), fg_rect.width(), fg_rect.height());
 
         // Stretches the bg_texture to fill the entire rendering target
-        self.canvas.clear();
-        let _ = self.canvas.copy(&bg_texture, None, bg_rect);
-        let _ = self.canvas.copy(&fg_texture, None, fg_rect);
+        self.canvas.copy(&bg_texture, None, bg_rect).unwrap();
+        self.canvas.copy(&fg_texture, None, fg_rect).unwrap();
         self.canvas.present();
 
         self.frame_idx += 1;
