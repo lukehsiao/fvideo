@@ -20,7 +20,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, TextureCreator};
-use sdl2::video::{Window, WindowContext};
+use sdl2::video::{SwapInterval, Window, WindowContext};
 use sdl2::{hint, EventPump};
 
 use crate::{
@@ -225,10 +225,9 @@ impl FvideoClient {
 
         event_pump.enable_event(EventType::MouseMotion);
 
-        // 0 is immediate update
-        // 1 synchronizes with vertical retrace
-        // -1 for adaptive vsync
-        video_subsystem.gl_set_swap_interval(0).unwrap();
+        video_subsystem
+            .gl_set_swap_interval(SwapInterval::Immediate)
+            .unwrap();
 
         let texture_creator = canvas.texture_creator();
 
