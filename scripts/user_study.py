@@ -118,7 +118,7 @@ def _plot(infile):
 
     bitrate = []
     for row in data.itertuples():
-        bitrate.append(1 / estimates[row.video][row.delay_ms][row.quality])
+        bitrate.append((100 / estimates[row.video][row.delay_ms][row.quality]))
 
     data["bitrate"] = bitrate
 
@@ -127,23 +127,29 @@ def _plot(infile):
     )
 
     # Draw minimum line
-    plt.plot([14, 14], [0, 1], color='gray',linewidth=1, linestyle="dotted")
+    plt.plot([14, 14], [0, 100], color='gray',linewidth=1, linestyle="dotted")
     plt.annotate(
         "min. system latency",
         color="black",
-        xy=(14, 0.83),
-        xytext=(20, 0.95),
-        size=10,
+        xy=(14, 83),
+        xytext=(20, 95),
+        size=12,
         arrowprops=dict(color="black", arrowstyle="->"),
     )
 
-    #  sns.despine(bottom=True, left=True)
+    # Tweak legend
+    leg = plot._legend
+    leg.set_title("")
+    leg.set_bbox_to_anchor([0.98,0.95])
+    leg._loc = 1
+
+    sns.despine(bottom=True, left=True)
     plot.set(xlabel="End-to-end Latency (ms)")
     plot.set(ylabel="Bitrate (% of baseline)")
-    plot.set(xlim=(0, 90), ylim=(0, 1))
+    plot.set(xlim=(0, 90), ylim=(0, 100))
     outfile = "user_study.pdf"
     pp = PdfPages(outfile)
-    pp.savefig(plot._fig)
+    pp.savefig(plot._fig.tight_layout())
     pp.close()
     #  run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
     logger.info(f"Plot saved to {outfile}")
