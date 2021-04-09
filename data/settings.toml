@@ -13,7 +13,7 @@
         q8 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
         q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
     [[barscene.delays]]
-        delay = 38 
+        delay = 30 
         q0 = {fg_size = 28, fg_crf = 22.0, bg_size = 768, bg_crf = 22.0} # 4.2x
         q1 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 5.9x
         q2 = {fg_size = 21, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 7.2x
@@ -25,7 +25,7 @@
         q8 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
         q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
     [[barscene.delays]]
-        delay = 76 
+        delay = 67 
         q0 = {fg_size = 73, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 1.2x, about the largest fovea that can keep 60fps
         q1 = {fg_size = 50, fg_crf = 23.0, bg_size = 768, bg_crf = 20.0} # 2.0x
         q2 = {fg_size = 40, fg_crf = 23.0, bg_size = 768, bg_crf = 21.0} # 3.0x
@@ -52,7 +52,7 @@
         q8 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 11.6x
         q9 = {fg_size = 18, fg_crf = 27.0, bg_size = 768, bg_crf = 28.5} # 12.4x
     [[square_timelapse.delays]]
-        delay = 38 
+        delay = 30 
         q0 = {fg_size = 55, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 3.2x
         q1 = {fg_size = 50, fg_crf = 25.0, bg_size = 768, bg_crf = 24.0} # 3.6x
         q2 = {fg_size = 40, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 4.0x
@@ -64,7 +64,7 @@
         q8 = {fg_size = 20, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 9.9x
         q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 26.0} # 10.7x
     [[square_timelapse.delays]]
-        delay = 76 
+        delay = 67 
         q0 = {fg_size = 65, fg_crf = 23.0, bg_size = 1024, bg_crf = 18.0} # 1.5x
         q1 = {fg_size = 65, fg_crf = 25.0, bg_size = 1024, bg_crf = 19.0} # 1.7x
         q2 = {fg_size = 55, fg_crf = 26.0, bg_size = 1024, bg_crf = 20.0} # 2.2x
