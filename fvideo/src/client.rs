@@ -279,7 +279,7 @@ impl FvideoClient {
 
         let buffer_params = format!(
             "video_size={}x{}:pix_fmt={}:time_base={}/{}:sar=1",
-            bg_width, bg_height, "yuv420p", 1, 24
+            bg_width, bg_height, "yuv420p", 1, 60
         );
 
         let filter = {
