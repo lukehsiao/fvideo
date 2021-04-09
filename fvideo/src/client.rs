@@ -737,9 +737,9 @@ impl FvideoClient {
                         }
                     }
                 }
-                Ok(false) => unimplemented!(),
+                Ok(false) => unimplemented!("Error occurred while decoding packet"),
                 Err(_) => {
-                    error!("Error occured while decoding packet.");
+                    unimplemented!("Error occurred while decoding packet.");
                 }
             }
         }
@@ -760,9 +760,9 @@ impl FvideoClient {
                         debug!("    decode nal: {:?}", dec_time.elapsed());
                     }
                 }
-                Ok(false) => unimplemented!(),
+                Ok(false) => unimplemented!("Error occurred while decoding packet"),
                 Err(_) => {
-                    error!("Error occured while decoding packet.");
+                    unimplemented!("Error occurred while decoding packet.");
                 }
             }
             c_y = gaze.p_y as i32 + bg_rect.y();
