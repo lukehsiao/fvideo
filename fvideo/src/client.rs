@@ -879,12 +879,12 @@ fn compute_alpha(fg_width: u32) -> Vec<u8> {
     let mut alpha_blend: Vec<u8> = vec![];
     for j in 0..fg_width {
         for i in 0..fg_width {
-            let alpha = 896.0
+            let alpha = 16384.0
                 * (-1.0
                     * (((i as i32 - (fg_width / 2) as i32).pow(2)
                         + (j as i32 - (fg_width / 2) as i32).pow(2))
                         as f64
-                        / (2.0 * (fg_width as f64 / 5.0).powi(2))))
+                        / (2.0 * (fg_width as f64 / 7.0).powi(2))))
                 .exp();
 
             if alpha > 255.0 {
