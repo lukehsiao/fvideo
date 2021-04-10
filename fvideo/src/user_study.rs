@@ -492,7 +492,7 @@ impl UserStudy {
                                 // Need to log this here while the client exists
                                 writeln!(
                                     self.data.log,
-                                    "{},{},{},None,{},{},{},{},{},{},{},{},{},{},{},{}",
+                                    "{},{},{},-1,{},{},{},{},{},{},{},{},{},{},{},{}",
                                     Utc::now().to_rfc3339(),
                                     self.data.name,
                                     FoveationAlg::TwoStream,
