@@ -199,6 +199,11 @@ impl UserStudy {
         // Shuffle again so the repeatability isn't always the first one seen
         delays.shuffle(&mut rng);
 
+        info!(
+            "Delays: {:?}",
+            delays.iter().map(|d| d.delay).collect::<Vec<u64>>()
+        );
+
         // Open the logfile
         let log = match OpenOptions::new().append(true).open("data/user_study.csv") {
             Ok(file) => file,
