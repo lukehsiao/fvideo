@@ -194,9 +194,10 @@ impl UserStudy {
         // Shuffle to randomize order they are presented to the user
         let mut rng = rand::thread_rng();
         delays.shuffle(&mut rng);
-
         // Duplicate one for repeatability
         delays.push(delays.first().unwrap().clone());
+        // Shuffle again so the repeatability isn't always the first one seen
+        delays.shuffle(&mut rng);
 
         // Open the logfile
         let log = match OpenOptions::new().append(true).open("data/user_study.csv") {
