@@ -257,7 +257,8 @@ impl UserStudy {
                 info!("Showing quality {}.", q);
                 self.state = State::Video { quality: q };
             }
-            (State::Video { quality: _ }, Event::Pause) => {
+            (State::Video { quality: _ }, Event::None)
+            | (&State::Video { quality: _ }, Event::Pause) => {
                 info!("Pausing the user study.");
                 self.state = State::Pause;
             }
