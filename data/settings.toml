@@ -2,79 +2,79 @@
     attempts = 1
     [[barscene.delays]]
         delay = 0 
-        q0 = {fg_size = 28, fg_crf = 22.0, bg_size = 768, bg_crf = 22.0} # 4.2x
-        q1 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 5.9x
-        q2 = {fg_size = 21, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 7.2x
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 8.0x
-        q4 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
-        q5 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
-        q6 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
-        q7 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
-        q8 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
-        q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
+        q9 = {fg_size = 28, fg_crf = 22.0, bg_size = 768, bg_crf = 22.0} # 4.2x
+        q8 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 5.9x
+        q7 = {fg_size = 21, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 7.2x
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 8.0x
+        q5 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
+        q4 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
+        q3 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
+        q2 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
+        q1 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
+        q0 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
     [[barscene.delays]]
         delay = 31
-        q0 = {fg_size = 28, fg_crf = 22.0, bg_size = 768, bg_crf = 22.0} # 4.2x
-        q1 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 5.9x
-        q2 = {fg_size = 21, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 7.2x
-        q3 = {fg_size = 20, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 8.0x
-        q4 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
-        q5 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
-        q6 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
-        q7 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
-        q8 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
-        q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
+        q9 = {fg_size = 28, fg_crf = 22.0, bg_size = 768, bg_crf = 22.0} # 4.2x
+        q8 = {fg_size = 25, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 5.9x
+        q7 = {fg_size = 21, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 7.2x
+        q6 = {fg_size = 20, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 8.0x
+        q5 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
+        q4 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
+        q3 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
+        q2 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
+        q1 = {fg_size = 17, fg_crf = 25.0, bg_size = 768, bg_crf = 23.5} # 13.8x
+        q0 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 17.8x
     [[barscene.delays]]
         delay = 67 
-        q0 = {fg_size = 73, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 1.2x, about the largest fovea that can keep 60fps
-        q1 = {fg_size = 50, fg_crf = 23.0, bg_size = 768, bg_crf = 20.0} # 2.0x
-        q2 = {fg_size = 40, fg_crf = 23.0, bg_size = 768, bg_crf = 21.0} # 3.0x
-        q3 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 22.0} # 4.5x
-        q4 = {fg_size = 28, fg_crf = 24.0, bg_size = 768, bg_crf = 22.0} # 5.9x
-        q5 = {fg_size = 25, fg_crf = 24.0, bg_size = 768, bg_crf = 22.0} # 7.2x
-        q6 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
-        q7 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
-        q8 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
-        q9 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
+        q9 = {fg_size = 73, fg_crf = 23.0, bg_size = 768, bg_crf = 23.0} # 1.2x, about the largest fovea that can keep 60fps
+        q8 = {fg_size = 50, fg_crf = 23.0, bg_size = 768, bg_crf = 20.0} # 2.0x
+        q7 = {fg_size = 40, fg_crf = 23.0, bg_size = 768, bg_crf = 21.0} # 3.0x
+        q6 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 22.0} # 4.5x
+        q5 = {fg_size = 28, fg_crf = 24.0, bg_size = 768, bg_crf = 22.0} # 5.9x
+        q4 = {fg_size = 25, fg_crf = 24.0, bg_size = 768, bg_crf = 22.0} # 7.2x
+        q3 = {fg_size = 20, fg_crf = 23.5, bg_size = 768, bg_crf = 23.0} # 8.6x
+        q2 = {fg_size = 20, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 9.7x
+        q1 = {fg_size = 18, fg_crf = 24.0, bg_size = 768, bg_crf = 23.0} # 10.7x
+        q0 = {fg_size = 18, fg_crf = 24.5, bg_size = 768, bg_crf = 23.0} # 11.8x
 
 [square_timelapse]
     attempts = 1
     [[square_timelapse.delays]]
         delay = 0 
-        q0 = {fg_size = 40, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 4.0x
-        q1 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 4.7x
-        q2 = {fg_size = 30, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 5.2x
-        q3 = {fg_size = 28, fg_crf = 25.0, bg_size = 768, bg_crf = 26.0} # 6.7x
-        q4 = {fg_size = 25, fg_crf = 25.0, bg_size = 768, bg_crf = 27.0} # 7.4x
-        q5 = {fg_size = 25, fg_crf = 26.0, bg_size = 768, bg_crf = 27.0} # 8.7x
-        q6 = {fg_size = 20, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 9.9x
-        q7 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 26.0} # 10.7x
-        q8 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 11.6x
-        q9 = {fg_size = 18, fg_crf = 27.0, bg_size = 768, bg_crf = 28.5} # 12.4x
+        q9 = {fg_size = 40, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 4.0x
+        q8 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 4.7x
+        q7 = {fg_size = 30, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 5.2x
+        q6 = {fg_size = 28, fg_crf = 25.0, bg_size = 768, bg_crf = 26.0} # 6.7x
+        q5 = {fg_size = 25, fg_crf = 25.0, bg_size = 768, bg_crf = 27.0} # 7.4x
+        q4 = {fg_size = 25, fg_crf = 26.0, bg_size = 768, bg_crf = 27.0} # 8.7x
+        q3 = {fg_size = 20, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 9.9x
+        q2 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 26.0} # 10.7x
+        q1 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 11.6x
+        q0 = {fg_size = 18, fg_crf = 27.0, bg_size = 768, bg_crf = 28.5} # 12.4x
     [[square_timelapse.delays]]
         delay = 31 
-        q0 = {fg_size = 55, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 3.2x
-        q1 = {fg_size = 50, fg_crf = 25.0, bg_size = 768, bg_crf = 24.0} # 3.6x
-        q2 = {fg_size = 40, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 4.0x
-        q3 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 4.7x
-        q4 = {fg_size = 30, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 5.2x
-        q5 = {fg_size = 28, fg_crf = 25.0, bg_size = 768, bg_crf = 26.0} # 6.7x
-        q6 = {fg_size = 25, fg_crf = 25.0, bg_size = 768, bg_crf = 27.0} # 7.4x
-        q7 = {fg_size = 25, fg_crf = 26.0, bg_size = 768, bg_crf = 27.0} # 8.7x
-        q8 = {fg_size = 20, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 9.9x
-        q9 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 26.0} # 10.7x
+        q9 = {fg_size = 55, fg_crf = 25.5, bg_size = 768, bg_crf = 24.0} # 3.2x
+        q8 = {fg_size = 50, fg_crf = 25.0, bg_size = 768, bg_crf = 24.0} # 3.6x
+        q7 = {fg_size = 40, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 4.0x
+        q6 = {fg_size = 30, fg_crf = 23.0, bg_size = 768, bg_crf = 24.0} # 4.7x
+        q5 = {fg_size = 30, fg_crf = 24.0, bg_size = 768, bg_crf = 24.0} # 5.2x
+        q4 = {fg_size = 28, fg_crf = 25.0, bg_size = 768, bg_crf = 26.0} # 6.7x
+        q3 = {fg_size = 25, fg_crf = 25.0, bg_size = 768, bg_crf = 27.0} # 7.4x
+        q2 = {fg_size = 25, fg_crf = 26.0, bg_size = 768, bg_crf = 27.0} # 8.7x
+        q1 = {fg_size = 20, fg_crf = 25.5, bg_size = 768, bg_crf = 27.0} # 9.9x
+        q0 = {fg_size = 15, fg_crf = 25.5, bg_size = 768, bg_crf = 26.0} # 10.7x
     [[square_timelapse.delays]]
         delay = 67 
-        q0 = {fg_size = 65, fg_crf = 23.0, bg_size = 1024, bg_crf = 18.0} # 1.5x
-        q1 = {fg_size = 65, fg_crf = 25.0, bg_size = 1024, bg_crf = 19.0} # 1.7x
-        q2 = {fg_size = 55, fg_crf = 26.0, bg_size = 1024, bg_crf = 20.0} # 2.2x
-        q3 = {fg_size = 50, fg_crf = 26.0, bg_size = 1024, bg_crf = 24.0} # 3.2x
-        q4 = {fg_size = 40, fg_crf = 26.0, bg_size = 1024, bg_crf = 26.0} # 4.4x
-        q5 = {fg_size = 30, fg_crf = 23.0, bg_size =  768, bg_crf = 24.0} # 4.7x
-        q6 = {fg_size = 30, fg_crf = 24.0, bg_size =  768, bg_crf = 24.0} # 5.2x
-        q7 = {fg_size = 28, fg_crf = 25.0, bg_size =  768, bg_crf = 26.0} # 6.7x
-        q8 = {fg_size = 25, fg_crf = 25.0, bg_size =  768, bg_crf = 27.0} # 7.4x
-        q9 = {fg_size = 25, fg_crf = 26.0, bg_size =  768, bg_crf = 27.0} # 8.7x
+        q9 = {fg_size = 65, fg_crf = 23.0, bg_size = 1024, bg_crf = 18.0} # 1.5x
+        q8 = {fg_size = 65, fg_crf = 25.0, bg_size = 1024, bg_crf = 19.0} # 1.7x
+        q7 = {fg_size = 55, fg_crf = 26.0, bg_size = 1024, bg_crf = 20.0} # 2.2x
+        q6 = {fg_size = 50, fg_crf = 26.0, bg_size = 1024, bg_crf = 24.0} # 3.2x
+        q5 = {fg_size = 40, fg_crf = 26.0, bg_size = 1024, bg_crf = 26.0} # 4.4x
+        q4 = {fg_size = 30, fg_crf = 23.0, bg_size =  768, bg_crf = 24.0} # 4.7x
+        q3 = {fg_size = 30, fg_crf = 24.0, bg_size =  768, bg_crf = 24.0} # 5.2x
+        q2 = {fg_size = 28, fg_crf = 25.0, bg_size =  768, bg_crf = 26.0} # 6.7x
+        q1 = {fg_size = 25, fg_crf = 25.0, bg_size =  768, bg_crf = 27.0} # 7.4x
+        q0 = {fg_size = 25, fg_crf = 26.0, bg_size =  768, bg_crf = 27.0} # 8.7x
 
 [toddler_fountain]
     attempts = 1

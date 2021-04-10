@@ -259,7 +259,7 @@ impl UserStudy {
                 self.state = State::Baseline;
             }
             (_, Event::Video { quality: q }) => {
-                info!("Showing quality {}.", q);
+                info!("Showing quality {}.", q + 1);
                 self.state = State::Video { quality: q };
             }
             (State::Video { quality: _ }, Event::None)
@@ -269,7 +269,7 @@ impl UserStudy {
             }
             (State::Pause, Event::Resume) => {
                 info!("Resuming the user study.");
-                self.state = State::Video { quality: 0 };
+                self.state = State::Video { quality: 9 };
             }
             (State::Video { quality: q }, Event::Accept) => {
                 info!("Choosing this quality setting.");
@@ -290,7 +290,7 @@ impl UserStudy {
                 self.state = State::Calibrate;
             }
             State::Accept { quality: q } => {
-                info!("Accepted quality: {}", q);
+                info!("Accepted quality: {}", q + 1);
                 if let Some(d) = self.data.delays.pop() {
                     // TODO(lukehsiao): actually log stuff
                     info!("Log info for delay: {}", d.delay);
@@ -348,7 +348,7 @@ impl UserStudy {
                 self.state = State::Pause;
             }
             State::Video { quality: q } => {
-                info!("Playing video quality: {}", q);
+                info!("Playing video quality: {}", q + 1);
                 // Create a new client
                 let (width, height, _) =
                     crate::get_video_metadata(&self.data.video).expect("Unable to open video");
