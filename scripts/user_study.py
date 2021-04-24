@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
 sns.set(style="whitegrid")
-sns.set_context("paper", font_scale=1.5, rc={"lines.linewidth": 2.25})
+sns.set_context("paper", font_scale=2.0, rc={"lines.linewidth": 2.25})
 
 
 # Configure logging
@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-FIGSIZE = (7, 4)
+FIGSIZE = (7, 6)
 
 
 def _plot(infile):
@@ -135,11 +135,11 @@ def _plot(infile):
     # Draw minimum line
     plt.plot([14, 14], [0, 100], color='gray',linewidth=1, linestyle="dotted")
     plt.annotate(
-        "min. system latency",
+        "min. latency",
         color="black",
         xy=(14, 83),
         xytext=(20, 95),
-        size=12,
+        size=15,
         arrowprops=dict(color="black", arrowstyle="->"),
     )
 
@@ -157,7 +157,7 @@ def _plot(infile):
     pp = PdfPages(outfile)
     pp.savefig(plot._fig.tight_layout())
     pp.close()
-    #  run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
+    run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
     logger.info(f"Plot saved to {outfile}")
 
 
