@@ -33,6 +33,9 @@ def _plot(infile):
     # type,b,f1,precision,recall
     data = pd.read_csv(infile, skipinitialspace=True)
 
+    # Filter users with too high of accuracy error
+    data = data[data.max_err < 10.0]
+
     data["e2e_delay"] = data["delay_ms"] + 14
 
     baselines = {"barscene": 67396533, "square_timelapse": 33822082}
