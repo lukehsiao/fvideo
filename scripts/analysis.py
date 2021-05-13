@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
 sns.set(style="whitegrid")
-sns.set_context("paper", font_scale=1.5, rc={"lines.linewidth": 2.25})
+sns.set_context("paper", font_scale=1.5, rc={"lines.linewidth": 1.50})
 
 
 # Configure logging
@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-FIGSIZE = (7, 4)
+FIGSIZE = (7, 3)
 
 
 def _plot(infile):
@@ -34,12 +34,7 @@ def _plot(infile):
     data = pd.read_csv(infile, skipinitialspace=True)
 
     # Plot PDF
-    plot = sns.distplot(
-        data["e2e_us"] / 1000.0,
-        kde=False,
-        bins=25,
-        ax=ax
-    )
+    plot = sns.distplot(data["e2e_us"] / 1000.0, kde=False, bins=25, ax=ax)
 
     sns.despine(bottom=True, left=True)
     plot.set(xlabel="End-to-end Latency (ms)")
@@ -53,11 +48,7 @@ def _plot(infile):
 
     # Plot Boxplot
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    plot = sns.boxplot(
-        data = data,
-        orient = "h",
-        ax=ax
-    )
+    plot = sns.boxplot(data=data, orient="h", ax=ax)
 
     sns.despine(bottom=True, top=True)
     plot.set(ylabel="Delay Type")
@@ -71,13 +62,9 @@ def _plot(infile):
 
     # Plot CDF
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    plot = sns.distplot(
-        data["e2e_us"] / 1000.0,
-        hist_kws={"cumulative": True, "rwidth": 0.85},
-        norm_hist=True,
-        #  bins = 45,
-        kde=False
-    )
+    data["e2e_ms"] = data["e2e_us"] / 1000.0
+
+    plot = sns.ecdfplot(data=data, x="e2e_ms")
 
     #  handles, labels = ax.get_legend_handles_labels()
     #  ax.legend(handles=handles[1:], labels=labels[1:])
@@ -91,14 +78,17 @@ def _plot(infile):
     pp = PdfPages(outfile)
     pp.savefig(plot.get_figure().tight_layout())
     pp.close()
-    #  run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
+    run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
     logger.info(f"Plot saved to {outfile}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", type=str, default="../data/latency.csv", help="CSV file of latency data"
+        "--data",
+        type=str,
+        default="../data/latency.csv",
+        help="CSV file of latency data",
     )
     parser.add_argument(
         "-v",

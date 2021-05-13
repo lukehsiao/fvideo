@@ -132,7 +132,7 @@ def _plot(infile):
     data["bitrate"] = bitrate
 
     plot = sns.relplot(
-        x="e2e_delay", y="bitrate", hue="video", data=data, kind="line", style="video"
+        x="e2e_delay", y="bitrate", hue="video", data=data, kind="line", style="video", ci=95
     )
 
     # Draw minimum line
