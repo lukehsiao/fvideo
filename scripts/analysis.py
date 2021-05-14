@@ -74,6 +74,7 @@ def _plot(infile):
 
     # Remove legend title
     plot.get_legend().set_title("")
+    plot.get_legend()._set_loc(4)
     ax.set_ylim([0, 1])
     #  ax.set_xlim([0.5, 1])
 
