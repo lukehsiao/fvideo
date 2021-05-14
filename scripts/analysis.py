@@ -61,19 +61,25 @@ def _plot(infile):
     logger.info(f"Plot saved to {outfile}")
 
     # Plot CDF
+    min_data = pd.read_csv("../data/min_results_1000.csv", skipinitialspace=True)
+    min_data["kind"] = "lower-bound"
+    min_data["e2e_ms"] = min_data["e2e (us)"] / 1000.0
+
     fig, ax = plt.subplots(figsize=FIGSIZE)
     data["e2e_ms"] = data["e2e_us"] / 1000.0
+    data["kind"] = "fvideo"
+    data = data.append(min_data[["e2e_ms", "kind"]])
 
-    plot = sns.ecdfplot(data=data, x="e2e_ms")
+    plot = sns.ecdfplot(data=data, x="e2e_ms", hue="kind", palette="colorblind")
 
-    #  handles, labels = ax.get_legend_handles_labels()
-    #  ax.legend(handles=handles[1:], labels=labels[1:])
+    # Remove legend title
+    plot.get_legend().set_title("")
     ax.set_ylim([0, 1])
     #  ax.set_xlim([0.5, 1])
 
     sns.despine(bottom=True, left=True)
     plot.set(xlabel="End-to-end Latency (ms)")
-    plot.set(ylabel="Cumulative Probability")
+    plot.set(ylabel="Proportion")
     outfile = "cdf.pdf"
     pp = PdfPages(outfile)
     pp.savefig(plot.get_figure().tight_layout())
