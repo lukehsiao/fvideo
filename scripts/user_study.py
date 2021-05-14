@@ -132,11 +132,21 @@ def _plot(infile):
     data["bitrate"] = bitrate
 
     plot = sns.relplot(
-        x="e2e_delay", y="bitrate", hue="video", data=data, kind="line", style="video", ci=95
+        x="e2e_delay",
+        y="bitrate",
+        hue="video",
+        data=data,
+        kind="line",
+        style="video",
+        markers=True,
+        ci=95,
+        palette="colorblind",
+        err_style="bars",
+        err_kws={"capsize": 8.0, "capthick": 2.0},
     )
 
     # Draw minimum line
-    plt.plot([14, 14], [0, 100], color='gray',linewidth=1, linestyle="dotted")
+    plt.plot([14, 14], [0, 100], color="gray", linewidth=2, linestyle="dotted")
     plt.annotate(
         "min. latency",
         color="black",
@@ -149,7 +159,7 @@ def _plot(infile):
     # Tweak legend
     leg = plot._legend
     leg.set_title("")
-    leg.set_bbox_to_anchor([0.98,0.95])
+    leg.set_bbox_to_anchor([0.98, 0.95])
     leg._loc = 1
 
     sns.despine(bottom=True, left=True)
