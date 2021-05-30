@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import ttest_ind
 
 sns.set(style="whitegrid")
 sns.set_context("paper", font_scale=2.0, rc={"lines.linewidth": 2.25})
@@ -24,6 +25,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 FIGSIZE = (7, 6)
+
+def ttests(a, b, c):
+    res = ttest_ind(a, b)
+    logger.info(f"A vs. B: {res}")
+
+    res = ttest_ind(b, c)
+    logger.info(f"B vs. C: {res}")
 
 
 def _plot(infile):
@@ -172,6 +180,8 @@ def _plot(infile):
     pp.close()
     run(["pdfcrop", outfile, outfile], stdout=DEVNULL, check=True)
     logger.info(f"Plot saved to {outfile}")
+
+    ttests(data[data["e2e_delay"] == 14]["bitrate"], data[data["e2e_delay"] == 45]["bitrate"], data[data["e2e_delay"] == 81]["bitrate"])
 
 
 if __name__ == "__main__":
