@@ -2,9 +2,7 @@
 
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/lukehsiao/fvideo/rust)](https://github.com/lukehsiao/fvideo/actions)
 
-:construction: This is a work in progress.
-
-Low-latency foveated video encoding.
+Low-latency foveated video encoding prototype.
 
 ## Installation
 
