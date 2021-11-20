@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import ttest_ind
 
 sns.set(style="whitegrid")
-sns.set_context("paper", font_scale=2.0, rc={"lines.linewidth": 2.25})
+sns.set_context("paper", font_scale=2.3, rc={"lines.linewidth": 2.5})
 
 
 # Configure logging
@@ -148,19 +148,20 @@ def _plot(infile):
         style="video",
         markers=True,
         ci=95,
+        aspect=1.5,
         palette="colorblind",
         err_style="bars",
-        err_kws={"capsize": 8.0, "capthick": 2.0},
+        err_kws={"capsize": 10.0, "capthick": 3.0},
     )
 
     # Draw minimum line
-    plt.plot([14, 14], [0, 100], color="gray", linewidth=2, linestyle="dotted")
+    plt.plot([14, 14], [0, 100], color="gray", linewidth=3, linestyle="dotted")
     plt.annotate(
         "min. latency",
         color="black",
         xy=(14, 83),
-        xytext=(20, 95),
-        size=15,
+        xytext=(20, 90),
+        size=18,
         arrowprops=dict(color="black", arrowstyle="->"),
     )
 
@@ -173,7 +174,7 @@ def _plot(infile):
     sns.despine(bottom=True, left=True)
     plot.set(xlabel="End-to-end Latency (ms)")
     plot.set(ylabel="Bitrate (% of baseline)")
-    plot.set(xlim=(0, 90), ylim=(0, 100))
+    plot.set(xlim=(0, 85), ylim=(0, 100))
     outfile = "user_study.pdf"
     pp = PdfPages(outfile)
     pp.savefig(plot._fig.tight_layout())
