@@ -1,6 +1,7 @@
 # fvideo
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lukehsiao/fvideo/rust.yml)](https://github.com/lukehsiao/fvideo/actions/workflows/rust.yml)
+![Maintenance](https://img.shields.io/maintenance/no/2021)
 
 Low-latency foveated video encoding prototype.
 
