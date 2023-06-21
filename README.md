@@ -25,8 +25,11 @@ sudo add-apt-repository ppa:jonathonf/ffmpeg-4
 Next, you must install Eyelink's libraries.
 
 ```
-wget -O - "http://download.sr-support.com/software/dists/SRResearch/SRResearch_key" | sudo apt-key add -
-sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main"
+sudo add-apt-repository universe
+sudo apt update
+sudo apt install ca-certificates
+sudo apt-key adv --fetch-keys https://apt.sr-research.com/SRResearch_key
+sudo add-apt-repository 'deb [arch=amd64] https://apt.sr-research.com SRResearch main'
 sudo apt update
 sudo apt install eyelink-display-software
 ```

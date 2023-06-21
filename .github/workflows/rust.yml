@@ -7,14 +7,16 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
-      - id: deps
+      - name: Install system deps
         run: sudo apt-get update && sudo apt-get install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
-      - id: eyelink1
-        run: wget -O - "http://download.sr-support.com/software/dists/SRResearch/SRResearch_key" | sudo apt-key add -
-      - id: eyelink2
-        run: sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main" && sudo apt-get update
-      - id: eyelink3
-        run: sudo apt-get update && sudo apt-get install eyelink-display-software
+      - name: Enable universe
+        run: sudo add-apt-repository universe && sudo apt-get update && sudo apt-get install ca-certificates
+      - name: Install eyelink signing key
+        run: sudo apt-key adv --fetch-keys https://apt.sr-research.com/SRResearch_key
+      - name: Add SRResearch apt repository
+        run: sudo add-apt-repository 'deb [arch=amd64] https://apt.sr-research.com SRResearch main' && sudo apt-get update
+      - name: Install eyelink SDK
+        run: sudo apt-get install eyelink-display-software
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -37,14 +39,16 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - id: deps
+      - name: Install system deps
         run: sudo apt-get update && sudo apt-get install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
-      - id: eyelink1
-        run: wget -O - "http://download.sr-support.com/software/dists/SRResearch/SRResearch_key" | sudo apt-key add -
-      - id: eyelink2
-        run: sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main" && sudo apt-get update
-      - id: eyelink3
-        run: sudo apt-get update && sudo apt-get install eyelink-display-software
+      - name: Enable universe
+        run: sudo add-apt-repository universe && sudo apt-get update && sudo apt-get install ca-certificates
+      - name: Install eyelink signing key
+        run: sudo apt-key adv --fetch-keys https://apt.sr-research.com/SRResearch_key
+      - name: Add SRResearch apt repository
+        run: sudo add-apt-repository 'deb [arch=amd64] https://apt.sr-research.com SRResearch main' && sudo apt-get update
+      - name: Install eyelink SDK
+        run: sudo apt-get install eyelink-display-software
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
         with:
