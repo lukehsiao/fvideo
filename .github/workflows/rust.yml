@@ -3,28 +3,6 @@ on: [push, pull_request]
 name: rust
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - id: deps
-        run: sudo apt-get update && sudo apt-get install libx264-dev ffmpeg libavutil-dev libavformat-dev libavfilter-dev libavdevice-dev llvm-dev libudev-dev
-      - id: eyelink1
-        run: wget -O - "http://download.sr-support.com/software/dists/SRResearch/SRResearch_key" | sudo apt-key add -
-      - id: eyelink2
-        run: sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main" && sudo apt-get update
-      - id: eyelink3
-        run: sudo apt-get update && sudo apt-get install eyelink-display-software
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -37,31 +15,23 @@ jobs:
         run: sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main" && sudo apt-get update
       - id: eyelink3
         run: sudo apt-get update && sudo apt-get install eyelink-display-software
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - name: Run tests
+        run: cargo nextest run
 
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+          components: rustfmt
+      - name: Enforce formatting
+        run: cargo fmt --check
 
   clippy:
     name: Clippy
@@ -75,14 +45,9 @@ jobs:
         run: sudo add-apt-repository "deb http://download.sr-support.com/software SRResearch main" && sudo apt-get update
       - id: eyelink3
         run: sudo apt-get update && sudo apt-get install eyelink-display-software
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+          components: clippy
+      - name: Linting
+        run: cargo clippy --all-targets --all-features -- -D warnings
